@@ -1,5 +1,7 @@
 #include "DisplayBoard.hpp"
 
+//Пока выглядит грустно, но что поделать
+
 Display::Display(Board& board)
 : board_(board) {
 }
