@@ -1,9 +1,14 @@
 #pragma once
 
+#include "nlohmann/json.hpp"
+
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
+
+using json = nlohmann::json;
+
 
 void ViewHistory(const std::vector<std::string>& vec);
 
@@ -15,7 +20,7 @@ public:
 
   virtual void ViewHistory() const = 0;
 
-  void PrintTheme() const;
+  inline void PrintTheme() const;
 };
 
 class Champions: public ChessHistory {
