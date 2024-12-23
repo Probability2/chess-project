@@ -104,3 +104,4 @@ public:
 private:
   std::vector<int32_t> colours_;
 };
+
