@@ -64,6 +64,6 @@ void Champions::ViewHistory() const {
             << "Gukesh:     2024 - ...\n";
 }
 
-void ChessHistory::PrintTheme() const {
+inline void ChessHistory::PrintTheme() const {
   std::cout << "Chess History:\n";
 }
