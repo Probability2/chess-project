@@ -15,4 +15,22 @@ target_link_libraries(${PROJECT_NAME} PRIVATE flag_class)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 
+set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/libs/mygui")
+
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+)
+
+
+include_directories(${IMGUI_DIR})
+
+add_library(imgui STATIC ${IMGUI_SOURCES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
+
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
