@@ -1,106 +1,69 @@
-#pragma once
+#include "History.hpp"
 
-#include "ChessFormat.hpp"
+std::size_t ChessHistory::calls = 0;
 
-#include <memory>
+void ViewHistory(const std::vector<std::string>& vec) {
+  for (std::string str: vec) {
+    std::unique_ptr<ChessHistory> history;
+    if (str == "champions") {
+      history = std::make_unique<Champions>();
+    } else if (str == "records") {
+      history = std::make_unique<Records>();
+    } else if (str == "history_game") {
+      history = std::make_unique<HistoryGame>();
+    } else if (str == "nowadays") {
+      history = std::make_unique<Nowadays>();
+    } else {
+      history = std::make_unique<Introduction>();
+    }
+    history->ViewHistory();
+  }
+}
 
-const std::vector<char> kEmptyRow(ChessData::kMaxInd, 'o');
+void Records::ViewHistory() const {
+  std::cout << "Records\n";
+}
 
-const std::vector<char> kBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
+void HistoryGame::ViewHistory() const {
+  std::cout << "India\n";
+}
 
-const std::size_t kSquareLength = 6;
+void Nowadays::ViewHistory() const {
+  std::cout << "Nowadays chess is becoming more and more popular, especially after COVID-19, when people have started "
+            << "online.\n"
+            << "The most presigious chess tournament in the world except of World Classical Championship are:\n"
+            << "Norway chess\nTata-Steel-Classic\nWorld Cup\nGrand Swiss\nSinquifield Cup\n World Rapid, Blitz Championsips\n";
+}
 
-const std::size_t kSquareHeight = 11;
+void Introduction::ViewHistory() const {
+  std::cout << "Introduction\n";
+}
 
-const std::vector<std::string> kEmptySquareImage = {"           ",
-                                                    "           ",
-                                                    "           ",
-                                                    "           ",
-                                                    "           ",
-                                                    "           "};
 
-const std::vector<std::string> kBishopImage = {"     |     ",
-                                               "    / \\    ",
-                                               "   |   |   ",
-                                               "   \\   /   ",
-                                               "  __|___|_ "};
+void Champions::ViewHistory() const {
+  std::cout << "Steinitz:   1886 - 1894\n"
+            << "Lasker:     1894 - 1921\n"
+            << "Capablanca: 1921 - 1927\n"
+            << "Alekhine:   1927 - 1935;\n"
+            << "            1937 - 1946\n"
+            << "Euwe:       1935 - 1937\n"
+            << "Botvinnik:  1948 - 1957;\n"
+            << "            1958 - 1960;\n"
+            << "            1961 - 1963\n"
+            << "Smyslov:    1957 - 1958\n"
+            << "Tal:        1960 - 1961\n"
+            << "Petrosyan:  1963 - 1969\n"
+            << "Spassky:    1969 - 1972\n"
+            << "Fisher:     1972 - 1975\n"
+            << "Karpov:     1975 - 1985\n"
+            << "Kasparov:   1985 - 2000\n"
+            << "Kramnik:    2000 - 2007\n"
+            << "Anand:      2007 - 2013\n"
+            << "Carlsen:    2013 - 2023\n"
+            << "Ding:       2023 - 2024\n"
+            << "Gukesh:     2024 - ...\n";
+}
 
-const std::vector<std::string> kPawnImage =   {"   _|=|_   ",
-                                               "  |__ __|  ",
-                                               "    | |    ",
-                                               "   /   \\   ",
-                                               "  |_____|  "};
-                                               
-const std::vector<std::string> kRookImage =   {"|-|_|-|_|-|",
-                                               "|__     __|",
-                                               "  |     |  ",
-                                               " _|     |_ ",
-                                               "|_________|"};
-
-const std::vector<std::string> kKingImage =   {"      +_   ",
-                                               "   __/ \\__ ",
-                                               "  \\|\\_/_|_/",
-                                               "   \\|||||/ ",
-                                               "    |||||  ",
-                                               "   /_____\\ "};
-
-const std::vector<std::string> kQuennImage =  {"   \\\\ | // ",
-                                               "    \\_|_/  ",
-                                               "    |||||  ",
-                                               "    -----  ",
-                                               "   /|||||\\ "};
-
-const std::vector<std::string> kKnightImage = {"   /|___   ",
-                                               "  /   _ \\  ",
-                                               "  \\_/\\ / \\ ",
-                                               "     /   |_",
-                                               "    /_____|"};
-
-const std::vector<std::vector<std::string>> kPieceConsoleImages = {kPawnImage, kKnightImage, kBishopImage,
-                                                             kRookImage, kQuennImage, kKingImage};
-
-class Display {
-public:
-  //Display() = delete;
-
-  Display(Board&); 
-  
-  virtual void Set() = 0;
-
-  Board& board_;
-
-};
-
-class Console: public Display {
-public:
-  Console() = delete;
-
-  Console(Board&);
-
-  void Set() override;
-
-  std::vector<std::vector<std::vector<std::string>>> GetBoard() const;
-
-  void Print();
-
-private:
-  std::vector<std::vector<std::vector<std::string>>> cboard_;
-
-  void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
-
-  void SetPossPiece(const std::vector<std::string>& poss, const std::vector<std::string>& name);
-
-  void SetPossPiece(const std::string& pos, const std::vector<std::string>& name);
-
-  inline void PrintLine() const;
-
-};
-
-class BMP: public Display {
-public:
-  BMP() = delete;
-
-  void Set() override;
-private:
-  std::vector<int32_t> colours_;
-};
+inline void ChessHistory::PrintTheme() const {
+  std::cout << "Chess History:\n";
+}
