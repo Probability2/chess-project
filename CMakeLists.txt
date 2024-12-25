@@ -14,24 +14,17 @@ if(WIN32) # Install dlls in the same directory as the executable on Windows
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 endif()
 
+add_subdirectory(src)
 add_subdirectory(lib)
 add_subdirectory(parser)
 add_subdirectory(puzzle)
 add_subdirectory(engine)
-add_subdirectory(src)
 
 include(FetchContent)
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
-
-
-find_package( OpenGL REQUIRED )
-
-set( GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE )
-set( GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE )
-set( GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE )
 
 add_subdirectory( ${PROJECT_SOURCE_DIR}/libs/GLFW  )
 
