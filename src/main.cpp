@@ -6,12 +6,6 @@
 
 #include <conio.h>
 
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"  // Пример для GLFW
-#include "backends/imgui_impl_opengl3.h"  // Пример для OpenGL
-
-//#include <GLFW/glfw3.h>
-
 const int kEscapeCode = 0x1b;
 
 int main(int argc, char** argv) {
