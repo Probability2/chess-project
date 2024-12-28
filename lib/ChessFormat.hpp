@@ -1,5 +1,8 @@
 #pragma once
+
 #include "ChessPiece.hpp"
+
+#include <fstream>
 #include <cstring>
 
 const std::size_t kCountPiece = 10;
@@ -10,6 +13,13 @@ public:
 
   void SetPosition();
 
+  void SaveImage() const;
+
+  void SaveFEN() const;
+
+  void GetFromImage(const std::string& file_name);
+
+  void GetFromFEN(const std::string& file_name);
 //, typename std::enable_if<std::is_same<T, White>::value || std::is_same<T, Black>::value, int>::type = 0
 
   void SetPosition(ChessPiece& piece, const std::string& str) {
@@ -75,6 +85,10 @@ private:
   Quenn b_quenns_;
   King w_king_;
   King b_king_;
+
+  void ReadImage(std::ifstream& file);
+
+  void ReadPosition(const char piece, const std::string& pos);
 
   void SetColoursPosition(const std::size_t in_state);
 
