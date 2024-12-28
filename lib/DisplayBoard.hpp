@@ -96,10 +96,10 @@ public:
   void Print() override final;
   //~ConsoleImage() = default;
 
-  void Set() override final;
-
   std::vector<std::vector<std::vector<std::string>>> GetBoard() const;
 private:
+  void Set() override final;
+
   std::vector<std::vector<std::vector<std::string>>> cboard_;
 
   void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
@@ -113,11 +113,11 @@ public:
 
   void Print() override final;
 
-  void Set() override final;
-
   std::vector<std::vector<char>> GetBoard() const;
 
 private:
+  void Set() override final;
+
   std::vector<std::vector<char>> cboard_;
 };
 
@@ -129,3 +129,4 @@ public:
 private:
   std::vector<int32_t> colours_;
 };
+
