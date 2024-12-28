@@ -3,10 +3,13 @@
 #include "ChessFormat.hpp"
 
 #include <memory>
+#include <type_traits>
 
-const std::vector<char> kEmptyRow(ChessData::kMaxInd, 'o');
+const std::vector<char> kEmptyRow(ChessData::kMaxInd, '.');
 
-const std::vector<char> kBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
+const std::vector<char> kWhiteBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
+
+const std::vector<char> kBlackBasicNames = {'p', 'n', 'b', 'r', 'q', 'k'};
 
 const std::size_t kSquareLength = 6;
 
@@ -60,40 +63,62 @@ const std::vector<std::vector<std::string>> kPieceConsoleImages = {kPawnImage, k
                                                              kRookImage, kQuennImage, kKingImage};
 
 class Display {
-public:
-  //Display() = delete;
+protected:
+  Display() = delete;
 
   Display(Board&); 
+
+  virtual ~Display() = default;
   
   virtual void Set() = 0;
 
   Board& board_;
-
 };
 
-class Console: public Display {
-public:
+class Console: protected Display {
+protected:
   Console() = delete;
 
   Console(Board&);
 
-  void Set() override;
+  virtual ~Console() = default;
+
+  virtual void Set() = 0;
+
+  virtual void Print() = 0;
+};
+
+
+class ConsoleImage: public Console {
+public:
+  ConsoleImage(Board& board);
+
+  void Print() override final;
+  //~ConsoleImage() = default;
+
+  void Set() override final;
 
   std::vector<std::vector<std::vector<std::string>>> GetBoard() const;
-
-  void Print();
-
 private:
   std::vector<std::vector<std::vector<std::string>>> cboard_;
 
   void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
 
-  void SetPossPiece(const std::vector<std::string>& poss, const std::vector<std::string>& name);
-
-  void SetPossPiece(const std::string& pos, const std::vector<std::string>& name);
-
   inline void PrintLine() const;
+};
 
+class ConsoleDefault: public Console {
+public:
+  ConsoleDefault(Board& board);
+
+  void Print() override final;
+
+  void Set() override final;
+
+  std::vector<std::vector<char>> GetBoard() const;
+
+private:
+  std::vector<std::vector<char>> cboard_;
 };
 
 class BMP: public Display {
@@ -104,4 +129,3 @@ public:
 private:
   std::vector<int32_t> colours_;
 };
-
