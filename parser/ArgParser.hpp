@@ -22,7 +22,7 @@ class ArgParser {
   public:
     ArgParser(const std::string& name);
 
-    void SetUpParser(std::vector<std::string>& history_args);
+    void SetUpParser();
 
     void DisplayError();
 
