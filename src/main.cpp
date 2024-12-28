@@ -1,3 +1,5 @@
+#define UNICODE
+
 #include "lib/History.hpp"
 #include "lib/ChessPiece.hpp"
 #include "lib/ChessFormat.hpp"
@@ -9,18 +11,24 @@
 const int kEscapeCode = 0x1b;
 
 int main(int argc, char** argv) {
+  system("chcp 65001");
+
   ArgumentParser::ArgParser parser("ChessProject");
-  std::vector<std::string> history_args;
+  parser.SetUpParser();
   std::vector<std::string> moves;
-  parser.SetUpParser(history_args);
 
   if (!parser.Parse(argc, argv)) {
     parser.DisplayError();
     return EXIT_FAILURE;
   }
-
+  if (parser.Help()) {  
+    std::cout << parser.HelpDescription() << '\n';
+    return EXIT_SUCCESS;
+  }
+  std::cout << "שלום\n";
+  std::cout << "Привет\n";
   Board board;
-  Console console(board);
+  ConsoleDefault console(board);
   for (;;) {
     if (_getch() == kEscapeCode) {
       return EXIT_SUCCESS;
@@ -35,6 +43,10 @@ int main(int argc, char** argv) {
       board.SetPosition();
     } else if (request == "escape") {
       return EXIT_SUCCESS;
+    } else if (request == "change") {
+
+    } else if (request == "start") {
+
     } else {
       continue;
     }
