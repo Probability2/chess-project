@@ -70,11 +70,11 @@ std::string Board::GetPosKing() {
 void Board::SetPosition() {
   std::cout << "White:\n";
   SetColoursPosition(0);
-  std::cout << "King: \n";
+  std::cout << "White King: ";
   w_king_.SetPosition(GetPosKing());
   std::cout << "Black:\n";
   SetColoursPosition(kCountPiece / 2);
-  std::cout << "King: \n";
+  std::cout << "Black King: ";
   b_king_.SetPosition(GetPosKing());
 }
 
@@ -91,16 +91,75 @@ void Board::SetDefault() {
   b_quenns_.AddPositions("d8");
   w_king_.SetPosition("e1");
   b_king_.SetPosition("e8");
+}
 
-  std::cout << "I am your father\n";
-  for (std::size_t i = 0; i < w_knights_.GetPositions().size(); ++i) {
-    std::cout << w_knights_.GetPositions()[i] << ' ';
+void Board::ReadPosition(const char piece, const std::string& pos) {
+  switch (piece) {
+    case 'p':
+      b_pawns_.AddPositions(pos);
+      break;
+    case 'P':
+      w_pawns_.AddPositions(pos);
+      break;
+    case 'n':
+      b_knights_.AddPositions(pos);
+      break;
+    case 'N':
+      w_knights_.AddPositions(pos);
+      break;
+    case 'b':
+      b_pawns_.AddPositions(pos);
+      break;
+    case 'B':
+      w_pawns_.AddPositions(pos);
+      break;
+    case 'r':
+      b_knights_.AddPositions(pos);
+      break;
+    case 'R':
+      w_knights_.AddPositions(pos);
+      break;
+    case 'k':
+      b_knights_.AddPositions(pos);
+      break;
+    case 'K':
+      w_knights_.AddPositions(pos);
+      break;
+    default:
+      std::cerr << "Cannot read position\n";
+      break;
   }
-  std::cout << '\n';
+}
+
+void Board::ReadImage(std::ifstream& file) {
+  std::string line;
+  std::size_t k = 0;
+  while (std::getline(file, line) || k++) {
+    for (std::size_t i = 0; i < line.length(); ++i) {
+      ReadPosition(line[i], std::string() + static_cast<char>('a' + i) + static_cast<char>(k));
+    }
+  }
+}
+
+void Board::GetFromImage(const std::string& file_name) {
+  std::ifstream file(file_name, std::ios::in);
+  if (!file) {
+    std::cerr << "File " << file_name << " is not found\n";
+    std::exit(EXIT_FAILURE);
+  }
+  ReadImage(file);
 }
 
 const Pawn& Board::GetWhitePawns() const {
   return w_pawns_;
+}
+
+void Board::SaveImage() const {
+  //std::ofstream("hello.txt", std::in);
+}
+
+void Board::SaveFEN() const {
+  //std::ofstream("hello.txt", std::in);
 }
 
 const Pawn& Board::GetBlackPawns() const {
