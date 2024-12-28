@@ -473,9 +473,9 @@ bool ArgParser::Parse(const std::vector<std::string>& parser_string) {
           is_help_set_ = true;
           return true;
         }
-        //if (!CheckLongFlag(long_parameter)) {
-        //  return false;
-        //}
+        if (!CheckLongFlag(long_parameter)) {
+          return false;
+        }
       }
     } else {
       std::cout << parser_string[i] << " argvvvvv\n";
@@ -494,15 +494,14 @@ bool ArgParser::Parse(const std::vector<std::string>& parser_string) {
     }
   }
 
-  return true;
-  // if (is_help_set_) {
-  //   return true;
-  // }
-  // if (!SetDefaultValue()) {
-  //   return false;
-  // }
+  if (is_help_set_) {
+    return true;
+  }
+  if (!SetDefaultValue()) {
+    return false;
+  }
 
-  // return IsArgumentsCorrect();
+  return IsArgumentsCorrect();
 }
 
 bool ArgParser::Parse(std::size_t argc, char* argv[]) {
@@ -703,10 +702,10 @@ bool ArgParser::IsIntArgSet(const std::string& int_parameter) const {
   return false;
 }
 
-void ArgParser::SetUpParser(std::vector<std::string>& history_args) {
-  this->AddStringArgument("history", "Outputs the history of chess").MultiValue(1).Positional().StoreValues(history_args);
+void ArgParser::SetUpParser() {
   this->AddHelp('h', "help", "Help of programm");
   this->AddStringArgument('c', "create", "Creates a game").Default("standard");
+  this->AddStringArgument('l', "language", "Sets a language. The Possible languages are English, Russian, Hebrew").Default("en");
 }
 
 void ArgParser::DisplayError() {
