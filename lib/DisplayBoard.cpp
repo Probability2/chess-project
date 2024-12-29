@@ -27,18 +27,11 @@ std::vector<std::vector<char>> ConsoleDefault::GetBoard() const {
 }
 
 inline void ConsoleImage::PrintLine() const {
-  for (std::size_t i = 0; i < (kSquareHeight + 1) * ChessData::kMaxInd; ++i) {
-    std::cout << '-';
-  }
-  std::cout << '\n';
+  std::cout << std::string((kSquareHeight + 1) * ChessData::kMaxInd, '-') << '\n';
 }
 
-void ConsoleImage::PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const {
-  if (ind >= vec.size()) {
-    std::cout << ' ';
-    return;
-  }
-  std::cout << vec[ind];
+inline void ConsoleImage::PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const {
+  std::cout << (ind < vec.size() ? vec[ind] : " ");
 }
 
 void ConsoleImage::Print() {
@@ -56,7 +49,6 @@ void ConsoleImage::Print() {
 }
 
 void ConsoleDefault::Print() {
-  std::cout << "Print\n";
   this->Set();
   for (auto row: cboard_) {
     for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
@@ -67,33 +59,39 @@ void ConsoleDefault::Print() {
 }
 
 void ConsoleImage::Set() {
-  SetPossPiece<std::vector<std::string>>(board_.GetWhitePawns().GetPositions(), kPieceConsoleImages[0], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackPawns().GetPositions(), kPieceConsoleImages[0], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetWhiteKnights().GetPositions(), kPieceConsoleImages[1], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackKnights().GetPositions(), kPieceConsoleImages[1], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetWhiteBishops().GetPositions(), kPieceConsoleImages[2], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackBishops().GetPositions(), kPieceConsoleImages[2], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetWhiteRooks().GetPositions(), kPieceConsoleImages[3], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackRooks().GetPositions(), kPieceConsoleImages[3], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetWhiteQuenns().GetPositions(), kPieceConsoleImages[4], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackQuenns().GetPositions(), kPieceConsoleImages[4], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetWhiteKing().GetPosition(), kPieceConsoleImages[5], cboard_);
-  SetPossPiece<std::vector<std::string>>(board_.GetBlackKing().GetPosition(), kPieceConsoleImages[5], cboard_);
+  auto bound_function = [this](auto a, auto b) {
+    SetPossPiece<std::vector<std::string>>(a, b, cboard_);
+  };
+  bound_function(board_.GetWhitePawns().GetPositions(), kPieceConsoleImages[0]);
+  bound_function(board_.GetBlackPawns().GetPositions(), kPieceConsoleImages[0]);
+  bound_function(board_.GetWhiteKnights().GetPositions(), kPieceConsoleImages[1]);
+  bound_function(board_.GetBlackKnights().GetPositions(), kPieceConsoleImages[1]);
+  bound_function(board_.GetWhiteBishops().GetPositions(), kPieceConsoleImages[2]);
+  bound_function(board_.GetBlackBishops().GetPositions(), kPieceConsoleImages[2]);
+  bound_function(board_.GetWhiteRooks().GetPositions(), kPieceConsoleImages[3]);
+  bound_function(board_.GetBlackRooks().GetPositions(), kPieceConsoleImages[3]);
+  bound_function(board_.GetWhiteQuenns().GetPositions(), kPieceConsoleImages[4]);
+  bound_function(board_.GetBlackQuenns().GetPositions(), kPieceConsoleImages[4]);
+  bound_function(board_.GetWhiteKing().GetPosition(), kPieceConsoleImages[5]);
+  bound_function(board_.GetBlackKing().GetPosition(), kPieceConsoleImages[5]);
 }
 
 void ConsoleDefault::Set() {
-  SetPossPiece<char>(board_.GetWhitePawns().GetPositions(), kWhiteBasicNames[0], cboard_);
-  SetPossPiece<char>(board_.GetBlackPawns().GetPositions(), kBlackBasicNames[0], cboard_);
-  SetPossPiece<char>(board_.GetWhiteKnights().GetPositions(), kWhiteBasicNames[1], cboard_);
-  SetPossPiece<char>(board_.GetBlackKnights().GetPositions(), kBlackBasicNames[1], cboard_);
-  SetPossPiece<char>(board_.GetWhiteBishops().GetPositions(), kWhiteBasicNames[2], cboard_);
-  SetPossPiece<char>(board_.GetBlackBishops().GetPositions(), kBlackBasicNames[2], cboard_);
-  SetPossPiece<char>(board_.GetWhiteRooks().GetPositions(), kWhiteBasicNames[3], cboard_);
-  SetPossPiece<char>(board_.GetBlackRooks().GetPositions(), kBlackBasicNames[3], cboard_);
-  SetPossPiece<char>(board_.GetWhiteQuenns().GetPositions(), kWhiteBasicNames[4], cboard_);
-  SetPossPiece<char>(board_.GetBlackQuenns().GetPositions(), kBlackBasicNames[4], cboard_);
-  SetPossPiece<char>(board_.GetWhiteKing().GetPosition(), kWhiteBasicNames[5], cboard_);
-  SetPossPiece<char>(board_.GetBlackKing().GetPosition(), kBlackBasicNames[5], cboard_);
+  auto bound_function = [this](auto a, auto b) {
+    SetPossPiece<char>(a, b, cboard_);
+  };
+  bound_function(board_.GetWhitePawns().GetPositions(), kWhiteBasicNames[0]);
+  bound_function(board_.GetBlackPawns().GetPositions(), std::tolower(kWhiteBasicNames[0]));
+  bound_function(board_.GetWhiteKnights().GetPositions(), kWhiteBasicNames[1]);
+  bound_function(board_.GetBlackKnights().GetPositions(), std::tolower(kWhiteBasicNames[1]));
+  bound_function(board_.GetWhiteBishops().GetPositions(), kWhiteBasicNames[2]);
+  bound_function(board_.GetBlackBishops().GetPositions(), std::tolower(kWhiteBasicNames[2]));
+  bound_function(board_.GetWhiteRooks().GetPositions(), kWhiteBasicNames[3]);
+  bound_function(board_.GetBlackRooks().GetPositions(), std::tolower(kWhiteBasicNames[3]));
+  bound_function(board_.GetWhiteQuenns().GetPositions(), kWhiteBasicNames[4]);
+  bound_function(board_.GetBlackQuenns().GetPositions(), std::tolower(kWhiteBasicNames[4]));
+  bound_function(board_.GetWhiteKing().GetPosition(), kWhiteBasicNames[5]);
+  bound_function(board_.GetBlackKing().GetPosition(), std::tolower(kWhiteBasicNames[5]));
 }
 
 void BMP::Set() {
