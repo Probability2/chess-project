@@ -41,6 +41,10 @@ int main(int argc, char** argv) {
       board.Clear();
     } else if (request == "set") {
       board.SetPosition();
+    } else if (request == "get from image") {
+      std::cout << "File name: ";
+      std::getline(std::cin, request);
+      board.GetFromImage(request);
     } else if (request == "escape") {
       return EXIT_SUCCESS;
     } else if (request == "change") {
@@ -50,7 +54,7 @@ int main(int argc, char** argv) {
     } else {
       continue;
     }
-    system("cls");
+    //system("cls");
     console.Print();
   }
 
