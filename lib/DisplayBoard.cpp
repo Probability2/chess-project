@@ -1,24 +1,5 @@
 #include "DisplayBoard.hpp"
 
-Display::Display(Board& board)
-: board_(board) {
-}
-
-Console::Console(Board& board)
-: Display(board) {
-}
-
-ConsoleImage::ConsoleImage(Board& board)
-: Console(board) {
-  cboard_ = std::vector<std::vector<std::vector<std::string>>>(ChessData::kMaxInd
-                                            , std::vector<std::vector<std::string>>(ChessData::kMaxInd, kEmptySquareImage));
-}
-
-ConsoleDefault::ConsoleDefault(Board& board)
-: Console(board) {
-  cboard_ = std::vector<std::vector<char>>(ChessData::kMaxInd, kEmptyRow);
-}
-
 template<typename T, typename std::enable_if<std::is_same<T, char>::value || std::is_same<T, std::vector<std::string>>::value>::type* = nullptr>
 void SetPossPiece(const std::vector<std::string>& poss, const T& name, std::vector<std::vector<T>>& cboard_) {
   if (poss.empty()) {
