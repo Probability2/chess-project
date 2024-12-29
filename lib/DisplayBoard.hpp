@@ -11,9 +11,9 @@ const std::vector<char> kWhiteBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
 
 const std::vector<char> kBlackBasicNames = {'p', 'n', 'b', 'r', 'q', 'k'};
 
-const std::size_t kSquareLength = 6;
+constexpr std::size_t kSquareLength = 6;
 
-const std::size_t kSquareHeight = 11;
+constexpr std::size_t kSquareHeight = 11;
 
 const std::vector<std::string> kEmptySquareImage = {"           ",
                                                     "           ",
@@ -71,8 +71,6 @@ protected:
   : board_(std::forward<T>(board)) {
   }
 
-  Display(Board&&);
-
   virtual ~Display() = default;
   
   virtual void Set() = 0;
@@ -115,7 +113,7 @@ private:
 
   std::vector<std::vector<std::vector<std::string>>> cboard_;
 
-  void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
+  inline void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
 
   inline void PrintLine() const;
 };
