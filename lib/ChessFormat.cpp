@@ -4,20 +4,11 @@ Board::Board(const Board& board) {
   *this = board;
 }
 
-Standard::Standard() {
-}
-
-FisherRandom::FisherRandom() {
-}
-
-void Standard::ViewBoard() const {
-}
-
-void FisherRandom::ViewBoard() const {
+Board::Board(Board&& board) {
+  *this = board;
 }
 
 Board& Board::operator=(const Board& board) {
-  std::cout << "operator=\n";
   if (this != &board) {
     this->w_pawns_ = board.GetWhitePawns();
     this->b_pawns_ = board.GetBlackPawns();
@@ -39,6 +30,18 @@ Board& Board::operator=(const Board& board) {
   }
 
   return *this;
+}
+
+Standard::Standard() {
+}
+
+FisherRandom::FisherRandom() {
+}
+
+void Standard::ViewBoard() const {
+}
+
+void FisherRandom::ViewBoard() const {
 }
 
 void Board::SetColoursPosition(const std::size_t in_state) {
@@ -94,6 +97,7 @@ void Board::SetDefault() {
 }
 
 void Board::ReadPosition(const char piece, const std::string& pos) {
+  std::cout << pos << " poss\n";
   switch (piece) {
     case 'p':
       b_pawns_.AddPositions(pos);
@@ -108,35 +112,40 @@ void Board::ReadPosition(const char piece, const std::string& pos) {
       w_knights_.AddPositions(pos);
       break;
     case 'b':
-      b_pawns_.AddPositions(pos);
+      b_bishops_.AddPositions(pos);
       break;
     case 'B':
-      w_pawns_.AddPositions(pos);
+      w_bishops_.AddPositions(pos);
       break;
     case 'r':
-      b_knights_.AddPositions(pos);
+      b_rooks_.AddPositions(pos);
       break;
     case 'R':
-      w_knights_.AddPositions(pos);
+      w_rooks_.AddPositions(pos);
+      break;
+    case 'q':
+      b_quenns_.AddPositions(pos);
+      break;
+    case 'Q':
+      w_quenns_.AddPositions(pos);
       break;
     case 'k':
-      b_knights_.AddPositions(pos);
+      b_king_.SetPosition(pos);
       break;
     case 'K':
-      w_knights_.AddPositions(pos);
+      w_king_.SetPosition(pos);
       break;
     default:
-      std::cerr << "Cannot read position\n";
       break;
   }
 }
 
 void Board::ReadImage(std::ifstream& file) {
   std::string line;
-  std::size_t k = 0;
-  while (std::getline(file, line) || k++) {
-    for (std::size_t i = 0; i < line.length(); ++i) {
-      ReadPosition(line[i], std::string() + static_cast<char>('a' + i) + static_cast<char>(k));
+  char k = ChessData::kMaxInd + '0' + 1;
+  while (std::getline(file, line) && k-->'0') {
+    for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
+      ReadPosition(line[i], std::string(1, 'a' + i) + std::string(1, k));
     }
   }
 }
@@ -148,6 +157,7 @@ void Board::GetFromImage(const std::string& file_name) {
     std::exit(EXIT_FAILURE);
   }
   ReadImage(file);
+  file.close();
 }
 
 const Pawn& Board::GetWhitePawns() const {
