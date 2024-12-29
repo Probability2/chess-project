@@ -66,7 +66,12 @@ class Display {
 protected:
   Display() = delete;
 
-  Display(Board&); 
+  template<typename T>
+  Display(T&& board)
+  : board_(std::forward<T>(board)) {
+  }
+
+  Display(Board&&);
 
   virtual ~Display() = default;
   
@@ -79,7 +84,10 @@ class Console: protected Display {
 protected:
   Console() = delete;
 
-  Console(Board&);
+  template<typename T>
+  Console(T&& board)
+  : Display(std::forward<T>(board)) {
+  }
 
   virtual ~Console() = default;
 
@@ -91,7 +99,12 @@ protected:
 
 class ConsoleImage: public Console {
 public:
-  ConsoleImage(Board& board);
+  template<typename T>
+  ConsoleImage(T&& board)
+  : Console(std::forward<T>(board)) {
+  cboard_ = std::vector<std::vector<std::vector<std::string>>>(ChessData::kMaxInd
+                                            , std::vector<std::vector<std::string>>(ChessData::kMaxInd, kEmptySquareImage));
+  }
 
   void Print() override final;
   //~ConsoleImage() = default;
@@ -109,7 +122,11 @@ private:
 
 class ConsoleDefault: public Console {
 public:
-  ConsoleDefault(Board& board);
+  template<typename T>
+  ConsoleDefault(T&& board)
+  : Console(std::forward<T>(board)) {
+    cboard_ = std::vector<std::vector<char>>(ChessData::kMaxInd, kEmptyRow);
+  }
 
   void Print() override final;
 
@@ -125,8 +142,8 @@ class BMP: public Display {
 public:
   BMP() = delete;
 
-  void Set() override;
 private:
+  void Set() override;
+
   std::vector<int32_t> colours_;
 };
-
