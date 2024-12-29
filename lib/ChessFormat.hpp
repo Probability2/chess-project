@@ -5,11 +5,13 @@
 #include <fstream>
 #include <cstring>
 
-const std::size_t kCountPiece = 10;
+constexpr std::size_t kCountPiece = 10;
 
 class Board {
 public:
   Board() = default;
+
+  Board(Board&&);
 
   void SetPosition();
 
@@ -128,14 +130,6 @@ public:
 
 private:
   
-};
-
-class ThreePlayers: public ChessFormat {
-
-};
-
-class FourPlayers: public ChessFormat {
-
 };
 
 class Crazyhouse: public ChessFormat {
