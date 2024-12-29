@@ -53,13 +53,9 @@ void Board::SetColoursPosition(const std::size_t in_state) {
 }
 
 void Board::InputCoords(const std::size_t ind) {
-  std::string pos = "mashehu";
-  while (!pos.empty()) {
-    std::getline(std::cin, pos);
-    if (pos.empty()) {
-      break;
-    }
-    this->SetPosition(*pieces_[ind], pos);
+  std::string pos;
+  while (std::getline(std::cin, pos) && !pos.empty()) {
+      this->SetPosition(*pieces_[ind], pos);
   }
 }
 
