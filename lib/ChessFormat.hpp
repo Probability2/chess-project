@@ -15,13 +15,6 @@ public:
 
   void SetPosition();
 
-  void SaveImage() const;
-
-  void SaveFEN() const;
-
-  void GetFromImage(const std::string& file_name);
-
-  void GetFromFEN(const std::string& file_name);
 //, typename std::enable_if<std::is_same<T, White>::value || std::is_same<T, Black>::value, int>::type = 0
 
   void SetPosition(ChessPiece& piece, const std::string& str) {
@@ -88,8 +81,6 @@ private:
   King w_king_;
   King b_king_;
 
-  void ReadImage(std::ifstream& file);
-
   void ReadPosition(const char piece, const std::string& pos);
 
   void SetColoursPosition(const std::size_t in_state);
@@ -98,12 +89,18 @@ private:
 
   std::string GetPosKing();
 
+  void FindBasicPiece(const char piece, const std::string& pos);
+
   std::array<ChessPiece*, kCountPiece> pieces_ = {&w_pawns_, &w_knights_, &w_bishops_, &w_rooks_, &w_quenns_
                                                  ,&b_pawns_, &b_knights_, &b_bishops_, &b_rooks_, &b_quenns_};
 
   std::array<std::string, kCountPiece> pnames_ = {"White Pawns", "White Knights", "White Bishops", "White Rooks"
                                                  ,"White Queens", "Black Pawns", "Black Knights", "Black Bishops"
                                                  , "Black Rooks", "Black Queens"};
+                                                
+  std::array<char, kCountPiece> pchars_ = {'P', 'N', 'B', 'R', 'Q', 'p', 'n', 'b', 'r', 'q'};
+  
+  friend class FileManager;
                                                  
 };
 
