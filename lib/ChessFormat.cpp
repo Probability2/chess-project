@@ -92,80 +92,24 @@ void Board::SetDefault() {
   b_king_.SetPosition("e8");
 }
 
+void Board::FindBasicPiece(const char piece, const std::string& pos) {
+  auto it = std::find(pchars_.begin(), pchars_.end(), piece);
+  if (it != pchars_.end()) {
+    pieces_[std::distance(pchars_.begin(), it)]->AddPositions(pos);
+  }
+}
+
 void Board::ReadPosition(const char piece, const std::string& pos) {
-  std::cout << pos << " poss\n";
-  switch (piece) {
-    case 'p':
-      b_pawns_.AddPositions(pos);
-      break;
-    case 'P':
-      w_pawns_.AddPositions(pos);
-      break;
-    case 'n':
-      b_knights_.AddPositions(pos);
-      break;
-    case 'N':
-      w_knights_.AddPositions(pos);
-      break;
-    case 'b':
-      b_bishops_.AddPositions(pos);
-      break;
-    case 'B':
-      w_bishops_.AddPositions(pos);
-      break;
-    case 'r':
-      b_rooks_.AddPositions(pos);
-      break;
-    case 'R':
-      w_rooks_.AddPositions(pos);
-      break;
-    case 'q':
-      b_quenns_.AddPositions(pos);
-      break;
-    case 'Q':
-      w_quenns_.AddPositions(pos);
-      break;
-    case 'k':
-      b_king_.SetPosition(pos);
-      break;
-    case 'K':
-      w_king_.SetPosition(pos);
-      break;
-    default:
-      break;
+  FindBasicPiece(piece, pos);
+  if (piece == 'K') {
+    w_king_.SetPosition(pos);
+  } else if (piece == 'k') {
+    b_king_.SetPosition(pos);
   }
-}
-
-void Board::ReadImage(std::ifstream& file) {
-  std::string line;
-  char k = ChessData::kMaxInd + '0' + 1;
-  while (std::getline(file, line) && k-->'0') {
-    for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-      ReadPosition(line[i], std::string(1, 'a' + i) + std::string(1, k));
-    }
-  }
-}
-
-void Board::GetFromImage(const std::string& file_name) {
-  std::ifstream file(file_name, std::ios::in);
-  if (!file) {
-    std::cerr << "File " << file_name << " is not found\n";
-    std::exit(EXIT_FAILURE);
-  }
-  ReadImage(file);
-  file.close();
 }
 
 const Pawn& Board::GetWhitePawns() const {
   return w_pawns_;
-}
-
-void Board::SaveImage() const {
-  //std::ofstream("hello.txt", std::in);
-}
-
-void Board::SaveFEN() const {
-  //std::ofstream("hello.txt", std::in);
 }
 
 const Pawn& Board::GetBlackPawns() const {
@@ -217,7 +161,6 @@ Pawn Board::GetAllPawns() const {
 }
 
 Knight Board::GetAllKnights() const {
-
   return w_knights_ + b_knights_;
 }
 
@@ -226,7 +169,6 @@ Bishop Board::GetAllBishops() const {
 }
 
 Rook Board::GetAllRooks() const {
-
   return w_rooks_ + b_rooks_;
 }
 
