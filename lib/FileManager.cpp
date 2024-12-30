@@ -15,11 +15,19 @@ FileManager& FileManager::operator=(const FileManager& manager) {
 }
 
 void FileManager::SaveImage() {
-  //std::ofstream("hello.txt", std::in);
+  ++call_;
+  std::ofstream file(CreateName(), std::ios::out);
+  file.close();
 }
 
 void FileManager::SaveFEN() {
-  //std::ofstream("hello.txt", std::in);
+  ++call_;
+  std::ofstream file(CreateName(), std::ios::out);
+  file.close();
+}
+
+std::string FileManager::CreateName() {
+  return kFilePrefix + std::to_string(call_) + "txt";
 }
 
 void FileManager::GetFromFEN(const std::string& file_name) {
