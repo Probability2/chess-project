@@ -17,6 +17,23 @@ FileManager& FileManager::operator=(const FileManager& manager) {
 void FileManager::SaveImage() {
   ++call_;
   std::ofstream file(CreateName(), std::ios::out);
+  if (!file) {
+    std::cerr << "Cannot create the file" << '\n';
+    std::exit(EXIT_FAILURE);
+  }
+  std::vector<std::vector<char>> display(ChessData::kMaxInd, std::vector<char>(ChessData::kMaxInd, '.'));
+  for (std::size_t i = 0; i < board_.pieces_.size(); ++i) {
+    for (auto pos: board_.pieces_[i]->GetPositions()) {
+      display[pos[1] - '0' - 1][pos[0] - 'a'] = board_.pchars_[i];
+    }
+  }
+  for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
+    for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
+      file << display[i][j];
+    }
+    file << '\n';
+  }
+
   file.close();
 }
 
