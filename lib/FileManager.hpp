@@ -25,5 +25,7 @@ private:
 
   static std::size_t call_;
 
+  static std::string CreateName();
+
   static void ReadImage(std::ifstream& file);
 };
