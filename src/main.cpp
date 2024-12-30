@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     } else {
       continue;
     }
-    //system("cls");
+    system("cls");
     console.Print();
   }
 
