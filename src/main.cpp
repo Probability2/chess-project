@@ -3,8 +3,10 @@
 #include "lib/History.hpp"
 #include "lib/ChessPiece.hpp"
 #include "lib/ChessFormat.hpp"
+#include "lib/ChessGame.hpp"
 #include "lib/DisplayBoard.hpp"
 #include "parser/ArgParser.hpp"
+#include "lib/FileManager.hpp"
 
 #include <conio.h>
 
@@ -25,8 +27,6 @@ int main(int argc, char** argv) {
     std::cout << parser.HelpDescription() << '\n';
     return EXIT_SUCCESS;
   }
-  std::cout << "שלום\n";
-  std::cout << "Привет\n";
   Board board;
   ConsoleDefault console(board);
   for (;;) {
@@ -44,17 +44,24 @@ int main(int argc, char** argv) {
     } else if (request == "get from image") {
       std::cout << "File name: ";
       std::getline(std::cin, request);
-      board.GetFromImage(request);
+      FileManager::SetValue(std::move(board));
+      FileManager::GetFromImage(request);
+
+      //board.GetFromImage(request);
     } else if (request == "escape") {
       return EXIT_SUCCESS;
-    } else if (request == "change") {
+    } else if (request == "change lang") {
 
     } else if (request == "start") {
-
+      Game game;
+    } else if (request == "save image") {
+      //board.SaveImage();
+    } else if (request == "save fen") {
+      //board.SaveFEN();
     } else {
       continue;
     }
-    system("cls");
+    //system("cls");
     console.Print();
   }
 
