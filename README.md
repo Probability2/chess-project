@@ -1,3 +1,3 @@
 # chess-project
 
-- `docs/Description.tex` — project report.
+- `docs/Description.tex` — detailed project report.
