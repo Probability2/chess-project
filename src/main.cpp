@@ -1,12 +1,10 @@
-#define UNICODE
-
 #include "lib/History.hpp"
 #include "lib/ChessPiece.hpp"
 #include "lib/ChessFormat.hpp"
 #include "lib/ChessGame.hpp"
 #include "lib/DisplayBoard.hpp"
-#include "parser/ArgParser.hpp"
 #include "lib/FileManager.hpp"
+#include "parser/ArgParser.hpp"
 
 #include <conio.h>
 
@@ -41,10 +39,10 @@ int main(int argc, char** argv) {
       board.Clear();
     } else if (request == "set") {
       board.SetPosition();
-    } else if (request == "get from image") {
+    } else if (request == "get from image" || request == "get from file") {
       std::cout << "File name: ";
       std::getline(std::cin, request);
-      FileManager::SetValue(std::move(board));
+      FileManager::SetValue(board);
       FileManager::GetFromImage(request);
 
       //board.GetFromImage(request);
@@ -54,14 +52,17 @@ int main(int argc, char** argv) {
 
     } else if (request == "start") {
       Game game;
-    } else if (request == "save image") {
-      //board.SaveImage();
+    } else if (request == "save image" || request == "save file") {
+      FileManager::SetValue(board);
+      FileManager::SaveImage();
     } else if (request == "save fen") {
-      //board.SaveFEN();
+      FileManager::SetValue(board);
+      FileManager::SaveFEN();
     } else {
       continue;
     }
     //system("cls");
+
     console.Print();
   }
 
