@@ -8,7 +8,9 @@ class FileManager{
 public:
   FileManager() = delete;
 
-  static void SetValue(Board&&);
+  //static void SetValue(Board&&);
+
+  static void SetValue(Board&);
 
   FileManager& operator=(const FileManager& manager);
 
@@ -21,9 +23,13 @@ public:
   static void GetFromFEN(const std::string& file_name);
 
 private:
-  static Board board_;
+  static Board* board_;
 
   static std::size_t call_;
+
+  static std::vector<std::vector<char>> GetPicture();
+
+  static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
 
   static std::string CreateName();
 
