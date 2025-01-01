@@ -11,17 +11,22 @@ FileManager& FileManager::operator=(const FileManager& manager) {
 }
 
 void FileManager::SetValue(Board& board) {
-  std::cout << "22222222\n";
   board_ = &board;
+}
+
+void FileManager::SaveKings(std::vector<std::vector<char>>& display) {
+  display[ChessData::kMaxInd - (board_->GetWhiteKing().GetPosition()[1] - '0')][board_->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
+  display[ChessData::kMaxInd - (board_->GetBlackKing().GetPosition()[1] - '0')][board_->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
 }
 
 std::vector<std::vector<char>> FileManager::GetPicture() {
   std::vector<std::vector<char>> display(ChessData::kMaxInd, std::vector<char>(ChessData::kMaxInd, '.'));
   for (std::size_t i = 0; i < board_->pieces_.size(); ++i) {
     for (auto pos: board_->pieces_[i]->GetPositions()) {
-      display[pos[1] - '0' - 1][pos[0] - 'a'] = board_->pchars_[i];
+      display[ChessData::kMaxInd - (pos[1] - '0')][pos[0] - 'a'] = board_->pchars_[i];
     }
   }
+  SaveKings(display);
 
   return display;
 }
