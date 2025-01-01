@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     }
     std::string request;
     std::getline(std::cin, request);
-    if (funcs.find(request) != funcs.end()) {
+    if (funcs.contains(request)) {
       funcs[request](board);
     }
     system("cls");
