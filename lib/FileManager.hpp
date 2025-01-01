@@ -27,6 +27,8 @@ private:
 
   static std::size_t call_;
 
+  static void SaveKings(std::vector<std::vector<char>>& display);
+
   static std::vector<std::vector<char>> GetPicture();
 
   static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
