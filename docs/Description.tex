@@ -1,0 +1,80 @@
+\documentclass[12pt, english]{article}
+\usepackage{graphicx} % Required for inserting images
+
+\usepackage{pgfplots}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
+\pgfplotsset{compat=1.9}
+
+%\usepackage{ucs} 
+\usepackage[utf8x]{inputenc} % Включаем поддержку UTF8  
+\usepackage[T2A]{fontenc}
+\usepackage[russian]{babel}  % Включаем пакет для поддержки русского языка
+\usepackage{amssymb, amsfonts, amsthm, amsmath, bm}
+
+\DeclareGraphicsRule{*}{mps}{*}{}
+
+\usepackage{listings}
+\usepackage{xcolor}  % Для настройки цветов
+
+\lstset{ % Общие настройки для всех кодов
+    language=C++,        % Указание языка
+    backgroundcolor=\color{white},  % Цвет фона
+    basicstyle=\ttfamily,   % Шрифт
+    keywordstyle=\color{blue}, % Цвет ключевых слов
+    commentstyle=\color{green}, % Цвет комментариев
+    stringstyle=\color{red}, % Цвет строк
+    numbers=left,           % Номера строк слева
+    numberstyle=\tiny\color{gray}, % Стиль номеров строк
+    stepnumber=1,           % Шаг номеров строк
+    numbersep=5pt,          % Расстояние между кодом и номерами строк
+    showstringspaces=false, % Не показывать пробелы в строках
+    breaklines=true         % Перенос строк
+}
+
+%
+
+\begin{document}
+
+\hoffset=0cm \voffset=0cm \textwidth=345pt \textheight=598pt
+
+\begin{titlepage}
+
+\begin{center}
+
+
+\vspace*{1cm}
+            
+            \Huge
+            \textbf{Chess Project Description}
+            
+            \vspace{0.5cm}
+            \LARGE
+            %Report Subtitle % comment out if irrelevant
+            
+            \vspace{1.5cm}
+            
+            \textbf{Balakirskiy M.V.}
+       		  %\vspace{1.5cm}
+           
+            \vfill
+
+\vspace{0.8cm} Ben Gurion University, Beer-Sheba\\
+
+\end{center}
+
+\end{titlepage}
+
+\hoffset=-2cm \voffset=-2.5cm \textwidth=17cm \textheight=23cm
+
+The description will be added when the project is made more solid.\\
+\begin{lstlisting}[caption={Just testing}]
+template<typename... Arguments>
+Rook(Arguments... args) {
+  for (auto i: args) {
+    poss_.push_back(i);
+  }
+}
+\end{lstlisting}
+
+\end{document}
