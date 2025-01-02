@@ -24,7 +24,6 @@ int main(int argc, char** argv) {
     return EXIT_SUCCESS;
   }
   Board board;
-  std::cout << "New hello!\n";
   ConsoleDefault console(board);
   std::map<std::string, std::function<void(Board&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
                                                              ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
