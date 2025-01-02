@@ -18,6 +18,7 @@ add_subdirectory(src)
 add_subdirectory(lib)
 add_subdirectory(parser)
 add_subdirectory(core)
+add_subdirectory(utils)
 add_subdirectory(puzzle)
 add_subdirectory(engine)
 

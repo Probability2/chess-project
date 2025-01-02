@@ -14,6 +14,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE int_argument_class)
 target_link_libraries(${PROJECT_NAME} PRIVATE flag_class)
 target_link_libraries(${PROJECT_NAME} PRIVATE Manager)
 target_link_libraries(${PROJECT_NAME} PRIVATE Commands)
+target_link_libraries(${PROJECT_NAME} PRIVATE Random)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 

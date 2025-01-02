@@ -6,6 +6,7 @@
 #include "lib/FileManager.hpp"
 #include "parser/ArgParser.hpp"
 #include "core/commands.hpp"
+#include "utils/Random.hpp"
 
 #include <conio.h>
 
