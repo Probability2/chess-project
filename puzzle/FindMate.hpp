@@ -1,5 +1,6 @@
 #pragma once
 
+
 class FindMate {
 public:
   virtual void Find() const = 0;
