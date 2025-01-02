@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
   }
   Board board;
   ConsoleDefault console(board);
+  std::cout << "Hello, world!\n";
   std::map<std::string, std::function<void(Board&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
                                                              ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
                                                              ,{"start", Start}, {"save image", SaveFile}, {"save file", SaveFile}
