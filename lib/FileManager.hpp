@@ -2,7 +2,22 @@
 
 #include "ChessFormat.hpp"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 constexpr const char* kFilePrefix = "chess";
+
+constexpr char kFenDelimeter = '/';
+
+struct FenParameters {
+  bool is_short_castle_;
+  bool is_long_castle_;
+  bool is_white_move;
+  bool is_en_passant;
+  std::size_t no_capture_moves;
+  std::size_t move;
+};
 
 class FileManager{
 public:
@@ -26,6 +41,14 @@ private:
   static Board* board_;
 
   static std::size_t call_;
+
+  FenParameters fen_;
+
+  inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
+
+  static std::ofstream CreateFile();
+
+  static void ProcessFenPositions(std::ofstream& file);
 
   static void SaveKings(std::vector<std::vector<char>>& display);
 

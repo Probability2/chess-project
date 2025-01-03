@@ -40,21 +40,55 @@ void FileManager::DownloadToFile(std::ofstream& file, const std::vector<std::vec
   }
 }
 
-void FileManager::SaveImage() {
+std::ofstream FileManager::CreateFile() {
   ++call_;
-  std::ofstream file(CreateName(), std::ios::out);
+  fs::path directorypath = "myfiles";
+  if (!fs::exists(directorypath)) {
+    fs::create_directory(directorypath); 
+  }
+  std::ofstream file(directorypath / CreateName(), std::ios::out);
   if (!file) {
     std::cerr << "Cannot create the file" << '\n';
     std::exit(EXIT_FAILURE);
   }
-  DownloadToFile(file, GetPicture());
 
+  return file;
+}
+
+void FileManager::SaveImage() {
+  std::ofstream file = CreateFile();
+  DownloadToFile(file, GetPicture());
   file.close();
 }
 
+inline void FileManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
+  if (!skip) {
+    file << skip;
+    skip = 0;
+  }
+}
+
+void FileManager::ProcessFenPositions(std::ofstream& file) {
+  std::vector<std::vector<char>> vec = GetPicture();
+  std::size_t skip = 0;
+  for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
+    for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
+      if (vec[i][j] != '.') {
+        FillFenSkips(skip, file);
+        file << vec[i][j];
+        continue;
+      }
+      ++skip;
+    }
+    file << kFenDelimeter;
+    FillFenSkips(skip, file);
+  }
+}
+
 void FileManager::SaveFEN() {
-  ++call_;
-  std::ofstream file(CreateName(), std::ios::out);
+  std::ofstream file = CreateFile();
+  ProcessFenPositions(file);
+
   file.close();
 }
 
@@ -63,7 +97,11 @@ std::string FileManager::CreateName() {
 }
 
 void FileManager::GetFromFEN(const std::string& file_name) {
-
+  std::ifstream file(file_name, std::ios::in);
+  if (!file) {
+    std::cerr << "File " << file_name << " is not found\n";
+    std::exit(EXIT_FAILURE);
+  }
 }
 
 void FileManager::GetFromImage(const std::string& file_name) {
