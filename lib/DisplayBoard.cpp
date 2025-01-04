@@ -34,16 +34,20 @@ inline void ConsoleImage::PrintSquare(const std::vector<std::string>& vec, const
   std::cout << (ind < vec.size() ? vec[ind] : " ");
 }
 
+void ConsoleImage::PrintRow(const std::vector<std::vector<std::string>>& row) const {
+  for (std::size_t i = 0; i < kSquareLength; ++i) {
+    for (auto sq: row) {
+      PrintSquare(sq, i);
+    }
+    std::cout << '\n';
+  }
+}
+
 void ConsoleImage::Print() {
   std::cout << "Print\n";
   this->Set();
   for (auto row: cboard_) {
-    for (std::size_t i = 0; i < kSquareLength; ++i) {
-      for (auto sq: row) {
-        PrintSquare(sq, i);
-      }
-      std::cout << '\n';
-    }
+    PrintRow(row);
     PrintLine();
   }
 }

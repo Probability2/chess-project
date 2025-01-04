@@ -26,10 +26,11 @@ int main(int argc, char** argv) {
   }
   Board board;
   ConsoleDefault console(board);
+  //Game game;
   std::map<std::string, std::function<void(Board&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
                                                              ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
                                                              ,{"start", Start}, {"save image", SaveFile}, {"save file", SaveFile}
-                                                             ,{"save fen", SaveFEN}, {"escape", EXIT}, {"exit", EXIT}};
+                                                             , {"escape", EXIT}, {"exit", EXIT}};
   for (;;) {
     if (_getch() == kEscapeCode) {
       return EXIT_SUCCESS;

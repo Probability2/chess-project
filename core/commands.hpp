@@ -22,8 +22,8 @@ void GetFromFile(Board& board) {
   std::string request;
   std::cout << "File name: ";
   std::getline(std::cin, request);
-  FileManager::SetValue(board);
-  FileManager::GetFromImage(request);
+  TxtManager::SetValue(board);
+  TxtManager::Get(request);
 }
 
 void Start(Board& board) {
@@ -31,14 +31,14 @@ void Start(Board& board) {
 }
 
 void SaveFile(Board& board) {
-  FileManager::SetValue(board);
-  FileManager::SaveImage();
+  TxtManager::SetValue(board);
+  TxtManager::Save();
 }
 
-void SaveFEN(Board& board) {
-  FileManager::SetValue(board);
-  FileManager::SaveFEN();
-}
+//void SaveFEN(Board& board) {
+//  FenManager::SetValue(board);
+//  FenManager::Save();
+//}
 
 void EXIT(Board& board) {
   std::exit(EXIT_SUCCESS);

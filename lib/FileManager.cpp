@@ -2,36 +2,38 @@
 
 std::size_t FileManager::call_ = 0;
 
-Board* FileManager::board_;
+Board* TxtManager::board_;
 
-FileManager& FileManager::operator=(const FileManager& manager) {
+Game* FenManager::game_;
+
+TxtManager& TxtManager::operator=(const TxtManager& manager) {
   board_ = manager.board_;
 
   return *this;
 }
 
-void FileManager::SetValue(Board& board) {
+void TxtManager::SetValue(Board& board) {
   board_ = &board;
 }
 
-void FileManager::SaveKings(std::vector<std::vector<char>>& display) {
-  display[ChessData::kMaxInd - (board_->GetWhiteKing().GetPosition()[1] - '0')][board_->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
-  display[ChessData::kMaxInd - (board_->GetBlackKing().GetPosition()[1] - '0')][board_->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
+void SaveKings(Board* board, std::vector<std::vector<char>>& display) {
+  display[ChessData::kMaxInd - (board->GetWhiteKing().GetPosition()[1] - '0')][board->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
+  display[ChessData::kMaxInd - (board->GetBlackKing().GetPosition()[1] - '0')][board->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
 }
 
-std::vector<std::vector<char>> FileManager::GetPicture() {
+std::vector<std::vector<char>> GetPicture(Board* board) {
   std::vector<std::vector<char>> display(ChessData::kMaxInd, std::vector<char>(ChessData::kMaxInd, '.'));
-  for (std::size_t i = 0; i < board_->pieces_.size(); ++i) {
-    for (auto pos: board_->pieces_[i]->GetPositions()) {
-      display[ChessData::kMaxInd - (pos[1] - '0')][pos[0] - 'a'] = board_->pchars_[i];
+  for (std::size_t i = 0; i < board->pieces_.size(); ++i) {
+    for (const auto pos: board->pieces_[i]->GetPositions()) {
+      display[ChessData::kMaxInd - (pos[1] - '0')][pos[0] - 'a'] = board->pchars_[i];
     }
   }
-  SaveKings(display);
+  SaveKings(board, display);
 
   return display;
 }
 
-void FileManager::DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display) {
+void TxtManager::DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display) {
   for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
     for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
       file << display[i][j];
@@ -55,25 +57,26 @@ std::ofstream FileManager::CreateFile() {
   return file;
 }
 
-void FileManager::SaveImage() {
+void TxtManager::Save() {
   std::ofstream file = CreateFile();
-  DownloadToFile(file, GetPicture());
+  std::vector<std::vector<char>> vec;
+  DownloadToFile(file, GetPicture(board_));
   file.close();
 }
 
-inline void FileManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
+inline void FenManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
   if (!skip) {
     file << skip;
     skip = 0;
   }
 }
 
-void FileManager::ProcessFenPositions(std::ofstream& file) {
-  std::vector<std::vector<char>> vec = GetPicture();
+void FenManager::ProcessFenPositions(std::ofstream& file) {
+  std::vector<std::vector<char>> vec = GetPicture(game_->GetBoard());
   std::size_t skip = 0;
   for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
     for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
-      if (vec[i][j] != '.') {
+      if (vec[i][j] != kEmptySquare) {
         FillFenSkips(skip, file);
         file << vec[i][j];
         continue;
@@ -85,7 +88,7 @@ void FileManager::ProcessFenPositions(std::ofstream& file) {
   }
 }
 
-void FileManager::SaveFEN() {
+void FenManager::Save() {
   std::ofstream file = CreateFile();
   ProcessFenPositions(file);
 
@@ -96,15 +99,16 @@ std::string FileManager::CreateName() {
   return kFilePrefix + std::to_string(call_) + ".txt";
 }
 
-void FileManager::GetFromFEN(const std::string& file_name) {
+void FenManager::Get(const std::string& file_name) {
   std::ifstream file(file_name, std::ios::in);
   if (!file) {
     std::cerr << "File " << file_name << " is not found\n";
     std::exit(EXIT_FAILURE);
   }
+  file.close();
 }
 
-void FileManager::GetFromImage(const std::string& file_name) {
+void TxtManager::Get(const std::string& file_name) {
   std::ifstream file(file_name, std::ios::in);
   if (!file) {
     std::cerr << "File " << file_name << " is not found\n";
@@ -114,12 +118,12 @@ void FileManager::GetFromImage(const std::string& file_name) {
   file.close();
 }
 
-void FileManager::ReadImage(std::ifstream& file) {
+void TxtManager::ReadImage(std::ifstream& file) {
   std::string line;
   char k = '0' + ChessData::kMaxInd;
   while (std::getline(file, line) && k >= '1') {
     for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-      board_->ReadPosition(line[i], std::string(1, static_cast<char>('a' + i)) + std::string(1, k));
+      board_->ReadPosition(line[i], std::string(1, static_cast<char>(ChessData::kMinCoord + i)) + std::string(1, k));
     }
     --k;
   }

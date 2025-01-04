@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChessFormat.hpp"
+#include "ChessGame.hpp"
 
 #include <filesystem>
 
@@ -10,53 +11,48 @@ constexpr const char* kFilePrefix = "chess";
 
 constexpr char kFenDelimeter = '/';
 
-struct FenParameters {
-  bool is_short_castle_;
-  bool is_long_castle_;
-  bool is_white_move;
-  bool is_en_passant;
-  std::size_t no_capture_moves;
-  std::size_t move;
-};
-
-class FileManager{
-public:
+class FileManager {
+protected:
   FileManager() = delete;
 
-  //static void SetValue(Board&&);
+  virtual ~FileManager();
+
+  static std::ofstream CreateFile();
+
+  static std::size_t call_;
+
+  static std::string CreateName();
+};
+
+
+class TxtManager: public FileManager {
+public:
+  TxtManager& operator=(const TxtManager& manager);
 
   static void SetValue(Board&);
 
-  FileManager& operator=(const FileManager& manager);
+  static void Save();
 
-  static void SaveImage();
-
-  static void SaveFEN();
-
-  static void GetFromImage(const std::string& file_name);
-
-  static void GetFromFEN(const std::string& file_name);
+  static void Get(const std::string& file_name);
 
 private:
   static Board* board_;
 
-  static std::size_t call_;
+  static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
 
-  FenParameters fen_;
+  static void ReadImage(std::ifstream& file);
+};
+
+class FenManager: public FileManager {
+public:
+  static void Save();
+
+  static void Get(const std::string& file_name);
+  
+private:
+  static Game* game_;
 
   inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
 
-  static std::ofstream CreateFile();
-
   static void ProcessFenPositions(std::ofstream& file);
-
-  static void SaveKings(std::vector<std::vector<char>>& display);
-
-  static std::vector<std::vector<char>> GetPicture();
-
-  static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
-
-  static std::string CreateName();
-
-  static void ReadImage(std::ifstream& file);
 };

@@ -8,7 +8,6 @@
 class BMPImage {
 public:
   BMPImage (const int32_t height, const int32_t width);
-  ~BMPImage();
   void SetColor(const int color_type, const uint64_t pixel_count);
   void Export(const char* path, const uint64_t byte_count);
   void FillFileHeader(uint8_t fileHeader[]);

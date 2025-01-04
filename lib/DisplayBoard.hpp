@@ -6,7 +6,9 @@
 #include <memory>
 #include <type_traits>
 
-const std::vector<char> kEmptyRow(ChessData::kMaxInd, '.');
+constexpr char kEmptySquare = '.';
+
+const std::vector<char> kEmptyRow(ChessData::kMaxInd, kEmptySquare);
 
 const std::vector<char> kWhiteBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
 
@@ -106,10 +108,11 @@ public:
   }
 
   void Print() override final;
-  //~ConsoleImage() = default;
 
   std::vector<std::vector<std::vector<std::string>>> GetBoard() const;
 private:
+  void PrintRow(const std::vector<std::vector<std::string>>& row) const;
+
   void Set() override final;
 
   std::vector<std::vector<std::vector<std::string>>> cboard_;

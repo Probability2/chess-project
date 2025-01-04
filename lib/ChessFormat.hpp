@@ -65,6 +65,8 @@ public:
 
   const King& GetBlackKing() const;
 
+  friend std::vector<std::vector<char>> GetPicture(Board* board);
+
 private:
   Pawn w_pawns_;
   Pawn b_pawns_;
@@ -98,8 +100,7 @@ private:
                                                 
   std::array<char, kCountPiece> pchars_ = {'P', 'N', 'B', 'R', 'Q', 'p', 'n', 'b', 'r', 'q'};
   
-  friend class FileManager;
-                                                 
+  friend class TxtManager;                                              
 };
 
 class ChessFormat {

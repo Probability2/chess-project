@@ -18,10 +18,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Random)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json)
 
-#include_directories(${SQLite3_INCLUDE_DIRS})
-
-#target_link_libraries(${PROJECT_NAME} PRIVATE SQLite::SQLite3)
-
-
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
 

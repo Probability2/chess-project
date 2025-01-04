@@ -26,9 +26,3 @@ include(FetchContent)
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
-
-#find_package(SQLite3 required)
-
-#include_directories(${SQLite3_INCLUDE_DIRS})
-
-#target_link_libraries()
