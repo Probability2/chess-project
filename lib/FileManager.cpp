@@ -16,7 +16,7 @@ void TxtManager::SetValue(Board& board) {
   board_ = &board;
 }
 
-void SaveKings(Board* board, std::vector<std::vector<char>>& display) {
+inline void SaveKings(Board* board, std::vector<std::vector<char>>& display) {
   display[ChessData::kMaxInd - (board->GetWhiteKing().GetPosition()[1] - '0')][board->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
   display[ChessData::kMaxInd - (board->GetBlackKing().GetPosition()[1] - '0')][board->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
 }
@@ -71,18 +71,22 @@ inline void FenManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
   }
 }
 
-void FenManager::ProcessFenPositions(std::ofstream& file) {
+void FenManager::ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::ofstream& file) {
+  for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
+    if (vec[j] != kEmptySquare) {
+      FillFenSkips(skip, file);
+      file << vec[j];
+      continue;
+    }
+    ++skip;
+  }
+}
+
+void FenManager::ProcessFenBoard(std::ofstream& file) {
   std::vector<std::vector<char>> vec = GetPicture(game_->GetBoard());
   std::size_t skip = 0;
   for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-    for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
-      if (vec[i][j] != kEmptySquare) {
-        FillFenSkips(skip, file);
-        file << vec[i][j];
-        continue;
-      }
-      ++skip;
-    }
+    ProcessFenRow(skip, vec[i], file);
     file << kFenDelimeter;
     FillFenSkips(skip, file);
   }
@@ -90,7 +94,7 @@ void FenManager::ProcessFenPositions(std::ofstream& file) {
 
 void FenManager::Save() {
   std::ofstream file = CreateFile();
-  ProcessFenPositions(file);
+  ProcessFenBoard(file);
 
   file.close();
 }

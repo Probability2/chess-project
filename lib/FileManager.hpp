@@ -54,5 +54,7 @@ private:
 
   inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
 
-  static void ProcessFenPositions(std::ofstream& file);
+  static void ProcessFenBoard(std::ofstream& file);
+
+  static void ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::ofstream& file);
 };
