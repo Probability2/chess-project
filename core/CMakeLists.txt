@@ -1,1 +1,2 @@
-add_library(Commands INTERFACE commands.hpp movement.hpp aliases.hpp)
+add_library(Commands INTERFACE movement.hpp aliases.hpp)
+add_library(Movement movement.cpp)

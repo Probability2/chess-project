@@ -27,9 +27,9 @@ int main(int argc, char** argv) {
   Board board;
   ConsoleDefault console(board);
   std::vector<std::string> moves = {"e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5", "d5", "ed5", "Na5", "Bb5+", "c6", "dc6",
-                                    "bc6", "Bd3"};
+                                    "bc6", "Bd3", "Nd5", "Nf3", "Bd6"};
   Game game(moves);
-  for (auto i: moves) {
+  for (auto i: game) {
     std::cout << i;
   }
   std::map<std::string, std::function<void(Board&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}

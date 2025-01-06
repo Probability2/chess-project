@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../core/movement.hpp"
+
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -27,18 +29,6 @@ struct ChessData {
   //static const std::vector<ch> kCoords{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 };
 
-const struct KnightData {
-
-const static int kKnightDirections = 8;
-
-static constexpr std::array<std::pair<int, int>, kKnightDirections> kKnightMoves = {std::make_pair(-1, 2), std::make_pair(1, 2),
-                                                                  std::make_pair(-1, -2), std::make_pair(1, -2),
-                                                                  std::make_pair(2, 1), std::make_pair(2, -1),
-                                                                  std::make_pair(-2, 1), std::make_pair(-2, -1)};
-
-};
-
-
 struct ChessPiece {
   ChessPiece() = default;
 
@@ -51,8 +41,6 @@ struct ChessPiece {
   void PrintPositions() const;
 
   virtual void Move(std::size_t ind, const std::string& new_pos) = 0;
-
-  void PrintAllMoves() const;
 
   virtual void PrintPossMoves() const = 0;
 
@@ -96,6 +84,8 @@ public:
 
   std::string GetPosition() const;
 
+  class PawnMovement;
+
 private:
 
 };
@@ -116,6 +106,8 @@ public:
   void Move(std::size_t ind, const std::string& new_pos) override;
 
   void PrintPossMoves() const override;
+
+  class KnightMovement;
 
   //std::string GetPosition() const override;
 private:
@@ -147,6 +139,8 @@ public:
 
   };
 
+  class BishopMovement;
+
 private:
 
 };
@@ -173,6 +167,8 @@ public:
   void PrintPossMoves() const override {
 
   };
+
+  class RookMovement;
   //std::string GetPosition() const override;
 private:
 
@@ -201,6 +197,8 @@ public:
 
   };
 
+  class QueenMovement;
+
 private:
 
 };
@@ -227,6 +225,8 @@ public:
   bool IsMated() const;
 
   std::string GetPosition() const;
+
+  class KingMovement;
 
 private:
   std::string pos_;
