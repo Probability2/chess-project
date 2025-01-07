@@ -34,8 +34,8 @@ Game::Game(const Game& game) {
 
 Game& Game::operator=(const Game& game) {
   this->moves_ = game.moves_;
-  this->param_ = game.param_;
-  this->board_ = game.board_;
+  //this->param_ = game.param_;
+  //this->board_ = game.board_;
 
   return *this;
 }
@@ -52,33 +52,33 @@ size_type Game::size() const {
   return moves_.size();
 }
 
-void Game::ViewConsoleBoard() const {
+void GameState::ViewConsoleBoard() const {
   ConsoleDefault console(*board_);
   console.Print();
 }
 
-void Game::ViewImageBoard() const {
+void GameState::ViewImageBoard() const {
   ConsoleImage console(*board_);
   console.Print();
 }
 
-Board* Game::GetBoard() {
+Board* GameState::GetBoard() {
   return board_;
 }
 
-bool Game::IsCastle() const {
+bool GameState::IsCastle() const {
   return param_.is_short_castle_ || param_.is_long_castle_;
 }
 
-size_type Game::MoveNumber() const {
+size_type GameState::MoveNumber() const {
   return param_.move;
 }
 
-size_type Game::NoCaptureMoves() const {
+size_type GameState::NoCaptureMoves() const {
   return param_.no_capture_moves;
 }
 
-bool Game::IsWhiteMove() const {
+bool GameState::IsWhiteMove() const {
   return param_.is_white_move;
 }
 
@@ -108,8 +108,8 @@ size_type Game::max_size() const {
 
 void Game::destroy() {
   moves_.clear();
-  param_.SetDefault();
-  board_ = nullptr;
+  //GameState::param_.SetDefault();
+  //board_ = nullptr;
 }
 
 void Game::clear() {

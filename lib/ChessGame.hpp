@@ -8,6 +8,13 @@
 
 constexpr size_type kMaxMoves = 1000;
 
+enum class Status {
+  WIN,
+  LOSS,
+  DRAW,
+  CONTINUE,
+};
+
 struct Parameters {
   Parameters() = default;
 
@@ -25,6 +32,26 @@ struct Parameters {
   size_type move = 0;
 };
 
+struct GameState {
+  Parameters param_;
+
+  Board* board_;
+
+  size_type MoveNumber() const;
+
+  size_type NoCaptureMoves() const;
+
+  bool IsWhiteMove() const;
+
+  bool IsCastle() const;
+
+  void ViewImageBoard() const;
+
+  void ViewConsoleBoard() const;
+
+  Board* GetBoard();
+};
+
 class Game {
 public:
   Game() = default;
@@ -32,6 +59,8 @@ public:
   Game(const std::vector<std::string>& moves);
 
   Game(const Game& game);
+
+  class GameState;
 
   Game& operator=(const Game& game);
 
@@ -51,21 +80,7 @@ public:
 
   void clear();
 
-  void ViewConsoleBoard() const;
-
-  void ViewImageBoard() const;
-
   size_type size() const;
-
-  Board* GetBoard();
-
-  bool IsCastle() const;
-
-  size_type MoveNumber() const;
-
-  size_type NoCaptureMoves() const;
-  
-  bool IsWhiteMove() const;
 
   iterator begin();
 
@@ -82,7 +97,7 @@ public:
 private:
   std::vector<std::string> moves_;
 
-  Board* board_;
+  //Board* board_;
 
-  Parameters param_;
+  //Parameters param_;
 };

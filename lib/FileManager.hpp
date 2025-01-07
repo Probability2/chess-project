@@ -50,7 +50,7 @@ public:
   static void Get(const std::string& file_name);
   
 private:
-  static Game* game_;
+  static GameState* game_;
 
   inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
 

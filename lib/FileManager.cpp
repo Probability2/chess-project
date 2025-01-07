@@ -4,7 +4,7 @@ std::size_t FileManager::call_ = 0;
 
 Board* TxtManager::board_;
 
-Game* FenManager::game_;
+GameState* FenManager::game_;
 
 TxtManager& TxtManager::operator=(const TxtManager& manager) {
   board_ = manager.board_;

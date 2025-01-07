@@ -1,9 +1,11 @@
 #include "movement.hpp"
 
 std::vector<std::pair<int, int>> KnightMovement::kKnightMoves = {std::make_pair(-1, 2), std::make_pair(1, 2),
-                                                 std::make_pair(-1, -2), std::make_pair(1, -2),
-                                                 std::make_pair(2, 1), std::make_pair(2, -1),
-                                                 std::make_pair(-2, 1), std::make_pair(-2, -1)};
+                                                                 std::make_pair(-1, -2), std::make_pair(1, -2),
+                                                                 std::make_pair(2, 1), std::make_pair(2, -1),
+                                                                 std::make_pair(-2, 1), std::make_pair(-2, -1)};
+
+std::vector<std::pair<int, int>> kKingMoves = {{1, 1}, {1, 0}, {1, -1}, {0, 1}, {0, -1}, {-1, 0}, {-1, -1}, {-1, 1}};
 
 Movement::Movement(const std::string& init)
 : init_(init) {
@@ -11,7 +13,6 @@ Movement::Movement(const std::string& init)
 
 Movement::Movement(const std::string& init, const std::vector<std::pair<int, int>>& moves)
 : Movement(init) {
-  moves_ = moves;
 }
 
 PawnMovement::PawnMovement(const std::string& init)
@@ -20,7 +21,6 @@ PawnMovement::PawnMovement(const std::string& init)
 
 KnightMovement::KnightMovement(const std::string& init)
 : Movement(init) {
-  moves_ = kKnightMoves;
 }
 
 BishopMovement::BishopMovement(const std::string& init)
@@ -39,8 +39,41 @@ KingMovement::KingMovement(const std::string& init)
 : Movement(init) {
 }
 
-void Movement::Move(const std::string& move) {
-  for (const auto& pair: moves_) {
+void PawnMovement::Move(const std::string& move) {
+
+}
+
+void KnightMovement::Move(const std::string& move) {
+  for (const auto& pair: kKnightMoves) {
+    if (move[0] - init_[0] == pair.first && move[1] - init_[1] == pair.second) {
+      init_ = move;
+    }
+  }
+}
+
+void BishopMovement::Move(const std::string& move) {
+  if (move[0] - init_[0] == move[1] - init_[1]) {
+    init_ = move;
+  }
+}
+
+void RookMovement::Move(const std::string& move) {
+  if (move[0] - init_[0] == 0 || move[1] - init_[1] == 0) {
+    init_ = move;
+  }
+}
+
+void QueenMovement::Move(const std::string& move) {
+  if (move[0] - init_[0] == move[1] - init_[1]) {
+    init_ = move;
+  }
+  if (move[0] - init_[0] == 0 || move[1] - init_[1] == 0) {
+    init_ = move;
+  }
+}
+
+void KingMovement::Move(const std::string& move) {
+  for (const auto& pair: kKingMoves) {
     if (move[0] - init_[0] == pair.first && move[1] - init_[1] == pair.second) {
       init_ = move;
     }
