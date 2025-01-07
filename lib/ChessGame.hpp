@@ -24,12 +24,12 @@ struct Parameters {
 
   void SetDefault();
 
-  bool is_short_castle_ = true;
-  bool is_long_castle_ = true;
-  bool is_white_move = true;
-  bool is_en_passant = false;
-  size_type no_capture_moves = 0;
-  size_type move = 0;
+  bool is_short_castle_{true};
+  bool is_long_castle_{true};
+  bool is_white_move{true};
+  bool is_en_passant{false};
+  size_type no_capture_moves{0};
+  size_type move{0};
 };
 
 struct GameState {

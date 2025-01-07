@@ -6,40 +6,49 @@
 
 #include <map>
 
-void SetDefault(Board& board) {
-  board.SetDefault();
+void SetDefault(GameState& state) {
+  state.board_->SetDefault();
 }
 
-void Clear(Board& board) {
-  board.Clear();
+void Clear(GameState& state) {
+  state.board_->Clear();
 }
 
-void SetPosition(Board& board) {
-  board.SetPosition();
+void SetPosition(GameState& state) {
+  state.board_->SetPosition();
 }
 
-void GetFromFile(Board& board) {
+void GetFromFile(GameState& state) {
   std::string request;
   std::cout << "File name: ";
   std::getline(std::cin, request);
-  TxtManager::SetValue(board);
+  TxtManager::SetValue(*(state.board_));
+  std::cout << "Sett\n";
   TxtManager::Get(request);
 }
 
-void Start(Board& board) {
+void GetFromFEN(GameState& state) {
+  std::string request;
+  std::cout << "File name: ";
+  std::getline(std::cin, request);
+  FenManager::SetValue(state);
+  FenManager::Get(request);
+}
+
+void Start(GameState& board) {
   Game game;
 }
 
-void SaveFile(Board& board) {
-  TxtManager::SetValue(board);
+void SaveFile(GameState& state) {
+  TxtManager::SetValue(*(state.board_));
   TxtManager::Save();
 }
 
-//void SaveFEN(Board& board) {
-//  FenManager::SetValue(board);
-//  FenManager::Save();
-//}
+void SaveFEN(GameState& state) {
+  FenManager::SetValue(state);
+  FenManager::Save();
+}
 
-void EXIT(Board& board) {
+void EXIT(GameState& state) {
   std::exit(EXIT_SUCCESS);
 }

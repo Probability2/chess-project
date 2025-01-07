@@ -16,6 +16,10 @@ void TxtManager::SetValue(Board& board) {
   board_ = &board;
 }
 
+void FenManager::SetValue(GameState& state) {
+  game_ = &state;
+}
+
 inline void SaveKings(Board* board, std::vector<std::vector<char>>& display) {
   display[ChessData::kMaxInd - (board->GetWhiteKing().GetPosition()[1] - '0')][board->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
   display[ChessData::kMaxInd - (board->GetBlackKing().GetPosition()[1] - '0')][board->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
@@ -65,7 +69,7 @@ void TxtManager::Save() {
 }
 
 inline void FenManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
-  if (!skip) {
+  if (skip > 0) {
     file << skip;
     skip = 0;
   }
@@ -100,7 +104,7 @@ void FenManager::Save() {
 }
 
 std::string FileManager::CreateName() {
-  return kFilePrefix + std::to_string(call_) + ".txt";
+  return std::format("chess{}.txt", call_);
 }
 
 void FenManager::Get(const std::string& file_name) {
@@ -125,10 +129,13 @@ void TxtManager::Get(const std::string& file_name) {
 void TxtManager::ReadImage(std::ifstream& file) {
   std::string line;
   char k = '0' + ChessData::kMaxInd;
+  std::cout << "Hello!\n";
   while (std::getline(file, line) && k >= '1') {
     for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
+      std::cout << line[i] << '\n';
       board_->ReadPosition(line[i], std::string(1, static_cast<char>(ChessData::kMinCoord + i)) + std::string(1, k));
     }
+    std::cout << k << '\n';
     --k;
   }
   std::cout << "Positions 1:\t\t" << board_->GetWhiteKing().GetPosition() << '\n';

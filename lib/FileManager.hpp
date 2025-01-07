@@ -4,6 +4,7 @@
 #include "ChessGame.hpp"
 
 #include <filesystem>
+#include <format> 
 
 namespace fs = std::filesystem;
 
@@ -45,6 +46,8 @@ private:
 
 class FenManager: public FileManager {
 public:
+  static void SetValue(GameState&);
+
   static void Save();
 
   static void Get(const std::string& file_name);

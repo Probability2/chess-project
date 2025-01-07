@@ -1,11 +1,11 @@
 #include "movement.hpp"
 
-std::vector<std::pair<int, int>> KnightMovement::kKnightMoves = {std::make_pair(-1, 2), std::make_pair(1, 2),
-                                                                 std::make_pair(-1, -2), std::make_pair(1, -2),
-                                                                 std::make_pair(2, 1), std::make_pair(2, -1),
-                                                                 std::make_pair(-2, 1), std::make_pair(-2, -1)};
+std::vector<std::pair<int, int>> KnightMovement::kKnightMoves{std::make_pair(-1, 2), std::make_pair(1, 2),
+                                                              std::make_pair(-1, -2), std::make_pair(1, -2),
+                                                              std::make_pair(2, 1), std::make_pair(2, -1),
+                                                              std::make_pair(-2, 1), std::make_pair(-2, -1)};
 
-std::vector<std::pair<int, int>> kKingMoves = {{1, 1}, {1, 0}, {1, -1}, {0, 1}, {0, -1}, {-1, 0}, {-1, -1}, {-1, 1}};
+std::vector<std::pair<int, int>> kKingMoves{{1, 1}, {1, 0}, {1, -1}, {0, 1}, {0, -1}, {-1, 0}, {-1, -1}, {-1, 1}};
 
 Movement::Movement(const std::string& init)
 : init_(init) {
