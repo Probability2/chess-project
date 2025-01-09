@@ -54,9 +54,9 @@ void ConsoleImage::Print() {
 
 void ConsoleDefault::Print() {
   this->Set();
-  for (auto row: cboard_) {
-    for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-      std::cout << row[i];
+  for (const auto& row: cboard_) {
+    for (const auto el: row) {
+      std::cout << el;
     }
     std::cout << '\n';
   }

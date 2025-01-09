@@ -42,6 +42,8 @@ private:
   static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
 
   static void ReadImage(std::ifstream& file);
+
+  static void ProcessRow(const std::string& line, const int k);
 };
 
 class FenManager: public FileManager {

@@ -126,18 +126,20 @@ void TxtManager::Get(const std::string& file_name) {
   file.close();
 }
 
+void TxtManager::ProcessRow(const std::string& line, const int k) {
+  for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
+    std::cout << line[i] << '\n';
+    board_->ReadPosition(line[i], std::format("{}{}", static_cast<char>(ChessData::kMinCoord + i), k));
+  }
+  std::cout << k << '\n';
+}
+
 void TxtManager::ReadImage(std::ifstream& file) {
   std::string line;
   char k = '0' + ChessData::kMaxInd;
   std::cout << "Hello!\n";
   while (std::getline(file, line) && k >= '1') {
-    for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-      std::cout << line[i] << '\n';
-      board_->ReadPosition(line[i], std::string(1, static_cast<char>(ChessData::kMinCoord + i)) + std::string(1, k));
-    }
-    std::cout << k << '\n';
+    ProcessRow(line, k);
     --k;
   }
-  std::cout << "Positions 1:\t\t" << board_->GetWhiteKing().GetPosition() << '\n';
-  std::cout << "Positions 2:\t\t" << board_->GetBlackKing().GetPosition() << '\n';
 }

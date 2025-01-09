@@ -35,7 +35,7 @@ void GetFromFEN(GameState& state) {
   FenManager::Get(request);
 }
 
-void Start(GameState& board) {
+void Start(GameState&) {
   Game game;
 }
 
@@ -49,6 +49,6 @@ void SaveFEN(GameState& state) {
   FenManager::Save();
 }
 
-void EXIT(GameState& state) {
+void EXIT(GameState&) {
   std::exit(EXIT_SUCCESS);
 }
