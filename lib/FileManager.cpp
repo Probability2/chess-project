@@ -6,7 +6,10 @@ std::unique_ptr<Board> TxtManager::board_ = nullptr;
 
 std::unique_ptr<GameState> FenManager::game_ = nullptr;
 
-void TxtManager::SetValue(std::unique_ptr<Board>&& board) {
+void TxtManager::SetValue(std::unique_ptr<Board> board) {
+  if (!board) {
+    return;
+  }
   board_ = std::move(board);
   if (board_ == nullptr) {
     std::cout << "ALCARAAAAAAAAAAAAAAZ\n";

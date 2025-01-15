@@ -33,10 +33,7 @@ struct Parameters {
 };
 
 struct GameState {
-  GameState(
-  ) {
-    board_ = std::make_unique<Board>();
-  };
+  GameState();
 
   explicit GameState(GameState&& other);
 

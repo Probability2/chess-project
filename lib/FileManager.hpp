@@ -30,7 +30,7 @@ class TxtManager: public FileManager {
 public:
   TxtManager& operator=(TxtManager&& manager) = delete;
 
-  static void SetValue(std::unique_ptr<Board>&&);
+  static void SetValue(std::unique_ptr<Board>);
 
   static void Save();
 

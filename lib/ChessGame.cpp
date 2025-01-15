@@ -24,6 +24,10 @@ void Parameters::SetDefault() {
   size_type move = 0;
 }
 
+GameState::GameState()
+: board_(std::make_unique<Board>()) {
+}
+
 Game::Game(const std::vector<std::string>& moves)
 : moves_(moves) {
 }
