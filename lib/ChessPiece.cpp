@@ -4,8 +4,10 @@ King::King(const std::string& pos)
 : pos_(pos) {
 }
 
-void King::SetPosition(const std::string& pos) {
-  pos_ = pos;
+void King::SetPosition(std::string pos) {
+  std::cout << "Setting position: " << pos << std::endl;
+  this->pos_ = pos;
+  std::cout << "Position after set: " << pos_ << std::endl;
 }
 
 std::string King::GetPosition() const {

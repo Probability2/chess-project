@@ -216,7 +216,7 @@ public:
 
   King(const std::string& str);
 
-  void SetPosition(const std::string& pos);
+  void SetPosition(std::string pos);
 
   void Move(const std::string& new_pos);
 

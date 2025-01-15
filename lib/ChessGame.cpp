@@ -44,6 +44,18 @@ bool Game::operator==(const Game& game) {
   return std::equal(this->begin(), this->end(), game.cbegin(), game.cend());
 }
 
+GameState::GameState(GameState&& other)
+: board_(std::move(other.board_)) {
+};
+
+GameState& GameState::operator=(GameState&& other) noexcept {
+  if (this != &other) {
+    board_ = std::move(other.board_);
+  }
+    
+  return *this;
+};
+
 bool Game::operator!=(const Game& game) {
   return !(*this == game);
 }
@@ -62,7 +74,7 @@ void GameState::ViewImageBoard() const {
   console.Print();
 }
 
-Board* GameState::GetBoard() {
+std::unique_ptr<Board>& GameState::GetBoard() {
   return board_;
 }
 

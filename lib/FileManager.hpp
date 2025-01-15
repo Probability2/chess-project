@@ -28,16 +28,16 @@ protected:
 
 class TxtManager: public FileManager {
 public:
-  TxtManager& operator=(const TxtManager& manager);
+  TxtManager& operator=(TxtManager&& manager) = delete;
 
-  static void SetValue(Board&);
+  static void SetValue(std::unique_ptr<Board>&&);
 
   static void Save();
 
   static void Get(const std::string& file_name);
 
 private:
-  static Board* board_;
+  static std::unique_ptr<Board> board_;
 
   static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
 
@@ -48,14 +48,14 @@ private:
 
 class FenManager: public FileManager {
 public:
-  static void SetValue(GameState&);
+  static void SetValue(std::unique_ptr<GameState>);
 
   static void Save();
 
   static void Get(const std::string& file_name);
   
 private:
-  static GameState* game_;
+  static std::unique_ptr<GameState> game_;
 
   inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
 

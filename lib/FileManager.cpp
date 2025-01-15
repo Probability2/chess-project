@@ -2,34 +2,31 @@
 
 std::size_t FileManager::call_ = 0;
 
-Board* TxtManager::board_;
+std::unique_ptr<Board> TxtManager::board_ = nullptr;
 
-GameState* FenManager::game_;
+std::unique_ptr<GameState> FenManager::game_ = nullptr;
 
-TxtManager& TxtManager::operator=(const TxtManager& manager) {
-  board_ = manager.board_;
-
-  return *this;
+void TxtManager::SetValue(std::unique_ptr<Board>&& board) {
+  board_ = std::move(board);
+  if (board_ == nullptr) {
+    std::cout << "ALCARAAAAAAAAAAAAAAZ\n";
+  }
 }
 
-void TxtManager::SetValue(Board& board) {
-  board_ = &board;
+void FenManager::SetValue(std::unique_ptr<GameState> state) {
+  game_ = std::move(state);
 }
 
-void FenManager::SetValue(GameState& state) {
-  game_ = &state;
-}
-
-inline void SaveKings(Board* board, std::vector<std::vector<char>>& display) {
+inline void SaveKings(std::unique_ptr<Board>& board, std::vector<std::vector<char>>& display) {
   display[ChessData::kMaxInd - (board->GetWhiteKing().GetPosition()[1] - '0')][board->GetWhiteKing().GetPosition()[0] - 'a'] = 'K';
   display[ChessData::kMaxInd - (board->GetBlackKing().GetPosition()[1] - '0')][board->GetBlackKing().GetPosition()[0] - 'a'] = 'k';
 }
 
-std::vector<std::vector<char>> GetPicture(Board* board) {
+std::vector<std::vector<char>> GetPicture(std::unique_ptr<Board>& board) {
   std::vector<std::vector<char>> display(ChessData::kMaxInd, std::vector<char>(ChessData::kMaxInd, '.'));
   for (std::size_t i = 0; i < board->pieces_.size(); ++i) {
     for (const auto pos: board->pieces_[i]->GetPositions()) {
-      display[ChessData::kMaxInd - (pos[1] - '0')][pos[0] - 'a'] = board->pchars_[i];
+      display[ChessData::kMaxInd - (pos[1] - '0')][pos[0] - 'a'] = pchars_[i];
     }
   }
   SaveKings(board, display);
@@ -76,10 +73,10 @@ inline void FenManager::FillFenSkips(std::size_t& skip, std::ofstream& file) {
 }
 
 void FenManager::ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::ofstream& file) {
-  for (std::size_t j = 0; j < ChessData::kMaxInd; ++j) {
-    if (vec[j] != kEmptySquare) {
+  for (auto v: vec) {
+    if (v != kEmptySquare) {
       FillFenSkips(skip, file);
-      file << vec[j];
+      file << v;
       continue;
     }
     ++skip;
@@ -89,8 +86,8 @@ void FenManager::ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::o
 void FenManager::ProcessFenBoard(std::ofstream& file) {
   std::vector<std::vector<char>> vec = GetPicture(game_->GetBoard());
   std::size_t skip = 0;
-  for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-    ProcessFenRow(skip, vec[i], file);
+  for (auto& v: vec) {
+    ProcessFenRow(skip, v, file);
     file << kFenDelimeter;
     FillFenSkips(skip, file);
   }
@@ -111,7 +108,7 @@ void FenManager::Get(const std::string& file_name) {
   std::ifstream file(file_name, std::ios::in);
   if (!file) {
     std::cerr << "File " << file_name << " is not found\n";
-    std::exit(EXIT_FAILURE);
+    return;
   }
   file.close();
 }
@@ -120,26 +117,30 @@ void TxtManager::Get(const std::string& file_name) {
   std::ifstream file(file_name, std::ios::in);
   if (!file) {
     std::cerr << "File " << file_name << " is not found\n";
-    std::exit(EXIT_FAILURE);
+    return;
   }
+  std::cout << "Do know\n";
   ReadImage(file);
   file.close();
-}
-
-void TxtManager::ProcessRow(const std::string& line, const int k) {
-  for (std::size_t i = 0; i < ChessData::kMaxInd; ++i) {
-    std::cout << line[i] << '\n';
-    board_->ReadPosition(line[i], std::format("{}{}", static_cast<char>(ChessData::kMinCoord + i), k));
-  }
-  std::cout << k << '\n';
 }
 
 void TxtManager::ReadImage(std::ifstream& file) {
   std::string line;
   char k = '0' + ChessData::kMaxInd;
-  std::cout << "Hello!\n";
   while (std::getline(file, line) && k >= '1') {
     ProcessRow(line, k);
     --k;
   }
+}
+
+void TxtManager::ProcessRow(const std::string& line, const int k) {
+  std::cout << "pppp\n";
+  if (board_ == nullptr) {
+    std::cout << "NULLPTR\n";
+  }
+  for (std::size_t i = 0; i < line.size(); ++i) {
+    std::cout << "yep\n";
+    board_->ReadPosition(line[i], std::format("{}{}", static_cast<char>(ChessData::kMinCoord + i), k - '0'));
+  }
+  std::cout << k << '\n';
 }

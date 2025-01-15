@@ -99,13 +99,15 @@ void Board::FindBasicPiece(const char piece, const std::string& pos) {
   }
 }
 
-void Board::ReadPosition(const char piece, const std::string& pos) {
+void Board::ReadPosition(const char piece, std::string pos) {
+  std::cout << "Read\n";
   FindBasicPiece(piece, pos);
   if (piece == 'K') {
     std::cout << "White king\n";
     w_king_.SetPosition(pos);
   } else if (piece == 'k') {
     std::cout << "Black king\n";
+    std::cout << pos << " pos1\n";
     b_king_.SetPosition(pos);
   }
 }

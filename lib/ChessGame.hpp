@@ -33,9 +33,22 @@ struct Parameters {
 };
 
 struct GameState {
+  GameState(
+  ) {
+    board_ = std::make_unique<Board>();
+  };
+
+  explicit GameState(GameState&& other);
+
+  GameState& operator=(GameState&& other) noexcept;
+
+  GameState(const GameState&) = delete;
+
+  GameState& operator=(const GameState&) = delete;
+
   Parameters param_;
 
-  Board* board_;
+  std::unique_ptr<Board> board_;
 
   size_type MoveNumber() const;
 
@@ -49,7 +62,7 @@ struct GameState {
 
   void ViewConsoleBoard() const;
 
-  Board* GetBoard();
+  std::unique_ptr<Board>& GetBoard();
 };
 
 class Game {

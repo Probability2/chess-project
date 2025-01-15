@@ -1,3 +1,7 @@
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+
 #include "lib/History.hpp"
 #include "lib/ChessPiece.hpp"
 #include "lib/ChessFormat.hpp"
@@ -13,7 +17,7 @@
 constexpr int kEscapeCode = 0x1b;
 
 int main(int argc, char** argv) {
-  system("chcp 65001");
+  //system("chcp 65001");
   ArgumentParser::ArgParser parser("ChessProject");
   parser.SetUpParser();
   if (!parser.Parse(argc, argv)) {
@@ -34,8 +38,8 @@ int main(int argc, char** argv) {
   }
   std::cout << '\n';
   std::map<std::string, std::function<void(GameState&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
-                                                             ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
-                                                             ,{"get from fen", GetFromFile}, {"save fen", GetFromFile}
+                                                              ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
+                                                              ,{"get from fen", GetFromFile}, {"save fen", GetFromFile}
                                                              , {"start", Start}, {"save image", SaveFile}
                                                              , {"save file", SaveFile}, {"escape", EXIT}, {"exit", EXIT}};
   for (;;) {

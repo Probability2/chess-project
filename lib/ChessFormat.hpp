@@ -7,6 +7,8 @@
 
 constexpr std::size_t kCountPiece = 10;
 
+const std::vector<char> pchars_{'P', 'N', 'B', 'R', 'Q', 'p', 'n', 'b', 'r', 'q'};
+
 class Board {
 public:
   Board() = default;
@@ -65,9 +67,10 @@ public:
 
   const King& GetBlackKing() const;
 
-  friend std::vector<std::vector<char>> GetPicture(Board* board);
-
+  friend std::vector<std::vector<char>> GetPicture(std::unique_ptr<Board>& board);
+  
 private:
+
   Pawn w_pawns_;
   Pawn b_pawns_;
   Knight w_knights_;
@@ -81,7 +84,7 @@ private:
   King w_king_;
   King b_king_;
 
-  void ReadPosition(const char piece, const std::string& pos);
+  void ReadPosition(const char piece, std::string pos);
 
   void SetColoursPosition(const std::size_t in_state);
 
@@ -97,9 +100,7 @@ private:
   std::array<std::string, kCountPiece> pnames_ = {"White Pawns", "White Knights", "White Bishops", "White Rooks"
                                                  ,"White Queens", "Black Pawns", "Black Knights", "Black Bishops"
                                                  , "Black Rooks", "Black Queens"};
-                                                
-  std::array<char, kCountPiece> pchars_ = {'P', 'N', 'B', 'R', 'Q', 'p', 'n', 'b', 'r', 'q'};
-  
+
   friend class TxtManager;                                              
 };
 
