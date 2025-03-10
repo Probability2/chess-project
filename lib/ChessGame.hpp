@@ -24,15 +24,46 @@ struct Parameters {
 
   void SetDefault();
 
-  bool is_short_castle_{true};
-  bool is_long_castle_{true};
-  bool is_white_move{true};
-  bool is_en_passant{false};
-  size_type no_capture_moves{0};
-  size_type move{0};
+  bool IsWhiteShortCastle() const;
+
+  bool IsWhiteLongCastle() const;
+
+  bool IsBlackShortCastle() const;
+
+  bool IsBlackLongCastle() const;
+
+  bool IsWhiteMove() const;
+
+  bool IsEnPassant() const;
+
+  void SetWhiteShortCastle(const bool is);
+
+  void SetWhiteLongCastle(const bool is);
+  
+  void SetBlackShortCastle(const bool is);
+
+  void SetBlackLongCastle(const bool is);
+
+  void SetWhiteMove(const bool is);
+
+  void SetEnPassant(const bool is);
+
+  void SetNoCaptures(const size_type moves);
+
+  void SetMove(const size_type moves);
+
+  bool is_white_short_castle_{true};
+  bool is_white_long_castle_{true};
+  bool is_black_short_castle_{true};
+  bool is_black_long_castle_{true};
+  bool is_white_move_{true};
+  bool is_en_passant_{false};
+  size_type no_capture_moves_{0};
+  size_type move_{0};
 };
 
-struct GameState {
+class GameState {
+public:
   GameState();
 
   explicit GameState(GameState&& other);
@@ -43,7 +74,7 @@ struct GameState {
 
   GameState& operator=(const GameState&) = delete;
 
-  Parameters param_;
+  void SetParameters(const Parameters& param);
 
   std::unique_ptr<Board> board_;
 
@@ -53,13 +84,23 @@ struct GameState {
 
   bool IsWhiteMove() const;
 
-  bool IsCastle() const;
+  bool IsWhiteCastle() const;
+
+  bool IsWhiteShortCastle() const;
+
+  bool IsWhiteLongCastle() const;
 
   void ViewImageBoard() const;
 
   void ViewConsoleBoard() const;
 
   std::unique_ptr<Board>& GetBoard();
+
+  Parameters GetParameters() const;
+
+private:
+  Parameters param_;
+
 };
 
 class Game {

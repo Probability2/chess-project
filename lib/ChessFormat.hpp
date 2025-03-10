@@ -101,7 +101,9 @@ private:
                                                  ,"White Queens", "Black Pawns", "Black Knights", "Black Bishops"
                                                  , "Black Rooks", "Black Queens"};
 
-  friend class TxtManager;                                              
+  friend class TxtManager;
+
+  friend class FenManager;                                       
 };
 
 class ChessFormat {

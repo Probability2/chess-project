@@ -11,12 +11,12 @@ void TxtManager::SetValue(std::unique_ptr<Board> board) {
     return;
   }
   board_ = std::move(board);
-  if (board_ == nullptr) {
-    std::cout << "ALCARAAAAAAAAAAAAAAZ\n";
-  }
 }
 
 void FenManager::SetValue(std::unique_ptr<GameState> state) {
+  if (!state) {
+    return;
+  }
   game_ = std::move(state);
 }
 
@@ -48,7 +48,7 @@ void TxtManager::DownloadToFile(std::ofstream& file, const std::vector<std::vect
 
 std::ofstream FileManager::CreateFile() {
   ++call_;
-  fs::path directorypath = "myfiles";
+  fs::path directorypath = kDirectoryPrefix;
   if (!fs::exists(directorypath)) {
     fs::create_directory(directorypath); 
   }
@@ -113,7 +113,120 @@ void FenManager::Get(const std::string& file_name) {
     std::cerr << "File " << file_name << " is not found\n";
     return;
   }
+  ReadFen(file);
   file.close();
+}
+
+void FenManager::ReadFen(std::ifstream& file) {
+  char del;
+  for (std::size_t i = 0; i < ChessData::kMaxCoord - 1; ++i) {
+    ReadPlacement(file);
+    file.read(&del, 1);
+    if (file.gcount() != 1 || del != kFenDelimeter) {
+      std::cerr << "Incorrect fen file\n";
+      return;
+    }
+  }
+  ReadPlacement(file);
+  Parameters param;
+  file.read(&del, 1);
+  if (del != kSpaceDelimiter) {
+    std::cerr << "Incorrect fen file\n";
+    return;
+  }
+  SetTurn(file, param);
+  file.read(&del, 1);
+  if (del != kSpaceDelimiter) {
+    std::cerr << "Incorrect fen file\n";
+    return;
+  }
+  SetCastle(file, param);
+  file.read(&del, 1);
+  if (del != kSpaceDelimiter) {
+    std::cerr << "Incorrect fen file\n";
+    return;
+  }
+  SetEnPassant(file, param);
+  file.read(&del, 1);
+  if (del != kSpaceDelimiter) {
+    std::cerr << "Incorrect fen file\n";
+    return;
+  }
+  SetNoCaptures(file, param);
+  file.read(&del, 1);
+  if (del != kSpaceDelimiter) {
+    std::cerr << "Incorrect fen file\n";
+    return;
+  }
+  SetMove(file, param);
+  game_->SetParameters(param);
+}
+
+void FenManager::SetTurn(std::ifstream& file, Parameters& param) {
+  char turn;
+  file.read(&turn, 1);
+  param.SetWhiteMove(turn == 'w' ? true: false);
+}
+
+void FenManager::SetCastle(std::ifstream& file, Parameters& param) {
+  char castle = '.';
+  for (std::size_t i = 0; i < kCastleCount && castle != kSpaceDelimiter; ++i) {
+    file.read(&castle, 1);
+    GetCastle(castle, param);
+  }
+}
+
+void FenManager::SetEnPassant(std::ifstream& file, Parameters& param) {
+  char en;
+  file.read(&en, 1);
+}
+
+void FenManager::SetNoCaptures(std::ifstream& file, Parameters& param) {
+  std::size_t capture;
+  file >> capture;
+  param.SetNoCaptures(capture);
+}
+
+void FenManager::SetMove(std::ifstream& file, Parameters& param) {
+  std::size_t move;
+  file >> move;
+  param.SetMove(move);
+}
+
+void FenManager::GetCastle(const char castle, Parameters& param) {
+  switch(castle) {
+    case 'K':
+      param.SetWhiteShortCastle(true);
+      return;
+    case 'Q':
+      param.SetWhiteLongCastle(true);
+      return;
+    case 'k':
+      param.SetBlackShortCastle(true);
+      return;
+    case 'q':
+      param.SetBlackShortCastle(true);
+      return;
+    default:
+      std::cerr << "Incorrest castle input from FEN file\n";
+  }
+}
+
+void FenManager::ReadPlacement(std::ifstream& file) {
+  char buff[ChessData::kMaxCoord];
+  file.read(buff, ChessData::kMaxCoord);
+  for (std::size_t i = 0; i < file.gcount(); ++i) {
+    std::string line;
+    if (buff[i] >= '0' && buff[i] <= '9') {
+      line.append(kEmptySquare, buff[i] - '0');
+      continue;
+    }
+    line += buff[i];
+    for (std::size_t i = 0; i < line.size(); ++i) {
+      game_->board_->ReadPosition(line[i], std::format("{}{}", static_cast<char>(ChessData::kMinCoord + i), ChessData::kMaxCoord - i));
+    }
+    //std::cout << k << '\n';
+  }
 }
 
 void TxtManager::Get(const std::string& file_name) {
@@ -122,7 +235,6 @@ void TxtManager::Get(const std::string& file_name) {
     std::cerr << "File " << file_name << " is not found\n";
     return;
   }
-  std::cout << "Do know\n";
   ReadImage(file);
   file.close();
 }
@@ -137,12 +249,7 @@ void TxtManager::ReadImage(std::ifstream& file) {
 }
 
 void TxtManager::ProcessRow(const std::string& line, const int k) {
-  std::cout << "pppp\n";
-  if (board_ == nullptr) {
-    std::cout << "NULLPTR\n";
-  }
   for (std::size_t i = 0; i < line.size(); ++i) {
-    std::cout << "yep\n";
     board_->ReadPosition(line[i], std::format("{}{}", static_cast<char>(ChessData::kMinCoord + i), k - '0'));
   }
   std::cout << k << '\n';

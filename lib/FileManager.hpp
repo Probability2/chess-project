@@ -10,7 +10,13 @@ namespace fs = std::filesystem;
 
 constexpr const char* kFilePrefix = "chess";
 
+constexpr const char* kDirectoryPrefix = "myfiles";
+
 constexpr char kFenDelimeter = '/';
+
+constexpr char kSpaceDelimiter = ' ';
+
+constexpr size_type kCastleCount = 4;
 
 class FileManager {
 protected:
@@ -57,9 +63,25 @@ public:
 private:
   static std::unique_ptr<GameState> game_;
 
+  static void ReadFen(std::ifstream& file);
+
+  static void ReadPlacement(std::ifstream& file);
+
   inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
 
   static void ProcessFenBoard(std::ofstream& file);
 
   static void ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::ofstream& file);
+
+  static void SetTurn(std::ifstream& file, Parameters& param);
+
+  static void SetCastle(std::ifstream& file, Parameters& param);
+
+  static void GetCastle(const char castle, Parameters& param);
+
+  static void SetEnPassant(std::ifstream& file, Parameters& param);
+
+  static void SetNoCaptures(std::ifstream& file, Parameters& param);
+
+  static void SetMove(std::ifstream& file, Parameters& param);
 };

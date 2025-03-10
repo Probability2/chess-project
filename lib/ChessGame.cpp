@@ -5,12 +5,14 @@ Parameters::Parameters(const Parameters& param) {
 }
 
 Parameters& Parameters::operator=(const Parameters& param) {
-  this->is_en_passant = param.is_en_passant;
-  this->is_long_castle_ = param.is_long_castle_;
-  this->is_short_castle_ = param.is_short_castle_;
-  this->is_white_move = param.is_white_move;
-  this->move = param.move;
-  this->no_capture_moves = param.no_capture_moves;
+  this->is_en_passant_ = param.is_en_passant_;
+  this->is_white_long_castle_ = param.is_white_long_castle_;
+  this->is_white_short_castle_ = param.is_white_short_castle_;
+  this->is_black_long_castle_ = param.is_black_long_castle_;
+  this->is_black_short_castle_ = param.is_black_short_castle_;
+  this->is_white_move_ = param.is_white_move_;
+  this->move_ = param.move_;
+  this->no_capture_moves_ = param.no_capture_moves_;
 
   return *this;
 }
@@ -24,8 +26,68 @@ void Parameters::SetDefault() {
   size_type move = 0;
 }
 
+void Parameters::SetWhiteShortCastle(const bool is) {
+  is_white_short_castle_ = is;
+}
+
+void Parameters::SetWhiteLongCastle(const bool is) {
+  is_white_long_castle_ = is;
+}
+
+void Parameters::SetBlackShortCastle(const bool is) {
+  is_black_short_castle_ = is;
+}
+
+void Parameters::SetBlackLongCastle(const bool is) {
+  is_black_long_castle_ = is;
+}
+
+void Parameters::SetWhiteMove(const bool is) {
+  is_white_move_ = is;
+}
+
+void Parameters::SetEnPassant(const bool is) {
+  is_en_passant_ = is;
+}
+
+void Parameters::SetNoCaptures(const size_type moves) {
+  no_capture_moves_ = moves;
+}
+
+void Parameters::SetMove(const size_type moves) {
+  move_ = moves;
+}
+
+bool Parameters::IsWhiteShortCastle() const {
+  return is_white_short_castle_;
+}
+
+bool Parameters::IsWhiteLongCastle() const {
+  return is_white_long_castle_;
+}
+
+bool Parameters::IsBlackShortCastle() const {
+  return is_black_short_castle_;
+}
+
+bool Parameters::IsBlackLongCastle() const {
+  return is_black_long_castle_;
+}
+
+bool Parameters::IsWhiteMove() const {
+  return is_white_move_;
+}
+
+bool Parameters::IsEnPassant() const {
+  return is_en_passant_;
+}
+
 GameState::GameState()
 : board_(std::make_unique<Board>()) {
+}
+
+void GameState::SetParameters(const Parameters& param) {
+  this->param_ = param;
 }
 
 Game::Game(const std::vector<std::string>& moves)
@@ -73,6 +135,10 @@ void GameState::ViewConsoleBoard() const {
   console.Print();
 }
 
+Parameters GameState::GetParameters() const {
+  return param_;
+}
+
 void GameState::ViewImageBoard() const {
   ConsoleImage console(*board_);
   console.Print();
@@ -82,20 +148,28 @@ std::unique_ptr<Board>& GameState::GetBoard() {
   return board_;
 }
 
-bool GameState::IsCastle() const {
-  return param_.is_short_castle_ || param_.is_long_castle_;
+bool GameState::IsWhiteCastle() const {
+  return this->IsWhiteShortCastle() || this->IsWhiteLongCastle();
+}
+
+bool GameState::IsWhiteShortCastle() const {
+  return param_.is_white_short_castle_;
+}
+
+bool GameState::IsWhiteLongCastle() const {
+  return param_.is_white_long_castle_;
 }
 
 size_type GameState::MoveNumber() const {
-  return param_.move;
+  return param_.move_;
 }
 
 size_type GameState::NoCaptureMoves() const {
-  return param_.no_capture_moves;
+  return param_.no_capture_moves_;
 }
 
 bool GameState::IsWhiteMove() const {
-  return param_.is_white_move;
+  return param_.is_white_move_;
 }
 
 iterator Game::begin() {

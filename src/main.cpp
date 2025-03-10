@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   GameState game_state;
   ConsoleDefault console(*(game_state.board_));
   std::vector<std::string> moves = {"e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5", "d5", "ed5", "Na5", "Bb5+", "c6", "dc6",
-                                    "bc6", "Bd3", "Nd5", "Nf3", "Bd6"};
+                                    "bc6", "Bd3", "Nd5", "Nf3", "Bd6", "0-0"};
   Game game(moves);
   for (auto i: game) {
     std::cout << i << ' ';
