@@ -29,7 +29,7 @@ void HistoryGame::ViewHistory() const {
 }
 
 void Nowadays::ViewHistory() const {
-  std::cout << "Nowadays chess is becoming more and more popular, especially after COVID-19, when people have started "
+  std::cout << "Nowadays chess is becoming more and more popular, especially after COVID-19, when people have started playing"
             << "online.\n"
             << "The most presigious chess tournament in the world except of World Classical Championship are:\n"
             << "Norway chess\nTata-Steel-Classic\nWorld Cup\nGrand Swiss\nSinquifield Cup\n World Rapid, Blitz Championsips\n";
