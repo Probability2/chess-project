@@ -3,21 +3,25 @@
 #include <ws2tcpip.h>
 
 #include "lib/History.hpp"
-#include "lib/ChessPiece.hpp"
-#include "lib/ChessFormat.hpp"
-#include "lib/ChessGame.hpp"
-#include "lib/DisplayBoard.hpp"
+#include "lib/Piece.hpp"
+#include "lib/Position.hpp"
+#include "lib/Game.hpp"
+#include "lib/Display.hpp"
 #include "lib/FileManager.hpp"
 #include "parser/ArgParser.hpp"
 #include "core/commands.hpp"
-#include "utils/Random.hpp"
 
 #include <conio.h>
 
 constexpr int kEscapeCode = 0x1b;
 
 int main(int argc, char** argv) {
-  //system("chcp 65001");
+  #ifdef _WIN32
+  SetConsoleOutputCP(CP_UTF8);
+  SetConsoleCP(CP_UTF8);
+  #endif
+
+
   ArgumentParser::ArgParser parser("ChessProject");
   parser.SetUpParser();
   if (!parser.Parse(argc, argv)) {
@@ -28,32 +32,40 @@ int main(int argc, char** argv) {
     std::cout << parser.HelpDescription() << '\n';
     return EXIT_SUCCESS;
   }
-  GameState game_state;
-  ConsoleDefault console(*(game_state.board_));
+  //GameState game_state;
+  //ConsoleDefault console(game_state.board_);
   std::vector<std::string> moves = {"e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6", "Ng5", "d5", "ed5", "Na5", "Bb5+", "c6", "dc6",
                                     "bc6", "Bd3", "Nd5", "Nf3", "Bd6", "0-0"};
-  Game game(moves);
-  for (auto i: game) {
-    std::cout << i << ' ';
-  }
-  std::cout << '\n';
-  std::map<std::string, std::function<void(GameState&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
-                                                              ,{"get from image", GetFromFile}, {"get from file", GetFromFile}
-                                                              ,{"get from fen", GetFromFile}, {"save fen", GetFromFile}
-                                                             , {"start", Start}, {"save image", SaveFile}
-                                                             , {"save file", SaveFile}, {"escape", EXIT}, {"exit", EXIT}};
+  Game game;
+  //for (auto i: game) {
+  //  std::cout << i << ' ';
+  //}
+  //std::cout << '\n';
+  // std::map<std::string, std::function<void(Game&)>> funcs = {{"default", SetDefault}, {"clear", Clear}, {"set", SetPosition}
+  //                                                             , {"get from file", GetFromFEN}
+  //                                                             ,{"get from fen", GetFromFEN}, {"save fen", SaveFEN}
+  //                                                            , {"start", Start}, {"save pos", SaveFEN}, {"save", SaveFEN}
+  //                                                            , {"save game", SaveFEN}, {"escape", EXIT}, {"exit", EXIT}};
   for (;;) {
-    if (_getch() == kEscapeCode) {
+    game.PrintPosition();
+
+    std::string request;
+    if (!std::getline(std::cin, request)) {
       return EXIT_SUCCESS;
     }
-    std::string request;
-    std::getline(std::cin, request);
-    if (funcs.contains(request)) {
-      funcs[request](game_state);
+    if (request == "get from file" || request == "get from fen") {
+      if (auto res = GetFromFEN(); res.has_value()) {
+        game = Game(*res);
+      } else {
+        std::cerr << res.error() << '\n';
+      }
+    } else if (request == "exit") {
+      return EXIT_SUCCESS;
     }
-    system("cls");
-    console.Print();
   }
 
   return EXIT_SUCCESS;
 }
+
+// #include <SFML/Graphics.hpp>
+// #include <iostream>

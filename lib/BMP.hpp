@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DisplayBoard.hpp"
+#include "Display.hpp"
 
 #include <cinttypes>
 #include <memory>

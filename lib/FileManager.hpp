@@ -1,12 +1,15 @@
 #pragma once
 
-#include "ChessFormat.hpp"
-#include "ChessGame.hpp"
+#include "../core/utils.hpp"
 
+#include "Position.hpp"
+
+#include <cassert>
+#include <expected>
 #include <filesystem>
-#include <format> 
+#include <format>
 
-namespace fs = std::filesystem;
+
 
 constexpr const char* kFilePrefix = "chess";
 
@@ -16,13 +19,26 @@ constexpr char kFenDelimeter = '/';
 
 constexpr char kSpaceDelimiter = ' ';
 
-constexpr size_type kCastleCount = 4;
+enum class ErrorCode {
+  kFileNotFound,
+  kPermissionDenied,
+  kMemoryError,
+  kDataIsDamaged,
+};
+
+constexpr std::string_view to_string(ErrorCode code) {
+  switch (code) {
+    case ErrorCode::kFileNotFound: return "File is not found";
+    case ErrorCode::kPermissionDenied: return "The permission to the file denied";
+    case ErrorCode::kMemoryError: return "Memory error of the file";
+    case ErrorCode::kDataIsDamaged: return "The data is damaged";
+    default: return "Unknown error";
+  }
+}
 
 class FileManager {
 protected:
   FileManager() = delete;
-
-  virtual ~FileManager();
 
   static std::ofstream CreateFile();
 
@@ -32,56 +48,148 @@ protected:
 };
 
 
-class TxtManager: public FileManager {
-public:
-  TxtManager& operator=(TxtManager&& manager) = delete;
-
-  static void SetValue(std::unique_ptr<Board>);
-
-  static void Save();
-
-  static void Get(const std::string& file_name);
-
-private:
-  static std::unique_ptr<Board> board_;
-
-  static void DownloadToFile(std::ofstream& file, const std::vector<std::vector<char>>& display);
-
-  static void ReadImage(std::ifstream& file);
-
-  static void ProcessRow(const std::string& line, const int k);
-};
 
 class FenManager: public FileManager {
 public:
-  static void SetValue(std::unique_ptr<GameState>);
+  FenManager() = delete;
 
-  static void Save();
+  static std::expected<Position, std::string_view> Get(const fs::path& file_name);
 
-  static void Get(const std::string& file_name);
+  static constexpr std::expected<Position, std::string_view> Get(std::string_view data) {
+    Position pos;
+    std::size_t ind = 0;
+    for (std::size_t i = 0; i < kMaxInd; ++i) {
+      if (!ReadPlacement(data, kMaxInd - i - 1, pos, ind)) {
+        return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+      }
+    }
+    if (ReadParameters(data, ind, pos)) {
+      return pos;
+    }
+
+    return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+  }
+
+  static void Save(const Position& pos);
+
+  static void Save(const Position& pos, std::string_view file_name);
   
 private:
-  static std::unique_ptr<GameState> game_;
+  static constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view data
+                                                                       , const std::size_t coord
+                                                                       , Position& pos, std::size_t& i) {
+    int col = 0;
+    while (data[i] != kFenDelimeter && data[i] != kSpaceDelimiter && col <= 8) {
+      if (data[i] > '0' && data[i] < '9') {
+        pos.SetSquares(Pieces::kEmpty, coord, col, data[i] - '0');
+        col += (data[i] - '0');
+      } else if (std::ranges::contains(kPieceSymbols, data[i])) {
+        pos.SetSquare(GetPieceCode(data[i]), coord, col);
+        col++;
+      } else {
+        return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+      }
+      i++;
+    }
+    if (col != 8) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    i++;
 
-  static void ReadFen(std::ifstream& file);
+    return {};
+  }
 
-  static void ReadPlacement(std::ifstream& file);
+  static constexpr std::expected<void, std::string_view> ReadParameters(std::string_view data
+                                                                        , std::size_t& ind
+                                                                        , Position& pos) {
+    Parameters param;
+    if (!SetTurn(ind, data, param) || !SetCastle(ind, data, param) || !SetEnPassant(ind, data, param)
+        || !SetNoCaptures(ind, data, param) || !SetMoveNumber(ind, data, param)) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    pos.SetParameters(param);
 
-  inline static void FillFenSkips(std::size_t& skips, std::ofstream& file);
+    return {};
+  }
 
-  static void ProcessFenBoard(std::ofstream& file);
+  constexpr static std::expected<void, std::string_view> SetTurn(std::size_t& ind, std::string_view data
+                                                                                 , Parameters& param) {
+    if (ind >= data.size() || (data[ind] != 'w' && data[ind] != 'b')) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    param.SetWhiteMove(data[ind] == 'w');
+    ind += 2;
 
-  static void ProcessFenRow(std::size_t& skip, std::vector<char>& vec, std::ofstream& file);
+    return {};
+  }
 
-  static void SetTurn(std::ifstream& file, Parameters& param);
+  constexpr static std::expected<void, std::string_view> SetCastle(std::size_t& ind, std::string_view data
+                                                                                   , Parameters& param) {
+    if (ind >= data.size()) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    if (data[ind] == '-') {
+      ind += 2;
+      return {};
+    }
+    for (int i = 0; i < 4 && ind < data.size(); ++i) {
+      auto it = std::ranges::find(kCastles, data[ind]);
+      ind++;
+      if (it == kCastles.end()) {
+        break;
+      }
+      param.SetCastling(kMxCastles - std::distance(kCastles.begin(), it) - 1);
+    }
+    if (ind == data.size()) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    ind++;
 
-  static void SetCastle(std::ifstream& file, Parameters& param);
+    return {};
+  }
 
-  static void GetCastle(const char castle, Parameters& param);
+  constexpr static std::expected<void, std::string_view> SetEnPassant(std::size_t& ind, std::string_view data
+                                                                                      , Parameters& param) {
+    if (ind >= data.size() || ((data[ind] < 'a' || data[ind] > 'h') && data[ind] != '-')) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    if (data[ind] == '-') {
+      ind += 2;
+      return {};
+    }
+    uint8_t x = data[ind] - 'a';
+    ind++;
+    if (ind >= data.size() || data[ind] < '1' && data[ind] > '8') {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    param.SetEnPassant(utils::coord(static_cast<int>(x), data[ind] - '0'));
+    ind += 2;
 
-  static void SetEnPassant(std::ifstream& file, Parameters& param);
+    return {};
+  }
 
-  static void SetNoCaptures(std::ifstream& file, Parameters& param);
+  constexpr static std::expected<void, std::string_view> SetNoCaptures(std::size_t& ind, std::string_view data
+                                                                                       , Parameters& param) {
+    if (ind >= data.size()) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    int num = utils::GetNumber(data, ind);
+    ind++;
+    param.SetNoCaptures(num);
 
-  static void SetMove(std::ifstream& file, Parameters& param);
+    return {};
+  }
+
+  constexpr static std::expected<void, std::string_view> SetMoveNumber(std::size_t& ind, std::string_view data
+                                                                                       , Parameters& param) {
+    if (ind >= data.size()) {
+      return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    }
+    int num = utils::GetNumber(data, ind);
+    ind++;
+    param.SetMoveNumber(num);
+
+    return {};
+  }
+
 };

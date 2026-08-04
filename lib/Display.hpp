@@ -1,22 +1,11 @@
 #pragma once
 
-#include "ChessFormat.hpp"
+#include "Position.hpp"
 
 #include <functional>
 #include <memory>
 #include <type_traits>
 
-constexpr char kEmptySquare = '.';
-
-const std::vector<char> kEmptyRow(ChessData::kMaxInd, kEmptySquare);
-
-const std::vector<char> kWhiteBasicNames = {'P', 'N', 'B', 'R', 'Q', 'K'};
-
-const std::vector<char> kBlackBasicNames = {'p', 'n', 'b', 'r', 'q', 'k'};
-
-constexpr std::size_t kSquareLength = 6;
-
-constexpr std::size_t kSquareHeight = 11;
 
 const std::vector<std::string> kEmptySquareImage = {"           ",
                                                     "           ",
@@ -63,22 +52,21 @@ const std::vector<std::string> kKnightImage = {"   /|___   ",
                                                "    /_____|"};
 
 const std::vector<std::vector<std::string>> kPieceConsoleImages = {kPawnImage, kKnightImage, kBishopImage,
-                                                             kRookImage, kQuennImage, kKingImage};
+                                                                   kRookImage, kQuennImage, kKingImage};
 
 class Display {
 protected:
   Display() = delete;
 
-  template<typename T>
-  Display(T&& board)
-  : board_(std::forward<T>(board)) {
+  Display(Position* board)
+  : board_(*board) {
   }
 
   virtual ~Display() = default;
   
   virtual void Set() = 0;
 
-  Board& board_;
+  Position& board_;
 };
 
 class Console: protected Display {
@@ -97,38 +85,13 @@ protected:
   virtual void Print() = 0;
 };
 
-
-class ConsoleImage: public Console {
-public:
-  template<typename T>
-  ConsoleImage(T&& board)
-  : Console(std::forward<T>(board)) {
-  cboard_ = std::vector<std::vector<std::vector<std::string>>>(ChessData::kMaxInd
-                                            , std::vector<std::vector<std::string>>(ChessData::kMaxInd, kEmptySquareImage));
-  }
-
-  void Print() override final;
-
-  std::vector<std::vector<std::vector<std::string>>> GetBoard() const;
-private:
-  void PrintRow(const std::vector<std::vector<std::string>>& row) const;
-
-  void Set() override final;
-
-  std::vector<std::vector<std::vector<std::string>>> cboard_;
-
-  inline void PrintSquare(const std::vector<std::string>& vec, const std::size_t ind) const;
-
-  inline void PrintLine() const;
-};
-
 class ConsoleDefault: public Console {
 public:
-  template<typename T>
-  ConsoleDefault(T&& board)
-  : Console(std::forward<T>(board)) {
-    cboard_ = std::vector<std::vector<char>>(ChessData::kMaxInd, kEmptyRow);
-  }
+  // template<typename T>
+  // ConsoleDefault(T&& board)
+  // : Console(std::forward<T>(board)) {
+  //   cboard_ = std::vector<std::vector<char>>(kMaxInd, kEmptyRow);
+  // }
 
   void Print() override final;
 

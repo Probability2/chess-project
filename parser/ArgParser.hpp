@@ -4,6 +4,7 @@
 #include "int_argument_class.hpp"
 #include "flag_class.hpp"
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <optional>

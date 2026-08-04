@@ -705,7 +705,7 @@ bool ArgParser::IsIntArgSet(const std::string& int_parameter) const {
 void ArgParser::SetUpParser() {
   this->AddHelp('h', "help", "Help of programm");
   this->AddStringArgument('c', "create", "Creates a game").Default("standard");
-  this->AddStringArgument('l', "language", "Sets a language. The Possible languages are English, Russian, Hebrew").Default("en");
+  this->AddStringArgument('l', "language", "Sets a language. The Possible languages are English, Russian and Hebrew").Default("en");
 }
 
 void ArgParser::DisplayError() {

@@ -25,13 +25,13 @@ void Records::ViewHistory() const {
 }
 
 void HistoryGame::ViewHistory() const {
-  std::cout << "India\n";
+  std::cout << "Chess was invented in India\n";
 }
 
 void Nowadays::ViewHistory() const {
-  std::cout << "Nowadays chess is becoming more and more popular, especially after COVID-19, when people have started "
+  std::cout << "Nowadays chess is becoming more and more popular, especially after COVID-19, when people have started playing it"
             << "online.\n"
-            << "The most presigious chess tournament in the world except of World Classical Championship are:\n"
+            << "The most prestigious chess tournament in the world except of World Classical Championship are:\n"
             << "Norway chess\nTata-Steel-Classic\nWorld Cup\nGrand Swiss\nSinquifield Cup\n World Rapid, Blitz Championsips\n";
 }
 

@@ -1,54 +1,45 @@
 #pragma once
 
-#include "lib/ChessFormat.hpp"
+#include "lib/Position.hpp"
 #include "lib/FileManager.hpp"
-#include "lib/ChessGame.hpp"
+#include "lib/Game.hpp"
 
 #include <map>
 #include <memory>
 
-void SetDefault(GameState& state) {
-  state.board_->SetDefault();
+void SetDefault(Game& game) {
+  //state.board_->SetDefault();
 }
 
-void Clear(GameState& state) {
-  state.board_->Clear();
+void Clear(Game& game) {
+  //state.board_->Clear();
 }
 
-void SetPosition(GameState& state) {
-  state.board_->SetPosition();
+void SetPosition(Game& game) {
+  //state.board_->SetPosition();
 }
 
-void GetFromFile(GameState& state) {
-  std::string request;
+std::expected<Position, std::string_view> GetFromFEN() {
+  std::string file_name;
   std::cout << "File name: ";
-  std::getline(std::cin, request);
-  TxtManager::SetValue(std::move(state.board_));
-  TxtManager::Get(request);
+  std::getline(std::cin, file_name);
+  
+  return FenManager::Get(fs::path(file_name));
 }
 
-void GetFromFEN(GameState& state) {
-  std::string request;
-  std::cout << "File name: ";
-  std::getline(std::cin, request);
-  FenManager::SetValue(std::make_unique<GameState>(std::move(state)));
-  FenManager::Get(request);
-}
-
-void Start(GameState&) {
+void Start(Game&) {
   Game game;
 }
 
-void SaveFile(GameState& state) {
-  TxtManager::SetValue(std::move(state.board_));
-  TxtManager::Save();
+
+void SaveFEN(Game& game) {
+  // FenManager::Save();
 }
 
-void SaveFEN(GameState& state) {
-  FenManager::SetValue(std::make_unique<GameState>(std::move(state)));
-  FenManager::Save();
-}
-
-void EXIT(GameState&) {
+void EXIT() {
   std::exit(EXIT_SUCCESS);
+}
+
+void Move(std::string move) {
+  
 }

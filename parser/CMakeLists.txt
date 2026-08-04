@@ -1,4 +1,6 @@
-add_library(argparser ArgParser.cpp)
-add_library(string_argument_class string_argument_class.cpp)
-add_library(int_argument_class int_argument_class.cpp)
-add_library(flag_class flag_class.cpp)
+add_library(parser 
+    ArgParser.cpp
+    string_argument_class.cpp
+    int_argument_class.cpp
+    flag_class.cpp
+)

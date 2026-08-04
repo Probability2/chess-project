@@ -1,4 +1,4 @@
-#include "ChessPiece.hpp"
+#include "Piece.hpp"
 
 King::King(const std::string& pos)
 : pos_(pos) {
@@ -18,7 +18,7 @@ void Knight::Move(std::size_t ind, const std::string& new_pos) {
 
 }
 
-std::vector<std::string> ChessPiece::GetPositions() const {
+std::vector<std::string> ChessPiece::GetPositions() {
   return poss_;
 }
 
