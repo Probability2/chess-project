@@ -46,10 +46,9 @@ int main(int argc, char** argv) {
   //                                                             ,{"get from fen", GetFromFEN}, {"save fen", SaveFEN}
   //                                                            , {"start", Start}, {"save pos", SaveFEN}, {"save", SaveFEN}
   //                                                            , {"save game", SaveFEN}, {"escape", EXIT}, {"exit", EXIT}};
+  std::string request;
   for (;;) {
     game.PrintPosition();
-
-    std::string request;
     if (!std::getline(std::cin, request)) {
       return EXIT_SUCCESS;
     }
@@ -59,8 +58,10 @@ int main(int argc, char** argv) {
       } else {
         std::cerr << res.error() << '\n';
       }
-    } else if (request == "exit") {
-      return EXIT_SUCCESS;
+    } else if (request == "save") {
+      SaveFEN(game);
+    } else if (request == "exit" || request == "quit") {
+      break;
     }
   }
 

@@ -4,7 +4,6 @@ add_library(ChessLibrary
     Position.cpp
     Game.cpp
     Display.cpp
-    BMP.cpp
     FileManager.cpp
 )
 

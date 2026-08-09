@@ -24,16 +24,16 @@ std::expected<Position, std::string_view> GetFromFEN() {
   std::cout << "File name: ";
   std::getline(std::cin, file_name);
   
-  return FenManager::Get(fs::path(file_name));
-}
-
-void Start(Game&) {
-  Game game;
+  return fen_manager::Get(fs::path(file_name));
 }
 
 
 void SaveFEN(Game& game) {
-  // FenManager::Save();
+  if (auto save_file = fen_manager::Save(game.get_current_position()); save_file.has_value()) {
+    std::cout << "The file created successfully\n";
+  } else {
+    std::cerr << save_file.error() << '\n';
+  }
 }
 
 void EXIT() {

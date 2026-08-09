@@ -1,73 +1,61 @@
 #include "Position.hpp"
 
-bool Parameters::IsWhiteMove() const {
+bool Position::is_white_move() const {
   return isWhiteMove_;
 }
 
-bool Parameters::IsEnPassant() const {
+bool Position::is_en_passant() const {
   return target_ != 0;
 }
 
-std::size_t Parameters::GetNoCaptureMoves() const {
+std::size_t Position::get_no_capture_moves() const {
   return no_capture_moves_;
 }
 
-std::size_t Parameters::GetMove() const {
+std::size_t Position::get_move_number() const {
   return move_;
 }
 
-uint8_t Parameters::GetCastle() const {
-  return castle_;
+std::optional<std::string> Position::get_castle() const {
+  std::string castling_rights;
+  for (int i = 0; i < 4; ++i) {
+    if ((castle_ >> i) & 1) {
+      castling_rights += kCastles[i];
+    }
+  }
+  if (castling_rights.empty()) {
+    return std::nullopt;
+  }
+
+  return std::make_optional(castling_rights);
 }
 
-std::optional<std::pair<int, int>> Parameters::GetEnPassant() const {
+std::optional<std::string> Position::get_en_passant() const {
   if (target_ == 0) {
     return std::nullopt;
   }
-  
-  return std::make_optional(std::make_pair(((target_ >> 3) & 0x07) + 'a', (target_ & 0x07)));
-}
+  std::string s;
+  s += ((target_ >> 3) & 0x07) + 'a';
+  s += (target_ & 0x07) + '1';
 
-Parameters Position::GetParameters() const {
-  return param_;
+  return std::make_optional(s);
 }
 
 std::ostream& operator<<(std::ostream& os, const Position& pos) {
-  for (int i = 7; i >= 0; --i) {
-    for (int j = 0; j < 8; ++j) {
-      os << GetPieceIcon(pos.GetSquare(i, j)) << ' ';
+  for (int i = kMaxInd - 1; i >= 0; --i) {
+    for (int j = 0; j < kMaxInd; ++j) {
+      os << GetPieceIcon(pos.get_square(i, j)) << ' ';
     }
     os << '\n';
   }
-  os << pos.GetParameters();
-
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Parameters& param) {
-  if (param.IsWhiteMove()) {
-    os << "White's move, ";
-  } else {
-    os << "Black's move, ";
-  }
-  uint8_t is_castle = param.GetCastle();
-  if (!is_castle) {
-    os << "no castle";
-  }
-  for (int i = 0; i < 4; ++i) {
-    if ((is_castle >> i) & 1) {
-      os << kCastles[i];
-    }
-  }
-  os << ", ";
-  std::optional<std::pair<char, char>> en_passant = param.GetEnPassant();
+  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castle().value_or(" ") << ", ";
+  auto en_passant = pos.get_en_passant();
   if (en_passant.has_value()) {
-    auto [col, row] = *en_passant;
-    os << "en-passant: " << col << static_cast<int>(row);
+    os << "en-passant: " << *en_passant;
   } else {
     os << "no en-passant";
   }
-  os << ", no capture moves: " << param.GetNoCaptureMoves() << ", move number: " << param.GetMove() << '\n';
+  os << ", no capture moves: " << pos.get_no_capture_moves() << ", move number: " << pos.get_move_number() << '\n';
 
   return os;
 }

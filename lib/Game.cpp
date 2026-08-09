@@ -1,14 +1,6 @@
 #include "Game.hpp"
 
-// GameState::GameState()
-// : board_(std::make_unique<Board>()) {
-// }
-
-void GameState::SetParameters(std::unique_ptr<Parameters> param) {
-  this->param_ = std::move(param);
-}
-
-Game::Game(const std::vector<std::string>& moves)
+Game::Game(const std::vector<uint8_t>& moves)
 : moves_(moves) {
 }
 
@@ -40,10 +32,17 @@ Game::Game(const Position& pos)
 : initPos_(pos) {
 }
 
-void Game::PrintPosition() {
-  std::cout << initPos_;
+Position Game::get_current_position() const {
+  return currPos_;
 }
 
+Position Game::get_init_position() const {
+  return initPos_;
+}
+
+void Game::PrintPosition() const {
+  std::cout << currPos_;
+}
 
 iterator Game::begin() {
   return moves_.begin();
