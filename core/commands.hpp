@@ -7,29 +7,19 @@
 #include <map>
 #include <memory>
 
-void SetDefault(Game& game) {
-  //state.board_->SetDefault();
-}
-
-void Clear(Game& game) {
-  //state.board_->Clear();
-}
-
-void SetPosition(Game& game) {
-  //state.board_->SetPosition();
-}
-
-std::expected<Position, std::string_view> GetFromFEN() {
+std::expected<chess::Position, std::string_view> GetFromFEN() {
   std::string file_name;
   std::cout << "File name: ";
-  std::getline(std::cin, file_name);
+  if (!std::getline(std::cin, file_name)) {
+    return std::unexpected("Input cancelled");
+  }
   
-  return fen_manager::Get(fs::path(file_name));
+  return chess::fen_manager::Get(fs::path(std::move(file_name)));
 }
 
 
-void SaveFEN(Game& game) {
-  if (auto save_file = fen_manager::Save(game.get_current_position()); save_file.has_value()) {
+void SaveFEN(const chess::Position& pos) {
+  if (auto save_file = chess::fen_manager::Save(pos); save_file.has_value()) {
     std::cout << "The file created successfully\n";
   } else {
     std::cerr << save_file.error() << '\n';

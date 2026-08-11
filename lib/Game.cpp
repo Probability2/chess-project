@@ -1,5 +1,7 @@
 #include "Game.hpp"
 
+namespace chess {
+
 Game::Game(const std::vector<uint8_t>& moves)
 : moves_(moves) {
 }
@@ -67,3 +69,5 @@ bool Game::empty() const {
 void Game::clear() {
   //nulling the game, there will be only initial position??
 }
+
+}// namespace chess

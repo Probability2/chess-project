@@ -27,3 +27,5 @@ FetchContent_MakeAvailable(json)
 
 include_directories("C:/SFML-3.1.0/include")
 
+enable_testing()
+add_subdirectory(tests)

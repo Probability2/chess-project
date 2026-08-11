@@ -3,8 +3,12 @@ add_library(ChessLibrary
     Piece.cpp
     Position.cpp
     Game.cpp
-    Display.cpp
     FileManager.cpp
 )
 
-target_link_libraries(ChessLibrary PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(ChessLibrary 
+    PRIVATE 
+        nlohmann_json::nlohmann_json
+    PUBLIC
+        GTest::gtest
+)

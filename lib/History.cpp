@@ -1,6 +1,6 @@
 #include "History.hpp"
 
-std::size_t ChessHistory::calls = 0;
+namespace chess {
 
 void ViewHistory(const std::vector<std::string>& vec) {
   for (std::string str: vec) {
@@ -67,3 +67,5 @@ void Champions::ViewHistory() const {
 inline void ChessHistory::PrintTheme() const {
   std::cout << "Chess History:\n";
 }
+
+}// namespace chess

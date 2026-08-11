@@ -5,11 +5,13 @@
 #include "Position.hpp"
 
 #include <cassert>
+#include <concepts>
 #include <expected>
 #include <filesystem>
 #include <format>
+#include <fstream>
 
-namespace fen_manager {
+namespace chess::fen_manager {
 
 namespace internal {
 
@@ -45,10 +47,10 @@ constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view d
   std::size_t col = 0;
   while (i < data.size() && data[i] != kFenDelimeter && data[i] != kSpaceDelimiter && col <= 8) {
     if (data[i] > '0' && data[i] < '9') {
-      pos.set_squares(Pieces::kEmpty, coord, col, data[i] - '0');
+      pos.set_squares(PieceType::kNone, coord, col, data[i] - '0');
       col += (data[i] - '0');
     } else if (std::ranges::contains(kPieceSymbols, data[i])) {
-      pos.set_square(GetPieceCode(data[i]), coord, col);
+      pos.set_square(GetPieceType(data[i]), coord, col);
       col++;
     } else {
       return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
@@ -83,13 +85,16 @@ constexpr std::expected<void, std::string_view> ParseCastle(std::size_t& ind, st
     ind += 2;
     return {};
   }
-  for (int i = 0; i < 4 && ind < data.size(); ++i) {
+  for (std::size_t i = 0; i < kMxCastles && ind < data.size(); ++i) {
     auto it = std::ranges::find(kCastles, data[ind]);
-    ind++;
     if (it == kCastles.end()) {
       break;
     }
-    pos.set_castling(kMxCastles - std::distance(kCastles.begin(), it) - 1);
+    ind++;
+    if !consteval {
+      std::cout << kMxCastles - std::ranges::distance(kCastles.begin(), it) - 1 << " castles\n";
+    }
+    pos.set_castling(kMxCastles - std::ranges::distance(kCastles.begin(), it) - 1);
   }
   if (ind == data.size()) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
@@ -125,6 +130,9 @@ constexpr std::expected<void, std::string_view> ParseNoCaptures(std::size_t& ind
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
   int num = utils::GetNumber(data, ind);
+  if !consteval {
+    std::cout << num << " Compleanno\n";
+  }
   ind++;
   pos.set_no_captures(num);
 
@@ -137,6 +145,9 @@ constexpr std::expected<void, std::string_view> ParseMoveNumber(std::size_t& ind
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
   int num = utils::GetNumber(data, ind);
+  if !consteval {
+    std::cout << num << " Tapuzinho\n";
+  }
   ind++;
   pos.set_move_number(num);
 
@@ -153,9 +164,7 @@ constexpr std::expected<void, std::string_view> ParseParameters(std::string_view
   return {};
 }
 
-} // end of internal namespace
-
-std::expected<Position, std::string_view> Get(const fs::path& file_name);
+} // namespace internal
 
 constexpr std::expected<Position, std::string_view> Get(std::string_view data) {
   Position pos;
@@ -172,8 +181,34 @@ constexpr std::expected<Position, std::string_view> Get(std::string_view data) {
   return pos;
 }
 
+std::expected<Position, std::string_view> Get(std::same_as<fs::path> auto const& file_name) {
+  std::error_code ec;
+  if (!fs::is_regular_file(file_name, ec)) {
+    return std::unexpected(internal::to_string(internal::ErrorCode::kFileNotFound)); 
+  }
+  const auto size = fs::file_size(file_name, ec);
+  if (ec || size > internal::kMaxFenSize) {
+    return std::unexpected(internal::to_string(internal::ErrorCode::kSizeTooLarge));
+  }
+  std::ifstream file(file_name, std::ios::in);
+  if (!file) {
+    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+  }
+  std::string data;
+  if (!std::getline(file, data)) {
+    return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
+  }
+  auto res = Get(data);
+  if (!res) {
+    return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
+  }
+
+  return *res;
+}
+
+
 std::expected<void, std::string_view> Save(const Position& pos);
 
 std::expected<void, std::string_view> Save(const Position& pos, std::string_view file_name);
 
-}//end of fen_manager namespace
+}// namespace chess::fen_manager

@@ -1,47 +1,95 @@
 #pragma once
 
+#include <gtest/gtest_prod.h>
+
 #include "../core/utils.hpp"
 #include "Piece.hpp"
 
-#include <cstring>
-#include <fstream>
+#include <bit>
 #include <iostream>
 #include <optional>
+#include <span>
+#include <type_traits>
+
+
+namespace chess {
+
+inline constexpr int kBoardSize = 64;
 
 inline constexpr int kMxCastles = 4;
 
+inline constexpr std::size_t kMaxMoves = 256;
+
 inline constexpr std::array<char, kMxCastles> kCastles = {'K', 'Q', 'k', 'q'};
+
+
+
+enum class MovesType {
+  kPseudo, kLegal, kCaptures, kChecks
+};
+
+struct Move {
+  Move() = default;
+
+  Move(PieceType piece, uint8_t from, uint8_t to);
+
+  bool operator==(const Move& other) const = default;
+
+  PieceType piece_; // the piece that has been moved
+  uint8_t from_;// a-h files, 1-8 ranks
+  uint8_t to_;// the same thing
+};
+
+class MoveList {
+public:
+  MoveList() = default;
+
+  std::size_t size() const;
+
+  void Push(const Move& move);
+  
+  std::span<const Move> AsSpan() const;
+
+  bool contains(const Move& move) const;
+
+private:
+  std::array<Move, kMaxMoves> moves_;
+  std::size_t size_ = 0;
+};
 
 class Position {
 public:
-  constexpr Position() {
-    for (std::size_t i = 0; i < utils::kBoardSize; ++i) {
-      pos_[i] = Pieces::kEmpty;
-    }
-  }
+  constexpr Position() = default;
 
-  constexpr void set_squares(Pieces p, const std::size_t x, const std::size_t y, const std::size_t n) {
-    for (int i = 0; i < n; ++i) {
+  constexpr void set_squares(PieceType p, const std::size_t x, const std::size_t y, const std::size_t n) {
+    for (std::size_t i = 0; i < n; ++i) {
       set_square(p, x, y + i);
     }
   }
 
-  constexpr void set_square(Pieces p, const std::size_t x, const std::size_t y) {
-    pos_[utils::coord(x, y)] = p;
+  constexpr void set_square(PieceType piece, const std::size_t x, const std::size_t y) {
+    std::size_t coord = utils::coord(x, y);
+    Bitboard mask = 1ULL << coord;
+    auto color = Color(piece);
+    if (board_[coord] != PieceType::kNone) {
+      pieces_[static_cast<int>(board_[coord]) - 1] &= ~mask;
+      all_white_pieces_ &= ~mask;
+      all_black_pieces_ &= ~mask;
+    }
+    board_[coord] = piece;
+    if (color == ColorType::kWhite) {
+      all_white_pieces_ |= mask;
+    } else if (color == ColorType::kBlack) {
+      all_black_pieces_ |= mask;
+    } else {
+      return;
+    }
+    pieces_[static_cast<int>(piece) - 1] |= mask;
   }
 
-  //constexpr void set_parameters(const Parameters& param) {
-  //  param_ = param;
-  //}
-
-  //friend std::ostream& operator<<(std::ostream& os, const Position& pos);
-
-
-  constexpr Pieces get_square(const int x, const int y) const {
-    return pos_[utils::coord(x, y)];
+  constexpr PieceType get_square(const int x, const int y) const {
+    return board_[utils::coord(x, y)];
   }
-
-  //Parameters get_parameters() const;
 
   bool is_white_move() const;
 
@@ -60,17 +108,11 @@ public:
   }
 
   constexpr void set_white_move(const bool move) {
-    if !consteval {
-      std::cout << std::boolalpha << move << " is white's move\n";
-    }
-    isWhiteMove_ = move;
+    is_white_move_ = move;
   }
 
   constexpr void set_en_passant(const int ind) {
     target_ = ind;
-    if !consteval {
-      std::cout << static_cast<int>(target_) << " target\n";
-    }
   }
 
   constexpr void set_no_captures(const std::size_t moves) {
@@ -80,17 +122,45 @@ public:
   constexpr void set_move_number(const std::size_t moves) {
     move_ = moves;
   }
-
+  
+  
+  
+  template<MovesType type>
+  MoveList GenerateMoves() const {
+    if constexpr (std::is_same_v<decltype(type), decltype(MovesType::kPseudo)>) {
+      return GeneratePseudoMoves();
+    } else {
+      return GenerateLegalMoves();
+    }
+  }
+  
   
   
 private:
-  std::array<Pieces, utils::kBoardSize> pos_;
-  bool isWhiteMove_ = true;
+  std::array<PieceType, kBoardSize> board_{};
+  std::array<Bitboard, kPieceCount> pieces_{};
+  Bitboard all_white_pieces_ = 0;
+  Bitboard all_black_pieces_ = 0;
+  bool is_white_move_ = true;
   uint8_t castle_ = 0;
   uint8_t target_ = 0;
   std::size_t no_capture_moves_ = 0;
   std::size_t move_ = 0;
+
+  MoveList GeneratePseudoMoves() const;
+
+  MoveList GenerateLegalMoves() const;
+
+  void AddPseudoPawnMoves(MoveList& list, std::size_t ind) const;
+  
+  FRIEND_TEST(PseudoMovesSuite, Pawns);
 };
 
 
-std::ostream& operator<<(std::ostream& os, const Position& pos);
+}// namespace chess
+
+std::ostream& operator<<(std::ostream& os, const chess::Move& list);
+
+std::ostream& operator<<(std::ostream& os, const chess::MoveList& list);
+
+std::ostream& operator<<(std::ostream& os, const chess::Position& pos);

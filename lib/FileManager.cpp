@@ -1,6 +1,6 @@
 #include "FileManager.hpp"
 
-namespace fen_manager {
+namespace chess::fen_manager {
 
 namespace {
 
@@ -50,7 +50,6 @@ std::expected<std::ofstream, std::string_view> CreateFile() {
     return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
   }
   counter++;
-  std::cout << counter << ' ' << "YESS\n";
 
   return file;
 }
@@ -65,8 +64,8 @@ void WritePositionSquares(std::ofstream& file, const Position& pos) {
       }
     };
     for (int j = 0; j < kMaxInd; ++j) {
-      Pieces square = pos.get_square(i, j);
-      if (square == Pieces::kEmpty) {
+      PieceType square = pos.get_square(i, j);
+      if (square == PieceType::kNone) {
         empty_count++;
         continue;
       }
@@ -86,7 +85,7 @@ void WritePositionParams(std::ofstream& file, const Position& pos) {
        << pos.get_en_passant().value_or("-") << " " << pos.get_no_capture_moves() << ' ' << pos.get_move_number();
 }
 
-}// end of an unnamed namespace
+}// unnamed namespace
 
 std::expected<void, std::string_view> Save(const Position& pos) {
   auto file = CreateFile();
@@ -108,29 +107,29 @@ std::expected<void, std::string_view> Save(const Position& pos, const fs::path& 
   return {};
 }
 
-std::expected<Position, std::string_view> Get(const fs::path& file_name) {
-  std::error_code ec;
-  if (!fs::is_regular_file(file_name, ec)) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kFileNotFound)); 
-  }
-  const auto size = fs::file_size(file_name, ec);
-  if (ec || size > internal::kMaxFenSize) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kSizeTooLarge));
-  }
-  std::ifstream file(file_name, std::ios::in);
-  if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
-  }
-  std::string data;
-  if (!std::getline(file, data)) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
-  }
-  auto res = Get(std::string_view(data));
-  if (!res) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
-  }
+// std::expected<Position, std::string_view> Get(std::same_as<fs::path> auto const& file_name) {
+//   std::error_code ec;
+//   if (!fs::is_regular_file(file_name, ec)) {
+//     return std::unexpected(internal::to_string(internal::ErrorCode::kFileNotFound)); 
+//   }
+//   const auto size = fs::file_size(file_name, ec);
+//   if (ec || size > internal::kMaxFenSize) {
+//     return std::unexpected(internal::to_string(internal::ErrorCode::kSizeTooLarge));
+//   }
+//   std::ifstream file(file_name, std::ios::in);
+//   if (!file) {
+//     return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+//   }
+//   std::string data;
+//   if (!std::getline(file, data)) {
+//     return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
+//   }
+//   auto res = Get(std::string_view(data));
+//   if (!res) {
+//     return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
+//   }
 
-  return *res;
-}
+//   return *res;
+// }
 
-}//end of fen_manager namespace
+}// namespace chess:fen_manager

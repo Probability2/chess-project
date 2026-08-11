@@ -1,14 +1,13 @@
 #pragma once
 
 #include "Position.hpp"
-#include "Display.hpp"
 #include "FileManager.hpp"
 #include "../core/utils.hpp"
 
 #include <compare>
 #include <iostream>
 
-constexpr size_type kMaxMoves = 1000;
+namespace chess {
 
 inline constexpr std::string_view kDefaultPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -83,3 +82,5 @@ private:
   std::optional<std::string> player1_;
   std::optional<std::string> player2_;
 };
+
+}// namespace chess

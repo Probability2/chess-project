@@ -9,14 +9,14 @@
 
 using json = nlohmann::json;
 
+namespace chess {
+
 
 void ViewHistory(const std::vector<std::string>& vec);
 
 class ChessHistory {
 public:
   ChessHistory() = default;
-
-  static std::size_t calls;
 
   virtual void ViewHistory() const = 0;
 
@@ -58,3 +58,5 @@ public:
   void ViewHistory() const override;
 
 };
+
+}// namespace chess
