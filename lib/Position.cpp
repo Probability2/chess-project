@@ -2,10 +2,15 @@
 
 namespace chess {
 
-Move::Move(PieceType piece, uint8_t from, uint8_t to)
+Move::Move(const PieceType piece, const uint8_t from, const uint8_t to)
 : piece_(piece)
 , from_(from)
 , to_(to) {
+}
+
+Move::Move(const PieceType piece, const uint8_t from, const uint8_t to,
+           const PieceType promoted_piece): Move(piece, from, to) {
+  promoted_piece_ = promoted_piece;            
 }
 
 std::size_t MoveList::size() const {
@@ -26,10 +31,8 @@ bool MoveList::contains(const Move& m) const {
   return false;
 }
 
-void MoveList::Push(const Move& move) {
-  if (size_ == kMaxMoves) {
-    return;
-  }
+void MoveList::push(const Move& move) {
+  assert(size_ < kMaxMoves && "Movelist overflow");
   moves_[size_++] = move;
 }
 
@@ -54,7 +57,7 @@ std::optional<std::string> Position::get_castle() const {
     return std::nullopt;
   }
   std::string castling_rights;
-  for (std::size_t i = 0; i < kMxCastles; ++i) {
+  for (int i = kMxCastles - 1; i >= 0; --i) {
     if ((castle_ >> i) & 1) {
       castling_rights += kCastles[kMxCastles - i - 1];
     }
@@ -72,50 +75,120 @@ std::optional<std::string> Position::get_en_passant() const {
                      static_cast<char>((target_ & 0x07) + '1')};       //rank
 }
 
-MoveList Position::GeneratePseudoMoves() const {
-  MoveList list;
-  utils::PrintBitboard(pieces_[0]);
-  // std::cout << pieces_[0] << " powerful debugger\n";
-  Bitboard w_pawns = pieces_[0];
-  std::size_t pawns_max_ind = 63;
-  while (w_pawns > 0) {
-    std::size_t zeros = std::countr_zero(w_pawns);
-    pawns_max_ind -= zeros;
-    AddPseudoPawnMoves(list, pawns_max_ind);
-    w_pawns &= (w_pawns - 1); //Brian Kernighan's algorithm
+template<ColorType Color>
+PieceType Position::GetPawnsType() const {
+  if (Color == ColorType::kWhite) {
+    return PieceType::kWhitePawn;
   }
-
-  return list;
+  return PieceType::kBlackPawn;
 }
 
-void Position::AddPseudoPawnMoves(MoveList& list, std::size_t ind) const {
-  if (ind + 8 < kMaxInd && board_[ind + 8] == PieceType::kNone) {// ind = number of the square
-    list.Push(Move(PieceType::kWhitePawn, ind, ind + 8));
+template<ColorType Color>
+Bitboard Position::GetSinglePawnPush(const Bitboard pawns) const {
+  if (Color == ColorType::kWhite) {
+    return (pawns << 8);
   }
-  if (ind >= 8 && ind <= 15 && board_[ind + 8] == PieceType::kNone && board_[ind + 16] == PieceType::kNone) {
-    list.Push(Move(PieceType::kWhitePawn, ind, ind + 16));
+
+  return (pawns >> 8);
+}
+
+template<ColorType Color>
+void Position::GeneratePawnPushes(MoveList& list, Bitboard pawns, const int shift) const {
+  while (pawns > 0) {
+    uint8_t ind = std::countr_zero(pawns);
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind));
+    pawns &= (pawns - 1); //Brian Kernighan's algorithm
   }
-  // captures
-  if (ind + 7 < kMaxInd && Color(board_[ind + 7]) == ColorType::kBlack && ind % 8 != 0) {
-    list.Push(Move(PieceType::kWhitePawn, ind, ind + 7));
+}
+
+template<ColorType Color>
+void Position::GeneratePawnCaptures(MoveList& list, Bitboard pawns, const int shift) const {
+  while (pawns > 0) {
+    uint8_t ind = std::countr_zero(pawns);
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind));
+    pawns &= (pawns - 1); //Brian Kernighan's algorithm
   }
-  if (ind + 7 && kMaxInd && Color(board_[ind + 9]) == ColorType::kBlack && ind % 8 != 7) {
-    list.Push(Move(PieceType::kWhitePawn, ind, ind + 9));
+}
+
+template<ColorType Color>
+void Position::GeneratePawnPromotions(MoveList& list, Bitboard pawns, const int shift) const {
+  while (pawns > 0) {
+    uint8_t ind = std::countr_zero(pawns);
+    PieceType knight = (Color == ColorType::kWhite) ? PieceType::kWhiteKnight : PieceType::kBlackKnight;
+    PieceType bishop = (Color == ColorType::kWhite) ? PieceType::kWhiteBishop : PieceType::kBlackBishop;
+    PieceType rook = (Color == ColorType::kWhite) ? PieceType::kWhiteRook : PieceType::kBlackRook;
+    PieceType queen = (Color == ColorType::kWhite) ? PieceType::kWhiteQueen : PieceType::kBlackQueen;
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, knight));
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, bishop));
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, rook));
+    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, queen));
+    pawns &= (pawns - 1); //Brian Kernighan's algorithm
   }
+}
+
+template<ColorType Color>
+void Position::GeneratePawnMoves(MoveList& list) const {
+  Bitboard empty_squares = ~(all_white_pieces_ | all_black_pieces_);
+  Bitboard pawns = (Color == ColorType::kWhite) ? pieces_[static_cast<int>(PieceType::kWhitePawn) - 1]
+                                                :  pieces_[static_cast<int>(PieceType::kBlackPawn) - 1];
+  Bitboard single_shift = GetSinglePawnPush<Color>(pawns);
+  Bitboard left_shift = (Color == ColorType::kWhite) ? (pawns << 7) : (pawns >> 7);
+  Bitboard right_shift = (Color == ColorType::kWhite) ? (pawns << 9) : (pawns >> 9);
+  constexpr Bitboard double_rank_mask = (Color == ColorType::kWhite) ? 0x00000000FF000000ULL
+                                                                     : 0x000000FF00000000ULL;
+  constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? 0xFF00000000000000ULL
+                                                                   : 0x00000000000000FFULL;
+  constexpr int board_single_shift = (Color == ColorType::kWhite) ? 8 : -8;
+  constexpr Bitboard not_a_file = 0xFEFEFEFEFEFEFEFEULL;
+  constexpr Bitboard not_h_file = 0x7F7F7F7F7F7F7F7FULL;
+  Bitboard able_to_push = single_shift & empty_squares & ~last_rank_mask;
+  Bitboard able_to_push_twice = double_rank_mask & GetSinglePawnPush<Color>(able_to_push) & empty_squares;
+  Bitboard able_to_left_capture = (Color == ColorType::kWhite) ? (left_shift & not_a_file & all_black_pieces_)
+                                                               : (left_shift & not_h_file & all_white_pieces_);
+  Bitboard able_to_right_capture = (Color == ColorType::kWhite) ? (right_shift & not_h_file & all_black_pieces_)
+                                                                : (right_shift & not_a_file & all_white_pieces_);
+  GeneratePawnPushes<Color>(list, able_to_push, board_single_shift);
+  GeneratePawnPushes<Color>(list, able_to_push_twice, 2 * board_single_shift);
+  GeneratePawnPromotions<Color>(list, single_shift & empty_squares & last_rank_mask, board_single_shift);
+  GeneratePawnCaptures<Color>(list, able_to_left_capture, board_single_shift - 1);
+  GeneratePawnCaptures<Color>(list, able_to_right_capture, board_single_shift + 1);
+}
+
+MoveList Position::GeneratePseudoMoves() const {
+  MoveList list;
+  GeneratePawnMoves<ColorType::kWhite>(list);
+  GeneratePawnMoves<ColorType::kBlack>(list);
+
+  return list;
 }
 
 MoveList Position::GenerateLegalMoves() const {
-  MoveList list;
+  MoveList list = GeneratePseudoMoves();
 
   return list;
 }
+
+template<MovesType type>
+MoveList Position::GenerateMoves() const {
+  if constexpr (type == MovesType::kPseudo) {
+    return GeneratePseudoMoves();
+  } else {
+    return GenerateLegalMoves();
+  }
+}
+
+// explicit template instantiation
+template MoveList Position::GenerateMoves<MovesType::kPseudo>() const;
+template MoveList Position::GenerateMoves<MovesType::kLegal>() const;
+template MoveList Position::GenerateMoves<MovesType::kCaptures>() const;
+template MoveList Position::GenerateMoves<MovesType::kChecks>() const;
 
 }// namespace chess
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  os << GetPieceCode(move.piece_) << static_cast<char>('a' + move.from_ & 0x0F)
-     << static_cast<char>('1' + (move.from_ >> 4) & 0x0F) << '-' << static_cast<char>('a' + move.to_ & 0x0F)
-     << static_cast<char>('1' + (move.to_ >> 4) & 0x0F);
+  os << GetPieceCode(move.piece_) << ':' << static_cast<char>('a' + (move.from_ & 7))
+     << static_cast<char>('1' + (move.from_ >> 3 & 7)) << '-' << static_cast<char>('a' + (move.to_ & 7))
+     << static_cast<char>('1' + (move.to_ >> 3 & 7));
   
   return os;
 }

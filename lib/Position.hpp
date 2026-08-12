@@ -6,6 +6,7 @@
 #include "Piece.hpp"
 
 #include <bit>
+#include <cassert>
 #include <iostream>
 #include <optional>
 #include <span>
@@ -22,22 +23,23 @@ inline constexpr std::size_t kMaxMoves = 256;
 
 inline constexpr std::array<char, kMxCastles> kCastles = {'K', 'Q', 'k', 'q'};
 
-
-
-enum class MovesType {
+enum class MovesType: uint8_t {
   kPseudo, kLegal, kCaptures, kChecks
 };
 
 struct Move {
   Move() = default;
 
-  Move(PieceType piece, uint8_t from, uint8_t to);
+  Move(const PieceType piece, const uint8_t from, const uint8_t to);
+
+  Move(const PieceType piece, const uint8_t from, const uint8_t to, const PieceType promoted_piece);
 
   bool operator==(const Move& other) const = default;
 
   PieceType piece_; // the piece that has been moved
   uint8_t from_;// a-h files, 1-8 ranks
   uint8_t to_;// the same thing
+  PieceType promoted_piece_ = PieceType::kNone;
 };
 
 class MoveList {
@@ -46,7 +48,7 @@ public:
 
   std::size_t size() const;
 
-  void Push(const Move& move);
+  void push(const Move& move);
   
   std::span<const Move> AsSpan() const;
 
@@ -67,8 +69,9 @@ public:
     }
   }
 
-  constexpr void set_square(PieceType piece, const std::size_t x, const std::size_t y) {
-    std::size_t coord = utils::coord(x, y);
+  //A1 = 0, H8 = 63
+  constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
+    uint8_t coord = utils::coord(x, y);
     Bitboard mask = 1ULL << coord;
     auto color = Color(piece);
     if (board_[coord] != PieceType::kNone) {
@@ -126,15 +129,7 @@ public:
   
   
   template<MovesType type>
-  MoveList GenerateMoves() const {
-    if constexpr (std::is_same_v<decltype(type), decltype(MovesType::kPseudo)>) {
-      return GeneratePseudoMoves();
-    } else {
-      return GenerateLegalMoves();
-    }
-  }
-  
-  
+  MoveList GenerateMoves() const;
   
 private:
   std::array<PieceType, kBoardSize> board_{};
@@ -151,7 +146,23 @@ private:
 
   MoveList GenerateLegalMoves() const;
 
-  void AddPseudoPawnMoves(MoveList& list, std::size_t ind) const;
+  template<ColorType Color>
+  PieceType GetPawnsType() const;
+
+  template<ColorType Color>
+  Bitboard GetSinglePawnPush(const Bitboard pawns) const;
+
+  template<ColorType Color>
+  void GeneratePawnPushes(MoveList& list, Bitboard pawns, const int shift) const;
+
+  template<ColorType Color>
+  void GeneratePawnMoves(MoveList& list) const;
+
+  template<ColorType Color>
+  void GeneratePawnCaptures(MoveList& list, Bitboard pawns, const int shift) const;
+
+  template<ColorType Color>
+  void GeneratePawnPromotions(MoveList& list, Bitboard pawns, const int shift) const;
   
   FRIEND_TEST(PseudoMovesSuite, Pawns);
 };

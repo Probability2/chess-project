@@ -20,7 +20,7 @@ inline constexpr Position kStartingPosition = []() {
   return *res;
 }();
 
-enum class GameStatus {
+enum class GameStatus: uint8_t {
   kWin,
   kLoss,
   kDraw,

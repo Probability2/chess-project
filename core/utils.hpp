@@ -31,12 +31,11 @@ inline constexpr int GetNumber(std::string_view data, std::size_t& ind) {
 }
 
 inline constexpr void PrintBitboard(Bitboard b) {
-  for (int i = 0; i < 64; ++i) {
-    std::cout << b % 2 << ' ';
-    b /= 2;
-    if (i % 8 == 7) {
-      std::cout << '\n';
+  for (std::size_t i = 0; i < 8; ++i) {
+    for (int j = 7; j >= 0; --j) {
+      std::cout << ((b >> coord(i, j)) & 1) << ' ';
     }
+    std::cout << '\n';
   }
 }
-}
+}// namespace utils

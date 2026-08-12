@@ -12,7 +12,8 @@ TEST(PseudoMovesSuite, Pawns) {
   Move move2(PieceType::kWhitePawn, 12, 28);
   Move move3(PieceType::kWhitePawn, 12, 19);
   Move move4(PieceType::kWhitePawn, 12, 21);
-  pos->AddPseudoPawnMoves(moves, 12);
+  pos->GeneratePawnMoves<ColorType::kWhite>(moves);
+  pos->GeneratePawnMoves<ColorType::kBlack>(moves);
   ASSERT_EQ(moves.size(), 4);
   ASSERT_EQ(moves.contains(move1), true);
   ASSERT_EQ(moves.contains(move2), true);

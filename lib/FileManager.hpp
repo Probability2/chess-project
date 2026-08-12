@@ -4,12 +4,13 @@
 
 #include "Position.hpp"
 
-#include <cassert>
+#include <algorithm>
 #include <concepts>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <ranges>
 
 namespace chess::fen_manager {
 
@@ -42,9 +43,9 @@ constexpr std::string_view to_string(ErrorCode code) {
 }
 
 constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view data,
-                                                              const std::size_t coord,
+                                                              const uint8_t coord,
                                                               Position& pos, std::size_t& i) {
-  std::size_t col = 0;
+  uint8_t col = 0;
   while (i < data.size() && data[i] != kFenDelimeter && data[i] != kSpaceDelimiter && col <= 8) {
     if (data[i] > '0' && data[i] < '9') {
       pos.set_squares(PieceType::kNone, coord, col, data[i] - '0');
@@ -169,7 +170,7 @@ constexpr std::expected<void, std::string_view> ParseParameters(std::string_view
 constexpr std::expected<Position, std::string_view> Get(std::string_view data) {
   Position pos;
   std::size_t ind = 0;
-  for (std::size_t i = 0; i < kMaxInd; ++i) {
+  for (uint8_t i = 0; i < kMaxInd; ++i) {
     if (!internal::ReadPlacement(data, kMaxInd - i - 1, pos, ind)) {
       return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
     }

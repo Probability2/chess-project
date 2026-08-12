@@ -1,27 +1,25 @@
 #pragma once
 
-#include <algorithm>
 #include <array>
+#include <cstdint>
 #include <iostream>
-#include <optional>
-#include <string>
-#include <utility>
-#include <vector>
 
 namespace chess {
 
-inline constexpr int kMaxInd = 8;
+inline constexpr uint8_t kMaxInd = 8;
+
+inline constexpr uint8_t kSquaresCount = 64;
 
 constexpr std::size_t kPieceCount = 12;
 
-enum class PieceType {
+enum class PieceType: uint8_t {
   kNone,
   kWhitePawn, kWhiteKnight, kWhiteBishop, kWhiteRook, kWhiteQueen, kWhiteKing,
   kBlackPawn, kBlackKnight, kBlackBishop, kBlackRook, kBlackQueen, kBlackKing
 };
 
-enum class ColorType {
-kNone, kWhite, kBlack
+enum class ColorType: uint8_t {
+  kNone, kWhite, kBlack
 };
 
 constexpr char kEmptySquare = '.';
