@@ -92,9 +92,6 @@ constexpr std::expected<void, std::string_view> ParseCastle(std::size_t& ind, st
       break;
     }
     ind++;
-    if !consteval {
-      std::cout << kMxCastles - std::ranges::distance(kCastles.begin(), it) - 1 << " castles\n";
-    }
     pos.set_castling(kMxCastles - std::ranges::distance(kCastles.begin(), it) - 1);
   }
   if (ind == data.size()) {
@@ -119,7 +116,7 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
   if (ind >= data.size() || data[ind] < '1' || data[ind] > '8') {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
-  pos.set_en_passant(utils::coord(static_cast<int>(x), data[ind] - '1'));
+  pos.set_en_passant(utils::coord(data[ind] - '1', x));
   ind += 2;
 
   return {};
@@ -131,9 +128,6 @@ constexpr std::expected<void, std::string_view> ParseNoCaptures(std::size_t& ind
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
   int num = utils::GetNumber(data, ind);
-  if !consteval {
-    std::cout << num << " Compleanno\n";
-  }
   ind++;
   pos.set_no_captures(num);
 
@@ -146,9 +140,6 @@ constexpr std::expected<void, std::string_view> ParseMoveNumber(std::size_t& ind
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
   int num = utils::GetNumber(data, ind);
-  if !consteval {
-    std::cout << num << " Tapuzinho\n";
-  }
   ind++;
   pos.set_move_number(num);
 

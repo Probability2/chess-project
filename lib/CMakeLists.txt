@@ -4,6 +4,8 @@ add_library(ChessLibrary
     Position.cpp
     Game.cpp
     FileManager.cpp
+    MoveGenerator.cpp
+    Attacks.cpp
 )
 
 target_link_libraries(ChessLibrary 

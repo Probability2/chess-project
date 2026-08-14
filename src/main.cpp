@@ -3,10 +3,8 @@
 #include <ws2tcpip.h>
 
 #include "lib/History.hpp"
-#include "lib/Piece.hpp"
-#include "lib/Position.hpp"
-#include "lib/Game.hpp"
 #include "lib/FileManager.hpp"
+#include "lib/MoveGenerator.hpp"
 #include "parser/ArgParser.hpp"
 #include "core/commands.hpp"
 
@@ -39,7 +37,7 @@ int main(int argc, char** argv) {
   std::string request;
   pos = *(chess::fen_manager::Get("rnbqkbnr/ppp1p1pp/8/7P/PP6/3p1p2/2PPPPP1/RNBQKBNR w Qkq - 0 7"));
   std::cout << pos;
-  MoveList moves = pos.GenerateMoves<MovesType::kPseudo>();
+  MoveList moves = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pos);
   std::cout << moves.size() << '\n';
   std::cout << moves << '\n';
 

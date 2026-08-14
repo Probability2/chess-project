@@ -33,7 +33,6 @@ std::optional<fs::path> FileName() {
 std::expected<std::ofstream, std::string_view> CreateFile() {
   fs::path directorypath = kDirectoryPrefix;
   std::error_code ec;
-  std::cout << "errore\n";
   fs::create_directory(directorypath, ec);
   if (ec) {
     if (ec == std::errc::permission_denied) {
@@ -81,8 +80,13 @@ void WritePositionSquares(std::ofstream& file, const Position& pos) {
 }
 
 void WritePositionParams(std::ofstream& file, const Position& pos) {
-  file << (pos.is_white_move() ? "w " : "b ") << pos.get_castle().value_or("-") << ' '
-       << pos.get_en_passant().value_or("-") << " " << pos.get_no_capture_moves() << ' ' << pos.get_move_number();
+  file << (pos.is_white_move() ? "w " : "b ") << pos.get_castle().value_or("-") << ' ';
+  if (pos.is_en_passant()) {
+    file << pos.get_en_passant();
+  } else {
+    file << '-';
+  }
+  file << ' ' << pos.get_no_capture_moves() << ' ' << pos.get_move_number();
 }
 
 }// unnamed namespace

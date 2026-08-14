@@ -30,12 +30,19 @@ inline constexpr int GetNumber(std::string_view data, std::size_t& ind) {
   return num;
 }
 
-inline constexpr void PrintBitboard(Bitboard b) {
-  for (std::size_t i = 0; i < 8; ++i) {
-    for (int j = 7; j >= 0; --j) {
-      std::cout << ((b >> coord(i, j)) & 1) << ' ';
+inline void PrintBitboard(Bitboard b) {
+  for (int rank = 7; rank >= 0; --rank) {
+    std::cout << rank << " | ";
+    for (int file = 0; file < 8; ++file) {
+      std::cout << ((b >> coord(rank, file)) & 1) << ' ';
     }
-    std::cout << '\n';
+    std::cout << "| " << rank << '\n';
   }
 }
+
+inline std::string get_notation(const uint8_t move) {
+  return std::string{static_cast<char>((move & 0x07) + 'a'),
+                     static_cast<char>(((move >> 3) & 0x07) + '1')};
+}
+
 }// namespace utils
