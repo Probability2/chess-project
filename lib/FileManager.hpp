@@ -22,7 +22,7 @@ constexpr char kSpaceDelimiter = ' ';
 
 constexpr std::size_t kMaxFenSize = 100;
 
-enum class ErrorCode {
+enum class ErrorCode: uint8_t {
   kFileNotFound,
   kPermissionDenied,
   kSizeTooLarge,
@@ -103,7 +103,7 @@ constexpr std::expected<void, std::string_view> ParseCastle(std::size_t& ind, st
 }
 
 constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind, std::string_view data,
-                                                               Position& pos) {
+                                                                                         Position& pos) {
   if (ind >= data.size() || ((data[ind] < 'a' || data[ind] > 'h') && data[ind] != '-')) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
@@ -122,41 +122,38 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
   return {};
 }
 
-constexpr std::expected<void, std::string_view> ParseNoCaptures(std::size_t& ind, std::string_view data,
-                                                                Position& pos) {
+constexpr void ParseNoCaptures(std::size_t& ind, std::string_view data,
+                                                 Position& pos) {
   if (ind >= data.size()) {
-    return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    return;
   }
-  int num = utils::GetNumber(data, ind);
+  std::size_t num = utils::GetNumber(data, ind);
   ind++;
   pos.set_no_captures(num);
-
-  return {};
 }
 
-constexpr std::expected<void, std::string_view> ParseMoveNumber(std::size_t& ind, std::string_view data,
-                                                                Position& pos) {
+constexpr void ParseMoveNumber(std::size_t& ind, std::string_view data,
+                                                 Position& pos) {
   if (ind >= data.size()) {
-    return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
+    return;
   }
-  int num = utils::GetNumber(data, ind);
+  std::size_t num = utils::GetNumber(data, ind);
   ind++;
   pos.set_move_number(num);
-
-  return {};
 }
 
 constexpr std::expected<void, std::string_view> ParseParameters(std::string_view data, std::size_t& ind,
                                                                 Position& pos) {
-  if (!ParseTurn(ind, data, pos) || !ParseCastle(ind, data, pos) || !ParseEnPassant(ind, data, pos)
-      || !ParseNoCaptures(ind, data, pos) || !ParseMoveNumber(ind, data, pos)) {
+  if (!ParseTurn(ind, data, pos) || !ParseCastle(ind, data, pos) || !ParseEnPassant(ind, data, pos)) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
+  ParseNoCaptures(ind, data, pos);
+  ParseMoveNumber(ind, data, pos);
 
   return {};
 }
 
-} // namespace internal
+}// namespace internal
 
 constexpr std::expected<Position, std::string_view> Get(std::string_view data) {
   Position pos;

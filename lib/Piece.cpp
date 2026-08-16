@@ -21,6 +21,22 @@ bool Move::is_pawn() const {
   return (piece_ == PieceType::kWhitePawn || piece_ == PieceType::kBlackPawn);
 }
 
+bool Move::is_knight() const {
+  return (piece_ == PieceType::kWhiteKnight || piece_ == PieceType::kBlackKnight);
+}
+
+bool Move::is_bishop() const {
+  return (piece_ == PieceType::kWhiteBishop || piece_ == PieceType::kBlackBishop);
+}
+
+bool Move::is_queen() const {
+  return (piece_ == PieceType::kWhiteQueen || piece_ == PieceType::kBlackQueen);
+}
+
+bool Move::is_king() const {
+  return (piece_ == PieceType::kWhiteKing || piece_ == PieceType::kBlackKing);
+}
+
 std::size_t MoveList::size() const {
   return size_;
 }

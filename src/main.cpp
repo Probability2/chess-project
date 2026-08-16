@@ -35,11 +35,13 @@ int main(int argc, char** argv) {
   // utils::PrintBitboard(x);
   chess::Position pos;
   std::string request;
-  pos = *(chess::fen_manager::Get("rnbqkbnr/ppp1p1pp/8/7P/PP6/3p1p2/2PPPPP1/RNBQKBNR w Qkq - 0 7"));
+  pos = *(chess::fen_manager::Get("rnbqkb1N/1ppppppp/p3n3/3N4/NN3N2/3N4/PPPPPPPP/R1BQKB1R w KQq - 0 1"));
   std::cout << pos;
-  MoveList moves = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pos);
-  std::cout << moves.size() << '\n';
-  std::cout << moves << '\n';
+  std::cout << '\n';
+  std::cout << flipped(pos);
+  // MoveList moves = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pos);
+  // std::cout << moves.size() << '\n';
+  // std::cout << moves << '\n';
 
   // for (;;) {
   //   std::cout << pos << '\n';
@@ -62,6 +64,3 @@ int main(int argc, char** argv) {
 
   return EXIT_SUCCESS;
 }
-
-// #include <SFML/Graphics.hpp>
-// #include <iostream>

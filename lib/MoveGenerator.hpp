@@ -4,6 +4,8 @@
 #include "Position.hpp"
 #include "../core/utils.hpp"
 
+#include <utility>
+
 namespace chess::move_generator {
 
 template<MovesType type>

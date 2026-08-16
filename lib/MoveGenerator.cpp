@@ -1,50 +1,47 @@
 #include "MoveGenerator.hpp"
+#include "Attacks.hpp"
 
 namespace chess::move_generator {
 
 namespace {
 
 template<ColorType Color>
-PieceType GetPawnsType() {
-  if (Color == ColorType::kWhite) {
-    return PieceType::kWhitePawn;
-  }
-
-  return PieceType::kBlackPawn;
-}
-
-template<ColorType Color>
-Bitboard GetSinglePawnPush(const Bitboard pawns) {
-  if (Color == ColorType::kWhite) {
+inline Bitboard GetSinglePawnPush(const Bitboard pawns) {
+  if constexpr (Color == ColorType::kWhite) {
     return (pawns << 8);
   }
 
   return (pawns >> 8);
 }
 
-template<ColorType Color>
-void GenerateStandardPawnMoves(MoveList& list, Bitboard pawns, const int shift) {
+void BitLooping(Bitboard pawns, std::invocable<uint8_t> auto&& f) {
   while (pawns > 0) {
     uint8_t ind = std::countr_zero(pawns);
-    list.push(Move(GetPawnsType<Color>(), ind - shift, ind));
+    std::forward<decltype(f)>(f)(ind);
     pawns &= (pawns - 1); //Brian Kernighan's algorithm
   }
 }
 
 template<ColorType Color>
+void GenerateStandardPawnMoves(MoveList& list, Bitboard pawns, const int shift) {
+  BitLooping(pawns, [&](uint8_t ind) {
+    list.push(Move(MakePiece(PieceBase::kPawn, Color), ind - shift, ind));
+  });
+}
+
+template<ColorType Color>
 void GeneratePawnPromotions(MoveList& list, Bitboard pawns, const int shift) {
-  while (pawns > 0) {
-    uint8_t ind = std::countr_zero(pawns);
-    PieceType knight = (Color == ColorType::kWhite) ? PieceType::kWhiteKnight : PieceType::kBlackKnight;
-    PieceType bishop = (Color == ColorType::kWhite) ? PieceType::kWhiteBishop : PieceType::kBlackBishop;
-    PieceType rook = (Color == ColorType::kWhite) ? PieceType::kWhiteRook : PieceType::kBlackRook;
-    PieceType queen = (Color == ColorType::kWhite) ? PieceType::kWhiteQueen : PieceType::kBlackQueen;
-    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, knight));
-    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, bishop));
-    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, rook));
-    list.push(Move(GetPawnsType<Color>(), ind - shift, ind, queen));
-    pawns &= (pawns - 1); //Brian Kernighan's algorithm
-  }
+  constexpr PieceType pawn = MakePiece(PieceBase::kPawn, Color);
+  constexpr PieceType knight = MakePiece(PieceBase::kKnight, Color);
+  constexpr PieceType bishop = MakePiece(PieceBase::kBishop, Color);
+  constexpr PieceType rook = MakePiece(PieceBase::kRook, Color);
+  constexpr PieceType queen = MakePiece(PieceBase::kQueen, Color);
+  BitLooping(pawns, [&](uint8_t ind) {
+    list.push(Move(pawn, ind - shift, ind, knight));
+    list.push(Move(pawn, ind - shift, ind, bishop));
+    list.push(Move(pawn, ind - shift, ind, rook));
+    list.push(Move(pawn, ind - shift, ind, queen));
+  });
 }
 
 template<ColorType Color>
@@ -62,28 +59,20 @@ void GeneratePawnQuietMoves(MoveList& list, const Bitboard pawns, const Bitboard
   GeneratePawnPromotions<Color>(list, single_shift & empty_squares & last_rank_mask, board_single_shift);
 }
 
-// template<ColorType Color>
-// void GenerateEnPassant(MoveList& list, )
-
 template<ColorType Color>
-void GeneratePawnMoves(MoveList& list, const Position& pos) {
+void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& pos) {
   Bitboard enemy_pieces = (Color == ColorType::kWhite) ? pos.get_all_black_pieces()
                                                        : pos.get_all_white_pieces();
-  Bitboard pawns = (Color == ColorType::kWhite) ? pos.get_piece_metric(PieceType::kWhitePawn)
-                                                : pos.get_piece_metric(PieceType::kBlackPawn);
-  GeneratePawnQuietMoves<Color>(list, pawns, ~(pos.get_all_white_pieces() | pos.get_all_black_pieces()));
-  Bitboard left_shift = (Color == ColorType::kWhite) ? (pawns << 7) : (pawns >> 7);
-  Bitboard right_shift = (Color == ColorType::kWhite) ? (pawns << 9) : (pawns >> 9);
-  constexpr int capture_left_shift = (Color == ColorType::kWhite) ? 7 : -7;
-  constexpr int capture_right_shift = (Color == ColorType::kWhite) ? 9 : -9;
+  constexpr int capture_left_shift = (Color == ColorType::kWhite) ? 7 : -9;
+  constexpr int capture_right_shift = (Color == ColorType::kWhite) ? 9 : -7;
   constexpr Bitboard not_a_file = 0xFEFEFEFEFEFEFEFEULL;
   constexpr Bitboard not_h_file = 0x7F7F7F7F7F7F7F7FULL;
   constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? 0xFF00000000000000ULL
                                                                    : 0x00000000000000FFULL;
   Bitboard left_attacks = (Color == ColorType::kWhite) ? ((pawns & not_a_file) << 7)
-                                                                       : ((pawns & not_h_file) >> 7);
+                                                       : ((pawns & not_h_file) >> 9);
   Bitboard right_attacks = (Color == ColorType::kWhite) ? ((pawns & not_h_file) << 9)
-                                                                        : ((pawns & not_a_file) >> 9);
+                                                        : ((pawns & not_a_file) >> 7);
   GenerateStandardPawnMoves<Color>(list, enemy_pieces & left_attacks & ~last_rank_mask, capture_left_shift);
   GenerateStandardPawnMoves<Color>(list, enemy_pieces & right_attacks & ~last_rank_mask, capture_right_shift);
   GeneratePawnPromotions<Color>(list, enemy_pieces & left_attacks & last_rank_mask, capture_left_shift);
@@ -95,13 +84,51 @@ void GeneratePawnMoves(MoveList& list, const Position& pos) {
   }
 }
 
+template<ColorType Color>
+void GeneratePawnMoves(MoveList& list, const Position& pos) {
+  Bitboard pawns = (Color == ColorType::kWhite) ? pos.get_piece_metric(PieceType::kWhitePawn)
+                                                : pos.get_piece_metric(PieceType::kBlackPawn);
+  GeneratePawnQuietMoves<Color>(list, pawns, ~(pos.get_all_white_pieces() | pos.get_all_black_pieces()));
+  GeneratePawnCaptures<Color>(list, pawns, pos);
+}
+
+template<ColorType Color>
+void GenerateFixedAttackPieces(MoveList& list, const Position& pos,
+                               const PieceBase piece_base, const std::array<Bitboard, 64>& attacks) {
+  PieceType piece_type = MakePiece(piece_base, Color);
+  Bitboard pieces = pos.get_piece_metric(piece_type);
+  Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces()
+                                                     : pos.get_all_black_pieces();
+  BitLooping(pieces, [own_pieces, piece_type, &list, &attacks](uint8_t from) {
+    BitLooping(~own_pieces & attacks[from], [from, piece_type, &list](uint8_t to) {
+      list.push(Move(piece_type, from, to));
+    });
+  });
+}
+
+template<ColorType Color>
+void GenerateKnightMoves(MoveList& list, const Position& pos) {
+  GenerateFixedAttackPieces<Color>(list, pos, PieceBase::kKnight, attacks::kKnightAttacks);
+}
+
+template<ColorType Color>
+void GenerateKingMoves(MoveList& list, const Position& pos) {
+  GenerateFixedAttackPieces<Color>(list, pos, PieceBase::kKing, attacks::kKingAttacks);
+}
+
+template<ColorType Color>
+void GenerateAllMoves(MoveList& list, const Position& pos) {
+  GeneratePawnMoves<Color>(list, pos);
+  GenerateKnightMoves<Color>(list, pos);
+  GenerateKingMoves<Color>(list, pos);
+}
+
 MoveList GeneratePseudoMoves(const Position& pos) {
   MoveList list;
-  // utils::PrintBitboard(pos.get_piece_metric(PieceType::kWhitePawn));
   if (pos.is_white_move()) {
-    GeneratePawnMoves<ColorType::kWhite>(list, pos);
+    GenerateAllMoves<ColorType::kWhite>(list, pos);
   } else {
-    GeneratePawnMoves<ColorType::kBlack>(list, pos);
+    GenerateAllMoves<ColorType::kBlack>(list, pos);
   }
 
   return list;
@@ -130,4 +157,4 @@ template MoveList GenerateMoves<MovesType::kLegal>(const Position& pos);
 template MoveList GenerateMoves<MovesType::kCaptures>(const Position& pos);
 template MoveList GenerateMoves<MovesType::kChecks>(const Position& pos);
 
-}
+}// namespace chess::move_generator

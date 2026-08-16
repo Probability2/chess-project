@@ -54,6 +54,13 @@ MoveList Position::GenerateMoves() const {
   return move_generator::GenerateMoves<type>(*this);
 }
 
+namespace internal {
+FlippedPosition::FlippedPosition(const chess::Position& pos)
+: pos_(pos) {
+}
+}// namespace chess::internal
+
+
 // explicit template instantiation
 template MoveList Position::GenerateMoves<MovesType::kPseudo>() const;
 template MoveList Position::GenerateMoves<MovesType::kLegal>() const;
@@ -61,6 +68,20 @@ template MoveList Position::GenerateMoves<MovesType::kCaptures>() const;
 template MoveList Position::GenerateMoves<MovesType::kChecks>() const;
 
 }// namespace chess
+
+
+namespace {
+void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
+  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castle().value_or(" ") << ", ";
+  uint8_t en_passant = pos.get_en_passant();
+  if (en_passant > 0) {
+    os << utils::get_notation(en_passant);
+  } else {
+    os << "no en-passant";
+  }
+  os << ", no capture moves: " << pos.get_no_capture_moves() << ", move number: " << pos.get_move_number() << '\n';
+}
+}
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
   os << GetPieceCode(move.piece_) << ':' << static_cast<char>('a' + (move.from_ & 7))
@@ -88,15 +109,23 @@ std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
     }
     os << '\n';
   }
-  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castle().value_or(" ") << ", ";
-  uint8_t en_passant = pos.get_en_passant();
-  if (en_passant > 0) {
-    os << utils::get_notation(en_passant);
-  } else {
-    os << "no en-passant";
-  }
-  os << ", no capture moves: " << pos.get_no_capture_moves() << ", move number: " << pos.get_move_number() << '\n';
+  PrintPositionDetails(os, pos);
 
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos) {
+  for (std::size_t i = 0; i < chess::kMaxInd; ++i) {
+    for (int j = chess::kMaxInd - 1; j >= 0; --j) {
+      os << GetPieceIcon(flipped_pos.pos_.get_square(i, j)) << ' ';
+    }
+    os << '\n';
+  }
+  PrintPositionDetails(os, flipped_pos.pos_);
+
+  return os;
+}
+
+chess::internal::FlippedPosition flipped(const chess::Position& pos) {
+  return chess::internal::FlippedPosition(pos);
+}

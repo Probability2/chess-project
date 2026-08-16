@@ -12,8 +12,6 @@
 
 namespace chess {
 
-inline constexpr uint8_t kBoardSize = 64;
-
 inline constexpr uint8_t kMxCastles = 4;
 
 inline constexpr std::array<char, kMxCastles> kCastles = {'K', 'Q', 'k', 'q'};
@@ -39,12 +37,12 @@ public:
       all_black_pieces_ &= ~mask;
     }
     board_[coord] = piece;
-    if (color == ColorType::kWhite) {
-      all_white_pieces_ |= mask;
-    } else if (color == ColorType::kBlack) {
-      all_black_pieces_ |= mask;
-    } else {
+    if (piece == PieceType::kNone) {
       return;
+    } else if (color == ColorType::kWhite) {
+      all_white_pieces_ |= mask;
+    } else {
+      all_black_pieces_ |= mask;
     }
     pieces_[static_cast<int>(piece) - 1] |= mask;
   }
@@ -95,11 +93,18 @@ private:
   uint8_t castle_ = 0;
   uint8_t en_passant_ = kBoardSize;
   std::size_t no_capture_moves_ = 0;
-  std::size_t move_ = 0;
+  std::size_t move_ = 1;
   
   // FRIEND_TEST(PseudoMovesSuite, Pawns);
 };
 
+namespace internal {
+struct FlippedPosition {
+  FlippedPosition(const chess::Position& pos);
+
+  const chess::Position& pos_;
+};
+}// namespace chess::internal
 
 }// namespace chess
 
@@ -108,3 +113,7 @@ std::ostream& operator<<(std::ostream& os, const chess::Move& list);
 std::ostream& operator<<(std::ostream& os, const chess::MoveList& list);
 
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos);
+
+std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos);
+
+chess::internal::FlippedPosition flipped(const chess::Position& pos);

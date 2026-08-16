@@ -7,6 +7,8 @@ project(
     LANGUAGES CXX
 )
 
+# add_compile_options(-O3 -march=native)
+
 set(CMAKE_CXX_STANDARD 23)
 
 if(WIN32) # Install dlls in the same directory as the executable on Windows
@@ -24,8 +26,6 @@ include(FetchContent)
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
 FetchContent_MakeAvailable(json)
-
-include_directories("C:/SFML-3.1.0/include")
 
 enable_testing()
 add_subdirectory(tests)

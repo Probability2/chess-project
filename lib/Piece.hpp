@@ -5,16 +5,27 @@
 #include <cstdint>
 #include <iostream>
 #include <span>
+#include <utility>
 
 namespace chess {
 
 inline constexpr uint8_t kMaxInd = 8;
 
-inline constexpr uint8_t kSquaresCount = 64;
+inline constexpr uint8_t kBoardSize = 64;
+
+inline constexpr std::size_t kPieceBaseCount = 6;
 
 inline constexpr std::size_t kPieceCount = 12;
 
 inline constexpr std::size_t kMaxMoves = 256;
+
+enum class ColorType: uint8_t {
+  kWhite, kBlack
+};
+
+enum class PieceBase: uint8_t {
+  kNone, kPawn, kKnight, kBishop, kRook, kQueen, kKing
+};
 
 enum class PieceType: uint8_t {
   kNone,
@@ -22,11 +33,18 @@ enum class PieceType: uint8_t {
   kBlackPawn, kBlackKnight, kBlackBishop, kBlackRook, kBlackQueen, kBlackKing
 };
 
-enum class ColorType: uint8_t {
-  kNone, kWhite, kBlack
-};
-
 constexpr char kEmptySquare = '.';
+
+inline constexpr std::array<std::array<PieceType, kPieceBaseCount>, 2> kPieceMap = {{
+  {PieceType::kWhitePawn, PieceType::kWhiteKnight, PieceType::kWhiteBishop,
+  PieceType::kWhiteRook, PieceType::kWhiteQueen, PieceType::kWhiteKing},
+  {PieceType::kBlackPawn, PieceType::kBlackKnight, PieceType::kBlackBishop,
+  PieceType::kBlackRook, PieceType::kBlackQueen, PieceType::kBlackKing}
+}};
+
+inline constexpr PieceType MakePiece(const PieceBase base, const ColorType color) {
+  return kPieceMap[std::to_underlying(color)][std::to_underlying(base) - 1];
+}
 
 const std::array<std::string, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
                                                                "♟", "♞", "♝", "♜", "♛", "♚"};
@@ -74,13 +92,7 @@ constexpr std::string GetPieceIcon(PieceType piece) {
   return kPieceTable[static_cast<int>(piece)].icon;
 }
 
-
-
 inline constexpr ColorType Color(PieceType piece) {
-  if (piece == PieceType::kNone) {
-    return ColorType::kNone;
-  }
-
   return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;
 }
 
@@ -90,17 +102,15 @@ enum class MovesType: uint8_t {
 
 struct Move {
   Move() = default;
-
   Move(const PieceType piece, const uint8_t from, const uint8_t to);
-
   Move(const PieceType piece, const uint8_t from, const uint8_t to, const PieceType promoted_piece);
-
   bool operator==(const Move& other) const = default;
-
   bool has_promoted_piece() const;
-
-  bool is_pawn() const;
-
+  bool is_pawn() const;// for tests only
+  bool is_knight() const;// for tests only
+  bool is_bishop() const;// for tests only
+  bool is_queen() const;// for tests only
+  bool is_king() const;// for tests only
   PieceType piece_; // the piece that has been moved
   uint8_t from_;// a-h files, 1-8 ranks
   uint8_t to_;// the same thing
