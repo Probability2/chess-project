@@ -28,21 +28,25 @@ Bitboard Position::get_all_black_pieces() const {
 }
 
 Bitboard Position::get_piece_metric(const PieceType piece) const {
-  return pieces_[static_cast<int>(piece) - 1];
+  return pieces_[std::to_underlying(piece) - 1];
 }
 
-std::optional<std::string> Position::get_castle() const {
-  if (castle_ == 0) {
-    return std::nullopt;
-  }
-  std::string castling_rights;
-  for (int i = kMxCastles - 1; i >= 0; --i) {
-    if ((castle_ >> i) & 1) {
-      castling_rights += kCastles[kMxCastles - i - 1];
+uint8_t Position::get_castles() const {
+  return castles_;
+}
+
+std::string Position::get_castling_notation() const {
+  std::string notation;
+  for (int i = chess::kMxCastles - 1; i >= 0; --i) {
+    if ((castles_ >> i) & 1) {
+      notation += chess::kCastles[chess::kMxCastles - i - 1];
     }
   }
+  if (notation.empty()) {
+    return "-";
+  }
 
-  return castling_rights;
+  return notation;
 }
 
 uint8_t Position::get_en_passant() const {
@@ -72,10 +76,9 @@ template MoveList Position::GenerateMoves<MovesType::kChecks>() const;
 
 namespace {
 void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
-  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castle().value_or(" ") << ", ";
-  uint8_t en_passant = pos.get_en_passant();
-  if (en_passant > 0) {
-    os << utils::get_notation(en_passant);
+  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
+  if (pos.is_en_passant() > 0) {
+    os << utils::get_notation(pos.get_en_passant());
   } else {
     os << "no en-passant";
   }

@@ -10,6 +10,8 @@
 
 #include <conio.h>
 
+#include <random>
+
 using namespace chess;
 
 constexpr int kEscapeCode = 0x1b;
@@ -31,14 +33,72 @@ int main(int argc, char** argv) {
     std::cout << parser.HelpDescription() << '\n';
     return EXIT_SUCCESS;
   }
-  // Bitboard x = (1ULL << 34) | (1ULL << 17) | (1ULL << 13) | (1ULL << 10) | (1ULL << 8) | (1ULL << 2);
-  // utils::PrintBitboard(x);
   chess::Position pos;
   std::string request;
-  pos = *(chess::fen_manager::Get("rnbqkb1N/1ppppppp/p3n3/3N4/NN3N2/3N4/PPPPPPPP/R1BQKB1R w KQq - 0 1"));
-  std::cout << pos;
-  std::cout << '\n';
-  std::cout << flipped(pos);
+  Bitboard b = 0x0000000010000000ULL;//e4 square, rooks
+  
+  std::random_device rd;
+  std::mt19937_64 magic_generator(rd());
+
+  // Bitboard magic = 0;
+  // // std::array<int, 10> bits = {9, 17, 26, 27, 28, 29, 30, 33, 41, 49};
+  // for (int i = 0; i < 8; ++i) {
+  //   for (int k = 0; k < 8; ++k) {
+  //     int rank = i;
+  //     int file = k;
+  //     std::vector<int> bits;
+  //     for (int f = 1; f < 7; ++f) {
+  //       if (f == file) {
+  //         continue;
+  //       }
+  //       bits.push_back(utils::coord(rank, f));
+  //     }
+  //     for (int r = 1; r < 7; ++r) {
+  //       if (r == rank) {
+  //         continue;
+  //       }
+  //       bits.push_back(utils::coord(r, file));
+  //     }
+  //     int sz = bits.size();
+  //     int num_blockers = 1;
+  //     for (int r = 0; r < sz; ++r) {
+  //       num_blockers *= 2;
+  //     }
+  //     for (;;) {
+  //       magic = magic_generator() & magic_generator();
+  //       // std::cout << magic << " magic\n";
+  //       std::vector<bool> nums(num_blockers, false);
+  //       bool isOk = true;
+  //       for (int block = 0; block < num_blockers; ++block) {
+  //         Bitboard sq = 0;
+  //         int j = block;
+  //         int k = 0;
+  //         while (j > 0) {
+  //           if (j % 2 == 1) {
+  //             sq |= (1ULL << bits[k]);
+  //           }
+  //           k++;
+  //           j /= 2;
+  //         }
+  //         Bitboard num = sq * magic;
+  //         int index = num >> (64 - sz);
+  //         if (nums[index]) {
+  //           isOk = false;
+  //           break;
+  //         }
+  //         nums[index] = true;
+  //       }
+  //       if (isOk) {
+  //         std::cout << "0x" << std::hex << std::uppercase << magic << "ULL, ";
+  //         break;
+  //       }
+  //     }
+  //   }
+  //   std::cout << '\n';
+  // }
+
+  
+
   // MoveList moves = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pos);
   // std::cout << moves.size() << '\n';
   // std::cout << moves << '\n';

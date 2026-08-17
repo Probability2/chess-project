@@ -1,6 +1,7 @@
 #pragma once
 
 #include <charconv>
+#include <concepts>
 #include <filesystem>
 #include <iostream>
 #include <string_view>
@@ -43,6 +44,14 @@ inline void PrintBitboard(Bitboard b) {
 inline std::string get_notation(const uint8_t move) {
   return std::string{static_cast<char>((move & 0x07) + 'a'),
                      static_cast<char>(((move >> 3) & 0x07) + '1')};
+}
+
+void BitLooping(Bitboard bb, std::invocable<uint8_t> auto&& f) {
+  while (bb > 0) {
+    uint8_t ind = std::countr_zero(bb);
+    std::forward<decltype(f)>(f)(ind);
+    bb &= (bb - 1); //Brian Kernighan's algorithm
+  }
 }
 
 }// namespace utils

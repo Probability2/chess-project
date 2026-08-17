@@ -3,7 +3,7 @@
 // #include <gtest/gtest_prod.h>
 
 #include "../core/utils.hpp"
-#include "Piece.hpp"
+#include "Move.hpp"
 
 #include <bit>
 #include <iostream>
@@ -52,7 +52,7 @@ public:
   }
 
   constexpr void set_castling(const int position) {
-    castle_ |= (1 << position);
+    castles_ |= (1 << position);
   }
 
   constexpr void set_white_move(const bool move) {
@@ -81,8 +81,9 @@ public:
   Bitboard get_all_white_pieces() const;
   Bitboard get_all_black_pieces() const;
   Bitboard get_piece_metric(const PieceType piece) const;
-  std::optional<std::string> get_castle() const;
+  uint8_t get_castles() const;
   uint8_t get_en_passant() const;
+  std::string get_castling_notation() const;
 
 private:
   std::array<PieceType, kBoardSize> board_{};
@@ -90,7 +91,7 @@ private:
   Bitboard all_white_pieces_ = 0;
   Bitboard all_black_pieces_ = 0;
   ColorType side_to_move_;
-  uint8_t castle_ = 0;
+  uint8_t castles_ = 0;
   uint8_t en_passant_ = kBoardSize;
   std::size_t no_capture_moves_ = 0;
   std::size_t move_ = 1;

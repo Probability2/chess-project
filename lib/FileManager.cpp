@@ -80,7 +80,7 @@ void WritePositionSquares(std::ofstream& file, const Position& pos) {
 }
 
 void WritePositionParams(std::ofstream& file, const Position& pos) {
-  file << (pos.is_white_move() ? "w " : "b ") << pos.get_castle().value_or("-") << ' ';
+  file << (pos.is_white_move() ? "w " : "b ") << pos.get_castling_notation() << ' ';
   if (pos.is_en_passant()) {
     file << pos.get_en_passant();
   } else {
