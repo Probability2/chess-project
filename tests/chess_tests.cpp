@@ -79,7 +79,7 @@ TEST(PseudoPawnMoves, Position_4) {
   ASSERT_EQ(expected_moves, actual_moves);
 }
 
-TEST(PseudoPawnMoves, Position_5) {
+TEST(PseudoKnightMoves, Position_1) {
   auto pos = fen_manager::Get("rnbqkb1N/1ppppppp/p3n3/3N4/NN3N2/3N4/PPPPPPPP/R1BQKB1R w KQq - 0 1");
   std::unordered_set<std::string> expected_moves = {"Na4c5", "Na4b6", "Na4c3", "Nb4c6", "Nb4a6",
                                                     "Nd5e7", "Nd5c7", "Nd5e3", "Nd5c3", "Nd5f6",
@@ -89,6 +89,48 @@ TEST(PseudoPawnMoves, Position_5) {
   std::unordered_set<std::string> actual_moves;
   for (auto& move: moves.AsSpan()) {
     if (move.is_knight()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
+TEST(PseudoKingMoves, Position_1) {
+  auto pos = fen_manager::Get("rnbqkbnr/pppppppp/8/8/6P1/1PBP1P1N/P2QP1BP/RN2K2R w KQkq - 0 1");
+  std::unordered_set<std::string> expected_moves = {"Ke1d1", "Ke1f1", "Ke1f2", "Ke1g1"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_king()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
+TEST(PseudoKingMoves, Position_2) {
+  auto pos = fen_manager::Get("rnbqkbnr/pppppppp/8/8/6P1/NPBPPP1N/P1Q3BP/R3K2R w KQkq - 0 1");
+  std::unordered_set<std::string> expected_moves = {"Ke1d1", "Ke1f1", "Ke1d2", "Ke1e2", "Ke1f2", "Ke1g1", "Ke1c1"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_king()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
+TEST(PseudoRookMoves, Position_1) {
+  auto pos = fen_manager::Get("RnbqkbRr/Pppppppp/8/7P/3R3R/P6P/1PPPPPPP/RNBQKBNR w KQk - 0 1");
+  std::unordered_set<std::string> expected_moves = {"Ra8b8", "Ra1a2", "Rg8g7", "Rg8h8",
+                                                    "Rg8f8", "Rd4d3", "Rd4d5", "Rd4d6", "Rd4d7",
+                                                    "Rd4c4", "Rd4b4", "Rd4a4", "Rd4e4", "Rd4f4",
+                                                    "Rd4g4", "Rh4g4", "Rh4f4", "Rh4e4"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_rook()) {
       actual_moves.insert(to_notation(move));
     }
   }

@@ -111,29 +111,4 @@ std::expected<void, std::string_view> Save(const Position& pos, const fs::path& 
   return {};
 }
 
-// std::expected<Position, std::string_view> Get(std::same_as<fs::path> auto const& file_name) {
-//   std::error_code ec;
-//   if (!fs::is_regular_file(file_name, ec)) {
-//     return std::unexpected(internal::to_string(internal::ErrorCode::kFileNotFound)); 
-//   }
-//   const auto size = fs::file_size(file_name, ec);
-//   if (ec || size > internal::kMaxFenSize) {
-//     return std::unexpected(internal::to_string(internal::ErrorCode::kSizeTooLarge));
-//   }
-//   std::ifstream file(file_name, std::ios::in);
-//   if (!file) {
-//     return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
-//   }
-//   std::string data;
-//   if (!std::getline(file, data)) {
-//     return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
-//   }
-//   auto res = Get(std::string_view(data));
-//   if (!res) {
-//     return std::unexpected(internal::to_string(internal::ErrorCode::kDataIsDamaged));
-//   }
-
-//   return *res;
-// }
-
 }// namespace chess:fen_manager

@@ -78,14 +78,15 @@ public:
   bool is_en_passant() const;
   std::size_t get_no_capture_moves() const;
   std::size_t get_move_number() const;
+  Bitboard get_all_pieces() const;
   Bitboard get_all_white_pieces() const;
   Bitboard get_all_black_pieces() const;
   Bitboard get_piece_metric(const PieceType piece) const;
   uint8_t get_castles() const;
   uint8_t get_en_passant() const;
   std::string get_castling_notation() const;
-
-private:
+  
+  private:
   std::array<PieceType, kBoardSize> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
   Bitboard all_white_pieces_ = 0;

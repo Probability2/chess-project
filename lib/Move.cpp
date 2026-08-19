@@ -29,6 +29,10 @@ bool Move::is_bishop() const {
   return (piece_ == PieceType::kWhiteBishop || piece_ == PieceType::kBlackBishop);
 }
 
+bool Move::is_rook() const {
+  return (piece_ == PieceType::kWhiteRook || piece_ == PieceType::kBlackRook);
+}
+
 bool Move::is_queen() const {
   return (piece_ == PieceType::kWhiteQueen || piece_ == PieceType::kBlackQueen);
 }

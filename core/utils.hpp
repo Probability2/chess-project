@@ -17,8 +17,8 @@ using difference_type = std::ptrdiff_t;
 
 namespace utils {
   
-inline constexpr int coord(int x, int y) {
-  return 8 * x + y;
+inline constexpr int coord(int rank, int file) {
+  return 8 * rank + file;
 }
 
 inline constexpr int GetNumber(std::string_view data, std::size_t& ind) {
@@ -49,7 +49,7 @@ inline std::string get_notation(const uint8_t move) {
 void BitLooping(Bitboard bb, std::invocable<uint8_t> auto&& f) {
   while (bb > 0) {
     uint8_t ind = std::countr_zero(bb);
-    std::forward<decltype(f)>(f)(ind);
+    f(ind);
     bb &= (bb - 1); //Brian Kernighan's algorithm
   }
 }

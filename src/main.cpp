@@ -40,6 +40,13 @@ int main(int argc, char** argv) {
   std::random_device rd;
   std::mt19937_64 magic_generator(rd());
 
+  // chess::MoveList list;
+  // chess::move_generator::GenerateRookMoves<ColorType::kWhite>(list, fen_manager::Get("3qk3/8/3p4/8/1bBR4/8/3P4/4K3 w - - 0 1"));
+
+  auto pp = *(chess::fen_manager::Get("3qk3/8/3p4/8/1bBR4/8/3P4/4K3 w - - 0 1"));
+  auto list = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pp);
+  std::cout << flipped(pp) << '\n';
+
   // Bitboard magic = 0;
   // // std::array<int, 10> bits = {9, 17, 26, 27, 28, 29, 30, 33, 41, 49};
   // for (int i = 0; i < 8; ++i) {

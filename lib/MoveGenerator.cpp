@@ -53,18 +53,16 @@ void GeneratePawnQuietMoves(MoveList& list, const Bitboard pawns, const Bitboard
 
 template<ColorType Color>
 void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& pos) {
-  Bitboard enemy_pieces = (Color == ColorType::kWhite) ? pos.get_all_black_pieces()
-                                                       : pos.get_all_white_pieces();
+  const Bitboard enemy_pieces = (Color == ColorType::kWhite) ? pos.get_all_black_pieces()
+                                                             : pos.get_all_white_pieces();
   constexpr int capture_left_shift = (Color == ColorType::kWhite) ? 7 : -9;
   constexpr int capture_right_shift = (Color == ColorType::kWhite) ? 9 : -7;
-  constexpr Bitboard not_a_file = 0xFEFEFEFEFEFEFEFEULL;
-  constexpr Bitboard not_h_file = 0x7F7F7F7F7F7F7F7FULL;
   constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? 0xFF00000000000000ULL
                                                                    : 0x00000000000000FFULL;
-  Bitboard left_attacks = (Color == ColorType::kWhite) ? ((pawns & not_a_file) << 7)
-                                                       : ((pawns & not_h_file) >> 9);
-  Bitboard right_attacks = (Color == ColorType::kWhite) ? ((pawns & not_h_file) << 9)
-                                                        : ((pawns & not_a_file) >> 7);
+  Bitboard left_attacks = (Color == ColorType::kWhite) ? ((pawns & attacks::kNotAFile) << 7)
+                                                       : ((pawns & attacks::kNotHFile) >> 9);
+  Bitboard right_attacks = (Color == ColorType::kWhite) ? ((pawns & attacks::kNotHFile) << 9)
+                                                        : ((pawns & attacks::kNotAFile) >> 7);
   GenerateStandardPawnMoves<Color>(list, enemy_pieces & left_attacks & ~last_rank_mask, capture_left_shift);
   GenerateStandardPawnMoves<Color>(list, enemy_pieces & right_attacks & ~last_rank_mask, capture_right_shift);
   GeneratePawnPromotions<Color>(list, enemy_pieces & left_attacks & last_rank_mask, capture_left_shift);
@@ -105,7 +103,7 @@ void GenerateKnightMoves(MoveList& list, const Position& pos) {
 
 template<ColorType Color>
 void GenerateCastleMoves(MoveList& list, const Position& pos) {
-  Bitboard all_pieces = pos.get_all_white_pieces() | pos.get_all_black_pieces();
+  const Bitboard all_pieces = pos.get_all_pieces();
   constexpr PieceType piece = PieceBase::kKing & Color;
   constexpr std::array<Bitboard, kMxCastles> kEmptySquareCastles = {
     0x0000000000000060ULL, 0x000000000000000EULL, 0x6000000000000000ULL, 0x0E00000000000000ULL
@@ -128,29 +126,23 @@ void GenerateKingMoves(MoveList& list, const Position& pos) {
 
 template<ColorType Color>
 void GenerateBishopMoves(MoveList& list, const Position& pos) {
-  Bitboard all_pieces = pos.get_all_white_pieces() | pos.get_all_black_pieces();
+  Bitboard all_pieces = pos.get_all_pieces();
 }
 
 template<ColorType Color>
 void GenerateRookMoves(MoveList& list, const Position& pos) {
-  Bitboard all_pieces = pos.get_all_white_pieces() | pos.get_all_black_pieces();
+  const Bitboard all_pieces = pos.get_all_pieces();
+  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
   Bitboard rooks  = (Color == ColorType::kWhite) ? pos.get_piece_metric(PieceType::kWhiteRook)
                                                  : pos.get_piece_metric(PieceType::kBlackRook);
-  Bitboard u = rooks;
   constexpr PieceType piece = PieceBase::kRook & Color;
-  utils::BitLooping(u, [piece, all_pieces, rooks, &list](uint8_t from) {
-    Bitboard attacks = attacks::kRookAttacks[from][(all_pieces * attacks::kRookMagicNumbers[from])
-                                                 << (kBoardSize - attacks::kRookShifts[from])];
-    utils::BitLooping(attacks, [&piece, from, &list](uint8_t to) {
+  utils::BitLooping(rooks, [piece, own_pieces, all_pieces, &list](uint8_t from) {
+    Bitboard attacks = ~own_pieces & (attacks::kRookAttacks[from][((all_pieces & attacks::RookMaskAttacks[from]) *
+                       attacks::kRookMagicNumbers[from]) >> (kBoardSize - attacks::kRookShifts[from])]);
+    utils::BitLooping(attacks, [piece, from, &list](uint8_t to) {
       list.push(Move(piece, from, to));
     });
   });
-  while (rooks > 0) {
-    uint8_t t = std::countr_zero(rooks);
-    Bitboard num = u * attacks::kRookMagicNumbers[t];
-    uint8_t index = (num << (64 - 10));
-    rooks &= (rooks - 1);
-  }
 }
 
 template<ColorType Color>
@@ -159,7 +151,7 @@ void GenerateAllMoves(MoveList& list, const Position& pos) {
   GenerateKnightMoves<Color>(list, pos);
   GenerateBishopMoves<Color>(list, pos);
   GenerateRookMoves<Color>(list, pos);
-  //GenerateQueenMoves<Color>(list, pos);
+  // GenerateQueenMoves<Color>(list, pos);
   GenerateKingMoves<Color>(list, pos);
 }
 

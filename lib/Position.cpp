@@ -19,6 +19,10 @@ std::size_t Position::get_move_number() const {
   return move_;
 }
 
+Bitboard Position::get_all_pieces() const {
+  return all_white_pieces_ | all_black_pieces_;
+}
+
 Bitboard Position::get_all_white_pieces() const {
   return all_white_pieces_;
 }
@@ -43,7 +47,7 @@ std::string Position::get_castling_notation() const {
     }
   }
   if (notation.empty()) {
-    return "-";
+    return "no castling rights";
   }
 
   return notation;
