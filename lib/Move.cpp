@@ -50,13 +50,7 @@ std::span<const Move> MoveList::AsSpan() const {
 }
 
 bool MoveList::contains(const Move& m) const {
-  for (auto move: this->AsSpan()) {
-    if (move == m) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::ranges::contains(this->AsSpan(), m);
 }
 
 void MoveList::push(const Move& move) {

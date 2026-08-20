@@ -38,7 +38,7 @@ std::expected<std::ofstream, std::string_view> CreateFile() {
     if (ec == std::errc::permission_denied) {
       return std::unexpected(internal::to_string(internal::ErrorCode::kPermissionDenied));
     }
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
   auto file_name = FileName();
   if (!file_name.has_value()) {
@@ -46,7 +46,7 @@ std::expected<std::ofstream, std::string_view> CreateFile() {
   }
   std::ofstream file(*file_name, std::ios::out);
   if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
   counter++;
 
@@ -105,7 +105,7 @@ std::expected<void, std::string_view> Save(const Position& pos) {
 std::expected<void, std::string_view> Save(const Position& pos, const fs::path& file_name) {
   std::ofstream file(file_name, std::ios::out);
   if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
 
   return {};

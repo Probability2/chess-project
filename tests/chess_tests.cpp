@@ -137,4 +137,49 @@ TEST(PseudoRookMoves, Position_1) {
   ASSERT_EQ(expected_moves, actual_moves);
 }
 
+TEST(PseudoBishopMoves, Position_1) {
+  auto pos = fen_manager::Get("rnbqkb1r/pp3ppp/2p2n2/3pp1B1/2B1P3/3P4/PPP2PPP/RN1QK1NR w KQkq - 0 5");
+  std::unordered_set<std::string> expected_moves = {"Bc4a6", "Bc4b5", "Bc4d5", "Bc4b3",
+                                                    "Bg5f6", "Bg5h6", "Bg5h4", "Bg5f4", "Bg5e3",
+                                                    "Bg5d2", "Bg5c1"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_bishop()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
+TEST(PseudoQueenMoves, Position_1) {
+  auto pos = fen_manager::Get("rnb1kbnr/p1p4p/1p1p4/2q2Pp1/1p1Q1P2/2p5/PPPPP1PP/RNB1KBNR b - - 0 1");
+  std::unordered_set<std::string> expected_moves = {"qc5a5", "qc5b5", "qc5c6", "qc5c4",
+                                                    "qc5d4", "qc5d5", "qc5e5", "qc5f5"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_queen()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
+TEST(PseudoQueenMoves, Position_2) {
+  auto pos = fen_manager::Get("rnb1kbnr/p1p4p/1p1p4/2q2Pp1/1p1Q1P2/2p5/PPPPP1PP/RNB1KBNR w - - 0 1");
+  std::unordered_set<std::string> expected_moves = {"Qd4c5", "Qd4c4", "Qd4c3", "Qd4d3",
+                                                    "Qd4e3", "Qd4f2", "Qd4e4", "Qd4d5",
+                                                    "Qd4d6", "Qd4e5", "Qd4b4", "Qd4f6",
+                                                    "Qd4g7", "Qd4h8"};
+  MoveList moves = move_generator::GenerateMoves<MovesType::kPseudo>(*pos);
+  std::unordered_set<std::string> actual_moves;
+  for (auto& move: moves.AsSpan()) {
+    if (move.is_queen()) {
+      actual_moves.insert(to_notation(move));
+    }
+  }
+  ASSERT_EQ(expected_moves, actual_moves);
+}
+
 }

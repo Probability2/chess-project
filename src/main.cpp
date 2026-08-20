@@ -43,9 +43,63 @@ int main(int argc, char** argv) {
   // chess::MoveList list;
   // chess::move_generator::GenerateRookMoves<ColorType::kWhite>(list, fen_manager::Get("3qk3/8/3p4/8/1bBR4/8/3P4/4K3 w - - 0 1"));
 
-  auto pp = *(chess::fen_manager::Get("3qk3/8/3p4/8/1bBR4/8/3P4/4K3 w - - 0 1"));
+  auto pp = *(chess::fen_manager::Get("rnbqkb1r/pp3ppp/2p2n2/3pp1B1/2B1P3/3P4/PPP2PPP/RN1QK1NR w KQkq - 0 5"));
   auto list = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pp);
   std::cout << flipped(pp) << '\n';
+
+  // Bitboard magic = 0;
+  // for (int rank = 0; rank < 8; ++rank) {
+  //   for (int file = 0; file < 8; ++file) {
+  //     std::vector<int> bits;
+  //     for (int diff = -8; diff < 8; ++diff) {
+  //       if (diff == 0 || rank + diff < 1 || rank + diff > 6 || file + diff < 1 || file + diff > 6) {
+  //         continue;
+  //       }
+  //       bits.push_back(utils::coord(rank + diff, file + diff));
+  //     }
+  //     for (int diff = -8; diff < 8; ++diff) {
+  //       if (diff == 0 || rank + diff < 1 || rank + diff > 6 || file - diff < 1 || file - diff > 6) {
+  //         continue;
+  //       }
+  //       bits.push_back(utils::coord(rank + diff, file - diff));
+  //     }
+  //     int sz = bits.size();
+  //     int num_blockers = 1;
+  //     for (int r = 0; r < sz; ++r) {
+  //       num_blockers *= 2;
+  //     }
+  //     for (;;) {
+  //       magic = magic_generator() & magic_generator();
+  //       // std::cout << magic << " magic\n";
+  //       std::vector<bool> nums(num_blockers, false);
+  //       bool isOk = true;
+  //       for (int block = 0; block < num_blockers; ++block) {
+  //         Bitboard sq = 0;
+  //         int j = block;
+  //         int k = 0;
+  //         while (j > 0) {
+  //           if (j % 2 == 1) {
+  //             sq |= (1ULL << bits[k]);
+  //           }
+  //           k++;
+  //           j /= 2;
+  //         }
+  //         Bitboard num = sq * magic;
+  //         int index = num >> (64 - sz);
+  //         if (nums[index]) {
+  //           isOk = false;
+  //           break;
+  //         }
+  //         nums[index] = true;
+  //       }
+  //       if (isOk) {
+  //         std::cout << "0x" << std::hex << std::uppercase << magic << "ULL, ";
+  //         break;
+  //       }
+  //     }
+  //   }
+  //   std::cout << '\n';
+  // }
 
   // Bitboard magic = 0;
   // // std::array<int, 10> bits = {9, 17, 26, 27, 28, 29, 30, 33, 41, 49};

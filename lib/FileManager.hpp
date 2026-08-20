@@ -28,7 +28,7 @@ enum class ErrorCode: uint8_t {
   kSizeTooLarge,
   kDataIsDamaged,
   kNamesOccupied,
-  kUknownError
+  kUnknownError
 };
 
 constexpr std::string_view to_string(ErrorCode code) {
@@ -38,8 +38,9 @@ constexpr std::string_view to_string(ErrorCode code) {
     case ErrorCode::kSizeTooLarge: return "The size of given file is too large";
     case ErrorCode::kDataIsDamaged: return "The data is damaged";
     case ErrorCode::kNamesOccupied: return "Unable to create new file because the names are already occupied";
-    default: return "Unknown error";
+    case ErrorCode::kUnknownError: return "Unknown error";
   }
+  std::unreachable();
 }
 
 constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view data,
@@ -181,7 +182,7 @@ std::expected<Position, std::string_view> Get(std::same_as<fs::path> auto const&
   }
   std::ifstream file(file_name, std::ios::in);
   if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUknownError));
+    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
   std::string data;
   if (!std::getline(file, data)) {

@@ -82,15 +82,14 @@ void GeneratePawnMoves(MoveList& list, const Position& pos) {
   GeneratePawnCaptures<Color>(list, pawns, pos);
 }
 
-template<ColorType Color>
-void GenerateFixedAttackPieces(MoveList& list, const Position& pos,
-                               const PieceBase piece_base, const std::array<Bitboard, 64>& attacks) {
+template<ColorType Color, PieceBase piece_base>
+void GenerateFixedAttackPieces(MoveList& list, const Position& pos) {
   PieceType piece_type = piece_base & Color;
   Bitboard pieces = pos.get_piece_metric(piece_type);
   Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces()
                                                      : pos.get_all_black_pieces();
-  utils::BitLooping(pieces, [own_pieces, piece_type, &list, &attacks](uint8_t from) {
-    utils::BitLooping(~own_pieces & attacks[from], [from, piece_type, &list](uint8_t to) {
+  utils::BitLooping(pieces, [own_pieces, piece_type, &list](uint8_t from) {
+    utils::BitLooping(~own_pieces & attacks::kAttacks<piece_base>[from], [from, piece_type, &list](uint8_t to) {
       list.push(Move(piece_type, from, to));
     });
   });
@@ -98,7 +97,7 @@ void GenerateFixedAttackPieces(MoveList& list, const Position& pos,
 
 template<ColorType Color>
 void GenerateKnightMoves(MoveList& list, const Position& pos) {
-  GenerateFixedAttackPieces<Color>(list, pos, PieceBase::kKnight, attacks::kKnightAttacks);
+  GenerateFixedAttackPieces<Color, PieceBase::kKnight>(list, pos);
 }
 
 template<ColorType Color>
@@ -120,29 +119,39 @@ void GenerateCastleMoves(MoveList& list, const Position& pos) {
 
 template<ColorType Color>
 void GenerateKingMoves(MoveList& list, const Position& pos) {
-  GenerateFixedAttackPieces<Color>(list, pos, PieceBase::kKing, attacks::kKingAttacks);
+  GenerateFixedAttackPieces<Color, PieceBase::kKing>(list, pos);
   GenerateCastleMoves<Color>(list, pos);
+}
+
+template<ColorType Color, PieceBase Base, PieceType piece_type = Base & Color>
+void GenerateSlidingMoves(MoveList& list, const Position& pos) {
+  const Bitboard all_pieces = pos.get_all_pieces();
+  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
+  Bitboard pieces  = pos.get_piece_metric(piece_type);
+  utils::BitLooping(pieces, [own_pieces, all_pieces, &list](uint8_t from) {
+    Bitboard attacks = ~own_pieces & (attacks::kSlidingAttacks<Base>[from][((all_pieces &
+                       attacks::kAttacks<Base>[from]) * attacks::kMagicBitboards<Base>[from]) >>
+                       (kBoardSize - attacks::kShifts<Base>[from])]);
+    utils::BitLooping(attacks, [from, &list](uint8_t to) {
+      list.push(Move(piece_type, from, to));
+    });
+  });
 }
 
 template<ColorType Color>
 void GenerateBishopMoves(MoveList& list, const Position& pos) {
-  Bitboard all_pieces = pos.get_all_pieces();
+  GenerateSlidingMoves<Color, PieceBase::kBishop>(list, pos);
 }
 
 template<ColorType Color>
 void GenerateRookMoves(MoveList& list, const Position& pos) {
-  const Bitboard all_pieces = pos.get_all_pieces();
-  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
-  Bitboard rooks  = (Color == ColorType::kWhite) ? pos.get_piece_metric(PieceType::kWhiteRook)
-                                                 : pos.get_piece_metric(PieceType::kBlackRook);
-  constexpr PieceType piece = PieceBase::kRook & Color;
-  utils::BitLooping(rooks, [piece, own_pieces, all_pieces, &list](uint8_t from) {
-    Bitboard attacks = ~own_pieces & (attacks::kRookAttacks[from][((all_pieces & attacks::RookMaskAttacks[from]) *
-                       attacks::kRookMagicNumbers[from]) >> (kBoardSize - attacks::kRookShifts[from])]);
-    utils::BitLooping(attacks, [piece, from, &list](uint8_t to) {
-      list.push(Move(piece, from, to));
-    });
-  });
+  GenerateSlidingMoves<Color, PieceBase::kRook>(list, pos);
+}
+
+template<ColorType Color>
+void GenerateQueenMoves(MoveList& list, const Position& pos) {
+  GenerateSlidingMoves<Color, PieceBase::kRook, PieceBase::kQueen & Color>(list, pos);
+  GenerateSlidingMoves<Color, PieceBase::kBishop, PieceBase::kQueen & Color>(list, pos);
 }
 
 template<ColorType Color>
@@ -151,7 +160,7 @@ void GenerateAllMoves(MoveList& list, const Position& pos) {
   GenerateKnightMoves<Color>(list, pos);
   GenerateBishopMoves<Color>(list, pos);
   GenerateRookMoves<Color>(list, pos);
-  // GenerateQueenMoves<Color>(list, pos);
+  GenerateQueenMoves<Color>(list, pos);
   GenerateKingMoves<Color>(list, pos);
 }
 
