@@ -12,12 +12,12 @@ inline constexpr std::string_view perft4 = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N
 std::string to_notation(const Move& move) {
   std::string notation;
   if (!move.is_pawn()) {
-    notation += GetPieceCode(move.piece_);
+    notation += GetPieceCode(move.get_piece());
   }
-  notation += utils::get_notation(move.from_);
-  notation += utils::get_notation(move.to_);
+  notation += utils::get_notation(move.get_from());
+  notation += utils::get_notation(move.get_to());
   if (move.has_promoted_piece()) {
-    notation += GetPieceCode(move.promoted_piece_);
+    notation += GetPieceCode(move.get_promoted_piece());
   }
 
   return notation;

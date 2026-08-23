@@ -91,11 +91,11 @@ void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  os << GetPieceCode(move.piece_) << ':' << static_cast<char>('a' + (move.from_ & 7))
-     << static_cast<char>('1' + (move.from_ >> 3 & 7)) << '-' << static_cast<char>('a' + (move.to_ & 7))
-     << static_cast<char>('1' + (move.to_ >> 3 & 7));
-  if (move.promoted_piece_ != chess::PieceType::kNone) {
-    os << GetPieceCode(move.promoted_piece_);
+  os << GetPieceCode(move.get_piece()) << ':' << static_cast<char>('a' + (move.get_from() & 7))
+     << static_cast<char>('1' + (move.get_from() >> 3 & 7)) << '-' << static_cast<char>('a' + (move.get_to() & 7))
+     << static_cast<char>('1' + (move.get_to() >> 3 & 7));
+  if (move.get_promoted_piece() != chess::PieceType::kNone) {
+    os << GetPieceCode(move.get_promoted_piece());
   }
   
   return os;

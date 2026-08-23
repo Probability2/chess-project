@@ -123,28 +123,27 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
   return {};
 }
 
-constexpr void ParseNoCaptures(std::size_t& ind, std::string_view data,
-                                                 Position& pos) {
+constexpr void ParseNoCaptures(std::size_t& ind, std::string_view data, Position& pos) {
   if (ind >= data.size()) {
     return;
   }
-  std::size_t num = utils::GetNumber(data, ind);
-  ind++;
+  int num = 0;
+  auto res = std::from_chars(data.data() + ind, data.data() + data.length(), num);
+  ind = (res.ptr - data.data()) + 1;
   pos.set_no_captures(num);
 }
 
-constexpr void ParseMoveNumber(std::size_t& ind, std::string_view data,
-                                                 Position& pos) {
+constexpr void ParseMoveNumber(std::size_t& ind, std::string_view data, Position& pos) {
   if (ind >= data.size()) {
     return;
   }
-  std::size_t num = utils::GetNumber(data, ind);
-  ind++;
+  int num = 0;
+  auto res = std::from_chars(data.data() + ind, data.data() + data.length(), num);
   pos.set_move_number(num);
 }
 
 constexpr std::expected<void, std::string_view> ParseParameters(std::string_view data, std::size_t& ind,
-                                                                Position& pos) {
+                                                                                          Position& pos) {
   if (!ParseTurn(ind, data, pos) || !ParseCastle(ind, data, pos) || !ParseEnPassant(ind, data, pos)) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
@@ -196,9 +195,8 @@ std::expected<Position, std::string_view> Get(std::same_as<fs::path> auto const&
   return *res;
 }
 
-
 std::expected<void, std::string_view> Save(const Position& pos);
 
-std::expected<void, std::string_view> Save(const Position& pos, std::string_view file_name);
+std::expected<void, std::string_view> Save(const Position& pos, const fs::path& file_name);
 
 }// namespace chess::fen_manager

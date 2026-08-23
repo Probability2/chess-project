@@ -13,6 +13,22 @@ Move::Move(const PieceType piece, const uint8_t from, const uint8_t to,
   promoted_piece_ = promoted_piece;            
 }
 
+PieceType Move::get_piece() const {
+  return piece_;
+}
+
+uint8_t Move::get_from() const {
+  return from_;
+}
+
+uint8_t Move::get_to() const {
+  return to_;
+}
+
+PieceType Move::get_promoted_piece() const {
+  return promoted_piece_;
+}
+
 bool Move::has_promoted_piece() const {
   return promoted_piece_ != PieceType::kNone;
 }
@@ -39,6 +55,14 @@ bool Move::is_queen() const {
 
 bool Move::is_king() const {
   return (piece_ == PieceType::kWhiteKing || piece_ == PieceType::kBlackKing);
+}
+
+bool Move::is_en_passant() const {
+  return is_en_passant_;
+}
+
+bool Move::is_castle() const{
+  return is_castle_;
 }
 
 std::size_t MoveList::size() const {

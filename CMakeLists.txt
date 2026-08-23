@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.20)
 
 project(
     chess
@@ -7,7 +7,7 @@ project(
     LANGUAGES CXX
 )
 
-# add_compile_options(-O3 -march=native)
+add_compile_options(-O3 -march=native)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -20,12 +20,11 @@ add_subdirectory(src)
 add_subdirectory(lib)
 add_subdirectory(parser)
 add_subdirectory(core)
-add_subdirectory(engine)
 
-include(FetchContent)
+# include(FetchContent)
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
-FetchContent_MakeAvailable(json)
+# FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+# FetchContent_MakeAvailable(json)
 
 enable_testing()
 add_subdirectory(tests)

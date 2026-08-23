@@ -9,9 +9,14 @@ add_library(ChessLibrary
     Move.cpp
 )
 
-target_link_libraries(ChessLibrary 
+# target_link_libraries(ChessLibrary 
+#     PRIVATE 
+#         nlohmann_json::nlohmann_json
+#     PUBLIC
+#         GTest::gtest
+# )
+
+target_include_directories(ChessLibrary 
     PRIVATE 
-        nlohmann_json::nlohmann_json
-    PUBLIC
-        GTest::gtest
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )

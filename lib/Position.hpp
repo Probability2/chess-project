@@ -63,11 +63,13 @@ public:
     en_passant_ = ind;
   }
 
-  constexpr void set_no_captures(const std::size_t moves) {
+  constexpr void set_no_captures(const int moves) {
+    assert(moves >= 0 && "No capture moves number is not valid");
     no_capture_moves_ = moves;
   }
 
-  constexpr void set_move_number(const std::size_t moves) {
+  constexpr void set_move_number(const int moves) {
+    assert(moves >= 0 && "Move number is not valid");
     move_ = moves;
   }
   

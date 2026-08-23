@@ -3,14 +3,19 @@
 namespace chess {
 
 enum class MovesType: uint8_t {
-  kPseudo, kLegal, kCaptures, kChecks
+  kPseudo, kLegal, kCaptures, kChecks, kEvasions
 };
 
-struct Move {
+class Move {
+public:
   Move() = default;
   Move(const PieceType piece, const uint8_t from, const uint8_t to);
   Move(const PieceType piece, const uint8_t from, const uint8_t to, const PieceType promoted_piece);
   bool operator==(const Move& other) const = default;
+  PieceType get_piece() const;
+  uint8_t get_from() const;
+  uint8_t get_to() const;
+  PieceType get_promoted_piece() const;
   bool has_promoted_piece() const;
   bool is_pawn() const;// for tests only
   bool is_knight() const;// for tests only
@@ -18,10 +23,16 @@ struct Move {
   bool is_rook() const; // for tests only
   bool is_queen() const;// for tests only
   bool is_king() const;// for tests only
+  bool is_en_passant() const;
+  bool is_castle() const;
+
+private:
   PieceType piece_; // the piece that has been moved
   uint8_t from_ : 6;// a-h files, 1-8 ranks
   uint8_t to_ : 6;// the same thing
   PieceType promoted_piece_ = PieceType::kNone;
+  bool is_en_passant_ : 1 = false;
+  bool is_castle_ : 1 = false;
 };
 
 class MoveList {

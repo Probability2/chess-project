@@ -48,11 +48,22 @@ inline constexpr PieceType operator&(const PieceBase base, const ColorType color
   return kPieceMap[std::to_underlying(color)][std::to_underlying(base)];
 }
 
+inline constexpr ColorType operator!(const ColorType color) {
+  if (color == ColorType::kWhite) {
+    return ColorType::kBlack;
+  }
+  return ColorType::kWhite;
+}
+
 const std::array<std::string, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
                                                                "♟", "♞", "♝", "♜", "♛", "♚"};
 
 const std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
-                                                         'p', 'n', 'b', 'r', 'q', 'k'};
+  'p', 'n', 'b', 'r', 'q', 'k'};
+  
+inline constexpr ColorType Color(PieceType piece) {
+  return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;
+}
 
 struct PieceData {
   PieceType piece;
@@ -86,6 +97,11 @@ constexpr PieceType GetPieceType(char p) {
   return PieceType::kNone;
 }
 
+inline constexpr PieceBase GetPieceType(PieceType piece) {
+  const auto& map = (Color(piece) == ColorType::kWhite) ? kPieceMap[0] : kPieceMap[1];
+  return static_cast<PieceBase>(std::ranges::find(map, piece) - map.begin());
+}
+
 constexpr char GetPieceCode(PieceType piece) {
   return kPieceTable[static_cast<int>(piece)].code;
 }
@@ -94,8 +110,5 @@ constexpr std::string GetPieceIcon(PieceType piece) {
   return kPieceTable[static_cast<int>(piece)].icon;
 }
 
-inline constexpr ColorType Color(PieceType piece) {
-  return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;
-}
 
 }// end of chess namespace

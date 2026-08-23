@@ -1,6 +1,5 @@
 #pragma once
 
-#include <charconv>
 #include <concepts>
 #include <filesystem>
 #include <iostream>
@@ -19,16 +18,6 @@ namespace utils {
   
 inline constexpr int coord(int rank, int file) {
   return 8 * rank + file;
-}
-
-inline constexpr int GetNumber(std::string_view data, std::size_t& ind) {
-  int num = 0;
-  while (ind < data.length() && data[ind] >= '0' && data[ind] <= '9') {
-    num = num * 10 + (data[ind] - '0');
-    ind++;
-  }
-
-  return num;
 }
 
 inline void PrintBitboard(Bitboard b) {

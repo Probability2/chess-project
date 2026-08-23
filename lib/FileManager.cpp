@@ -107,6 +107,8 @@ std::expected<void, std::string_view> Save(const Position& pos, const fs::path& 
   if (!file) {
     return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
+  WritePositionSquares(file, pos);
+  WritePositionParams(file, pos);
 
   return {};
 }
