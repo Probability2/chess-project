@@ -1,8 +1,7 @@
 #pragma once
 
-// #include <gtest/gtest_prod.h>
-
 #include "../core/utils.hpp"
+#include "types/Bitboard.hpp"
 #include "Move.hpp"
 
 #include <bit>
@@ -28,15 +27,15 @@ public:
 
   //A1 = 0, H8 = 63
   constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
-    uint8_t coord = utils::coord(x, y);
-    Bitboard mask = 1ULL << coord;
+    uint8_t sq_coord = coord(x, y);
+    Bitboard mask = 1ULL << sq_coord;
     auto color = Color(piece);
-    if (board_[coord] != PieceType::kNone) {
-      pieces_[static_cast<int>(board_[coord]) - 1] &= ~mask;
+    if (board_[sq_coord] != PieceType::kNone) {
+      pieces_[static_cast<int>(board_[sq_coord]) - 1] &= ~mask;
       all_white_pieces_ &= ~mask;
       all_black_pieces_ &= ~mask;
     }
-    board_[coord] = piece;
+    board_[sq_coord] = piece;
     if (piece == PieceType::kNone) {
       return;
     } else if (color == ColorType::kWhite) {
@@ -48,7 +47,7 @@ public:
   }
 
   constexpr PieceType get_square(const int x, const int y) const {
-    return board_[utils::coord(x, y)];
+    return board_[coord(x, y)];
   }
 
   constexpr void set_castling(const int position) {

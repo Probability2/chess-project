@@ -79,10 +79,11 @@ template MoveList Position::GenerateMoves<MovesType::kChecks>() const;
 
 
 namespace {
+
 void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
   os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
   if (pos.is_en_passant() > 0) {
-    os << utils::get_notation(pos.get_en_passant());
+    os << chess::get_notation(pos.get_en_passant());
   } else {
     os << "no en-passant";
   }

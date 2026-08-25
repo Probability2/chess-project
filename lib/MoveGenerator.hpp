@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Piece.hpp"
 #include "Position.hpp"
-#include "../core/utils.hpp"
 
 #include <utility>
 

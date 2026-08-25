@@ -1,32 +1,29 @@
 #pragma once
 
+#include "Bitboard.hpp"
 #include "Piece.hpp"
+
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <concepts>
-#include "../core/utils.hpp"
+#include <cstdint>
 
 namespace chess::attacks {
-
-constexpr Bitboard kNotAFile = 0xFEFEFEFEFEFEFEFEULL;
-constexpr Bitboard kNotHFile = 0x7F7F7F7F7F7F7F7FULL;
-constexpr Bitboard kNotABFile = 0xFCFCFCFCFCFCFCFCULL;
-constexpr Bitboard kNotGHFile = 0x3F3F3F3F3F3F3F3FULL;
-constexpr Bitboard kNot1Rank = 0xFFFFFFFFFFFFFF00ULL;
-constexpr Bitboard kNot12Rank = 0xFFFFFFFFFFFF0000ULL;
-constexpr Bitboard kNot8Rank = 0x00FFFFFFFFFFFFFFULL;
-constexpr Bitboard kNot78Rank = 0x0000FFFFFFFFFFFFULL;
+  
+template<PieceBase Piece>
+concept SlidingPiece = (Piece == PieceBase::kBishop || Piece == PieceBase::kRook);
 
 template<PieceBase Piece>
-inline constexpr std::array<Bitboard, kBoardSize> kAttacks;//unknown piece
+inline constexpr std::array<Bitboard, kBoardSize> kAttacks{};//unknown piece
 
 template<>
 inline constexpr std::array<std::array<Bitboard, kBoardSize>, 2> kAttacks<PieceBase::kPawn> = []() {
   std::array<std::array<Bitboard, kBoardSize>, 2> attacks{};
   for (std::size_t i = 0; i < kBoardSize; ++i) {
-    Bitboard pawn_coord = 1ULL << i;
-    attacks[0][i] = ((pawn_coord & kNotAFile) << 7) | ((pawn_coord & kNotHFile) << 9);//white
-    attacks[1][i] = ((pawn_coord & kNotHFile) >> 7) | ((pawn_coord & kNotAFile) >> 9);//black
+    Bitboard pawn_sq = 1ULL << i;
+    attacks[0][i] = ShiftDir(pawn_sq, 7) | ShiftDir(pawn_sq, 9);// white
+    attacks[1][i] = ShiftDir(pawn_sq, -7) | ShiftDir(pawn_sq, -9);// black
   }
 
   return attacks;
@@ -54,15 +51,15 @@ template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kKing> = []() {
   std::array<Bitboard, kBoardSize> attacks{};
   for (std::size_t i = 0; i < kBoardSize; ++i) {
-    Bitboard king_coord = 1ULL << i;
-    attacks[i] = (king_coord & kNotAFile) >> 1;             //e4->d4
-    attacks[i] |= (king_coord & kNotAFile & kNot1Rank) >> 9;//e4->d3
-    attacks[i] |= (king_coord & kNot1Rank) >> 8;            //e4->e3
-    attacks[i] |= (king_coord & kNotHFile & kNot1Rank) >> 7;//e4->f3
-    attacks[i] |= (king_coord & kNotHFile) << 1;            //e4->f4
-    attacks[i] |= (king_coord & kNotHFile & kNot8Rank) << 9;//e4->f5
-    attacks[i] |= (king_coord & kNot8Rank) << 8;            //e4->e5
-    attacks[i] |= (king_coord & kNotAFile & kNot8Rank) << 7;//e4->d5
+    const Bitboard king_sq = 1ULL << i;
+    attacks[i] |= ShiftDir(king_sq, 7);
+    attacks[i] |= ShiftDir(king_sq, 8);
+    attacks[i] |= ShiftDir(king_sq, 9);
+    attacks[i] |= ShiftDir(king_sq, 1);
+    attacks[i] |= ShiftDir(king_sq, -7);
+    attacks[i] |= ShiftDir(king_sq, -8);
+    attacks[i] |= ShiftDir(king_sq, -9);
+    attacks[i] |= ShiftDir(king_sq, -1);
   }
   
   return attacks;
@@ -70,42 +67,24 @@ inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kKing> = [
 
 namespace internal {
 
-inline constexpr Bitboard GetRookParams(const int square) {
-  Bitboard mask = 0;
-  uint8_t file = square % 8;
-  uint8_t rank = square / 8;
-  for (int f = 1; f < 7; ++f) {
-    if (f == file) {
-      continue;
-    }
-    mask |= (1ULL << utils::coord(rank, f));
-  }
-  for (int r = 1; r < 7; ++r) {
-    if (r == rank) {
-      continue;
-    }
-    mask |= (1ULL << utils::coord(r, file));
-  }
+inline constexpr Bitboard GetRookSlides(const int square) {
+  Bitboard magic_slides = 0;
+  magic_slides |= GenerateSlide(square, 1) & kNotHFile;
+  magic_slides |= GenerateSlide(square, -1) & kNotAFile;
+  magic_slides |= GenerateSlide(square, 8) & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -8) & kNot1Rank;
   
-  return mask;
+  return magic_slides;
 }
 
-inline constexpr Bitboard GetBishopParams(const int square) {
-  Bitboard mask = 0;
-  int file = square % 8;
-  int rank = square / 8;
-  const auto traverse_diagonal = [&mask, file, rank](const int dir) {
-    for (int diff = -8; diff < 8; ++diff) {
-      if (diff == 0 || rank + diff < 1 || rank + diff > 6 || file + diff * dir < 1 || file + diff * dir > 6) {
-        continue;
-      }
-      mask |= (1ULL << utils::coord(rank + diff, file + diff * dir));
-    }
-  };
-  traverse_diagonal(1);
-  traverse_diagonal(-1);
+inline constexpr Bitboard GetBishopSlides(const int square) {
+  Bitboard magic_slides = 0;
+  magic_slides |= GenerateSlide(square, 7) & kNotAFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -7) & kNotHFile & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 9) & kNotHFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -9) & kNotAFile & kNot1Rank;
   
-  return mask;
+  return magic_slides;
 }
 
 }// namespace internal
@@ -114,7 +93,7 @@ template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kRook> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
   for (int sq = 0; sq < kBoardSize; ++sq) {
-    attacks[sq] = internal::GetRookParams(sq);
+    attacks[sq] = internal::GetRookSlides(sq);
   }
   
   return attacks;
@@ -124,43 +103,40 @@ template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kBishop> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
   for (int sq = 0; sq < kBoardSize; ++sq) {
-    attacks[sq] = internal::GetBishopParams(sq);
+    attacks[sq] = internal::GetBishopSlides(sq);
   }
   
   return attacks;
 }();
 
+namespace internal {
+
 template<PieceBase Piece>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts;// uknown piece
-
+  
 template<>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts<PieceBase::kRook> = [](){
   std::array<uint8_t, kBoardSize> attacks{};
   for (int sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = static_cast<uint8_t>(kBoardSize - std::popcount(kAttacks<PieceBase::kRook>[sq]));
   }
-  
+    
   return attacks;
 }();
-
+  
 template<>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts<PieceBase::kBishop> = [](){
   std::array<uint8_t, kBoardSize> attacks{};
   for (int sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = static_cast<uint8_t>(kBoardSize - std::popcount(kAttacks<PieceBase::kBishop>[sq]));
   }
-  
+    
   return attacks;
 }();
-
-template<PieceBase Piece>
-concept SlidingPiece = (Piece == PieceBase::kBishop || Piece == PieceBase::kRook);
   
-namespace internal {
-
 template<PieceBase Piece> requires SlidingPiece<Piece>
-consteval std::size_t GetTotalConfigurations() {
-  std::size_t offset = 0;
+consteval uint32_t GetTotalConfigurations() {
+  uint32_t offset = 0;
   for (std::size_t sq = 0; sq < kBoardSize; ++sq) {
     offset += (1 << (kBoardSize - kShifts<Piece>[sq]));
   }
@@ -171,16 +147,8 @@ consteval std::size_t GetTotalConfigurations() {
 template<PieceBase Piece> requires SlidingPiece<Piece>
 class FancyMagicTable {
 public:
-  constexpr FancyMagicTable() = default;
-  
-  //readonly
-  Bitboard operator[](const std::size_t sq, const std::size_t config) const {
-    return attacks_[offsets_[sq] + config];
-  }
-
-  //reference
-  constexpr Bitboard& operator[](const std::size_t sq, const std::size_t config) {
-    return attacks_[offsets_[sq] + config];
+  constexpr decltype(auto) operator[](this auto& self, const std::size_t sq, const std::size_t index) {
+    return self.attacks_[self.offsets_[sq] + index];
   }
 
 private:
@@ -197,10 +165,10 @@ private:
   }();
 };
 
-Bitboard GetSlidingPiecesOcuppied(const int blocker, Bitboard mask) {
+inline Bitboard GetSlidingPiecesOccupied(const int blocker, Bitboard mask) {
   Bitboard res = 0;
   uint8_t sz = 0;
-  utils::BitLooping(mask, [blocker, &sz, &res](uint8_t ind) {
+  BitLooping(mask, [blocker, &sz, &res](const uint8_t ind) {
     if (blocker & (1 << sz)) {
       res |= (1ULL << ind);
     }
@@ -211,36 +179,36 @@ Bitboard GetSlidingPiecesOcuppied(const int blocker, Bitboard mask) {
 }
 
 template<PieceBase Base>
-Bitboard GetAttackMask(const uint8_t square, const Bitboard occupied);
+inline Bitboard GetAttackMask(const uint8_t square, const Bitboard occupied);
 
 template<>
-Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitboard occupied) {
+inline Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
   uint8_t file = square % 8;
   uint8_t rank = square / 8;
   for (int i = file - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << utils::coord(rank, i));
+    Bitboard bb = (1ULL << coord(rank, i));
     mask |= bb;
     if (occupied & bb) {
       break;
     }
   }
   for (int i = file + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << utils::coord(rank, i));
+    Bitboard bb = (1ULL << coord(rank, i));
     mask |= bb;
     if (occupied & bb) {
       break;
     }
   }
   for (int i = rank - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << utils::coord(i, file));
+    Bitboard bb = (1ULL << coord(i, file));
     mask |= bb;
     if (occupied & bb) {
       break;
     }
   }
   for (int i = rank + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << utils::coord(i, file));
+    Bitboard bb = (1ULL << coord(i, file));
     mask |= bb;
     if (occupied & bb) {
       break;
@@ -251,7 +219,7 @@ Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitboard oc
 }
 
 template<>
-Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard occupied) {
+inline Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
   int file = square % 8;
   int rank = square / 8;
@@ -259,7 +227,7 @@ Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard 
     int r = rank + dir_rank;
     int f = file + dir_file;
     while (r >= 0 && r < 8 && f >= 0 && f < 8) {
-      Bitboard bb = (1ULL << utils::coord(r, f));
+      Bitboard bb = (1ULL << coord(r, f));
       mask |= bb;
       if (occupied & bb) {
         break;
@@ -276,10 +244,7 @@ Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard 
   return mask;
 }
 
-
-}// namespace internal
-
-template<PieceBase Piece>
+template<PieceBase Piece> requires SlidingPiece<Piece>
 inline constexpr std::array<Bitboard, kBoardSize> kMagicBitboards;// unknown piece
 
 template<>
@@ -323,17 +288,26 @@ inline constexpr std::array<Bitboard, kBoardSize> kMagicBitboards<PieceBase::kBi
 };
 
 template<PieceBase Piece> requires SlidingPiece<Piece>
-inline const auto kSlidingAttacks = []() {
-  internal::FancyMagicTable<Piece> attacks;
+inline const auto kSlidingTable = []() {
+  FancyMagicTable<Piece> attacks;// probably just creating arrays and offsets is better but idk
   for (std::size_t sq = 0; sq < kBoardSize; ++sq) {
     for (std::size_t b = 0, config = (1 << (kBoardSize - kShifts<Piece>[sq])); b < config; ++b) {
-      Bitboard occupied = internal::GetSlidingPiecesOcuppied(b, kAttacks<Piece>[sq]);
+      Bitboard occupied = GetSlidingPiecesOccupied(b, kAttacks<Piece>[sq]);
       std::size_t index = ((occupied * kMagicBitboards<Piece>[sq]) >> kShifts<Piece>[sq]);
-      attacks[sq, index] = internal::GetAttackMask<Piece>(sq, occupied);
+      attacks[sq, index] = GetAttackMask<Piece>(sq, occupied);
     }
   }
 
   return attacks;
 }();
+
+}// namespace internal
+
+template<PieceBase Piece> requires SlidingPiece<Piece>
+inline Bitboard SlidingAttacks(const uint8_t sq, const Bitboard occupied) {
+  std::size_t index = ((occupied & kAttacks<Piece>[sq]) * internal::kMagicBitboards<Piece>[sq]) >>
+                                                                      internal::kShifts<Piece>[sq];
+  return internal::kSlidingTable<Piece>[sq, index];
+};
 
 }// namespace chess::attacks

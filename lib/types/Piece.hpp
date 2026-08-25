@@ -55,11 +55,11 @@ inline constexpr ColorType operator!(const ColorType color) {
   return ColorType::kWhite;
 }
 
-const std::array<std::string, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
-                                                               "♟", "♞", "♝", "♜", "♛", "♚"};
+inline constexpr std::array<std::string, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
+                                                                          "♟", "♞", "♝", "♜", "♛", "♚"};
 
-const std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
-  'p', 'n', 'b', 'r', 'q', 'k'};
+inline constexpr std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
+                                                                    'p', 'n', 'b', 'r', 'q', 'k'};
   
 inline constexpr ColorType Color(PieceType piece) {
   return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;

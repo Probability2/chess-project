@@ -14,8 +14,8 @@ std::string to_notation(const Move& move) {
   if (!move.is_pawn()) {
     notation += GetPieceCode(move.get_piece());
   }
-  notation += utils::get_notation(move.get_from());
-  notation += utils::get_notation(move.get_to());
+  notation += get_notation(move.get_from());
+  notation += get_notation(move.get_to());
   if (move.has_promoted_piece()) {
     notation += GetPieceCode(move.get_promoted_piece());
   }

@@ -14,7 +14,7 @@ inline constexpr std::string_view kDefaultPosition = "rnbqkbnr/pppppppp/8/8/8/8/
 inline constexpr Position kStartingPosition = []() {
   auto res = fen_manager::Get(kDefaultPosition);
   if (!res) {
-    throw res.error();
+    throw "Failed to parse FEN in constexpr context";
   }
 
   return *res;

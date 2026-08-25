@@ -1,11 +1,9 @@
 add_library(ChessLibrary 
     History.cpp
-    Piece.cpp
     Position.cpp
     Game.cpp
     FileManager.cpp
     MoveGenerator.cpp
-    Attacks.hpp
     Move.cpp
 )
 
@@ -20,3 +18,5 @@ target_include_directories(ChessLibrary
     PRIVATE 
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+add_subdirectory(types)

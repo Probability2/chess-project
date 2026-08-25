@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../core/utils.hpp"
-
+#include "types/Bitboard.hpp"
 #include "Position.hpp"
 
 #include <algorithm>
@@ -117,7 +116,7 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
   if (ind >= data.size() || data[ind] < '1' || data[ind] > '8') {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
-  pos.set_en_passant(utils::coord(data[ind] - '1', x));
+  pos.set_en_passant(coord(data[ind] - '1', x));
   ind += 2;
 
   return {};
