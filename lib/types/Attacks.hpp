@@ -69,20 +69,20 @@ namespace internal {
 
 inline constexpr Bitboard GetRookSlides(const int square) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(square, 1) & kNotHFile;
-  magic_slides |= GenerateSlide(square, -1) & kNotAFile;
-  magic_slides |= GenerateSlide(square, 8) & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -8) & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 1, 0) & kNotHFile;
+  magic_slides |= GenerateSlide(square, -1, 0) & kNotAFile;
+  magic_slides |= GenerateSlide(square, 8, 0) & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -8, 0) & kNot1Rank;
   
   return magic_slides;
 }
 
 inline constexpr Bitboard GetBishopSlides(const int square) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(square, 7) & kNotAFile & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -7) & kNotHFile & kNot1Rank;
-  magic_slides |= GenerateSlide(square, 9) & kNotHFile & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -9) & kNotAFile & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 7, 0) & kNotAFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -7, 0) & kNotHFile & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 9, 0) & kNotHFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -9, 0) & kNotAFile & kNot1Rank;
   
   return magic_slides;
 }
@@ -92,7 +92,7 @@ inline constexpr Bitboard GetBishopSlides(const int square) {
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kRook> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
-  for (int sq = 0; sq < kBoardSize; ++sq) {
+  for (uint8_t sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = internal::GetRookSlides(sq);
   }
   
@@ -102,7 +102,7 @@ inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kRook> = [
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kBishop> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
-  for (int sq = 0; sq < kBoardSize; ++sq) {
+  for (uint8_t sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = internal::GetBishopSlides(sq);
   }
   
@@ -113,7 +113,7 @@ namespace internal {
 
 template<PieceBase Piece>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts;// uknown piece
-  
+
 template<>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts<PieceBase::kRook> = [](){
   std::array<uint8_t, kBoardSize> attacks{};
@@ -184,36 +184,10 @@ inline Bitboard GetAttackMask(const uint8_t square, const Bitboard occupied);
 template<>
 inline Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
-  uint8_t file = square % 8;
-  uint8_t rank = square / 8;
-  for (int i = file - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << coord(rank, i));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = file + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << coord(rank, i));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = rank - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << coord(i, file));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = rank + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << coord(i, file));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
+  mask |= GenerateSlide(square, 1, occupied);
+  mask |= GenerateSlide(square, -1, occupied);
+  mask |= GenerateSlide(square, 8, occupied);
+  mask |= GenerateSlide(square, -8, occupied);
 
   return mask;
 }
@@ -221,25 +195,10 @@ inline Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitb
 template<>
 inline Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
-  int file = square % 8;
-  int rank = square / 8;
-  const auto traverse_diagonal = [&mask, occupied, file, rank](const int dir_file, const int dir_rank) {
-    int r = rank + dir_rank;
-    int f = file + dir_file;
-    while (r >= 0 && r < 8 && f >= 0 && f < 8) {
-      Bitboard bb = (1ULL << coord(r, f));
-      mask |= bb;
-      if (occupied & bb) {
-        break;
-      }
-      r += dir_rank;
-      f += dir_file;
-    }
-  };
-  traverse_diagonal(1, 1);
-  traverse_diagonal(1, -1);
-  traverse_diagonal(-1, 1);
-  traverse_diagonal(-1, -1);
+  mask |= GenerateSlide(square, 7, occupied);
+  mask |= GenerateSlide(square, -7, occupied);
+  mask |= GenerateSlide(square, 9, occupied);
+  mask |= GenerateSlide(square, -9, occupied);
 
   return mask;
 }

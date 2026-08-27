@@ -8,6 +8,9 @@
 #include "parser/ArgParser.hpp"
 #include "core/commands.hpp"
 
+#include <inplace_vector>
+
+
 #include <conio.h>
 
 #include <random>
@@ -33,19 +36,14 @@ int main(int argc, char** argv) {
     std::cout << parser.HelpDescription() << '\n';
     return EXIT_SUCCESS;
   }
-  chess::Position pos;
-  std::string request;
-  Bitboard b = 0x0000000010000000ULL;//e4 square, rooks
-  
-  std::random_device rd;
-  std::mt19937_64 magic_generator(rd());
 
-  // chess::MoveList list;
-  // chess::move_generator::GenerateRookMoves<ColorType::kWhite>(list, fen_manager::Get("3qk3/8/3p4/8/1bBR4/8/3P4/4K3 w - - 0 1"));
+  auto pos = fen_manager::Get("4rk2/3r3b/8/3B2b1/1b3P2/2Q5/rR1K1Nr1/8 w - - 0 1");
+  std::cout << *pos << '\n';
+  auto list = move_generator::GenerateMoves<MovesType::kLegal>(*pos);
+  // PrintBitboard(bb);
 
-  auto pp = *(chess::fen_manager::Get("rnbqkb1r/pp3ppp/2p2n2/3pp1B1/2B1P3/3P4/PPP2PPP/RN1QK1NR w KQkq - 0 5"));
-  auto list = chess::move_generator::GenerateMoves<MovesType::kPseudo>(pp);
-  std::cout << flipped(pp) << '\n';
+  // std::random_device rd;
+  // std::mt19937_64 magic_generator(rd());
 
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

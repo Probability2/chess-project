@@ -21,6 +21,8 @@ constexpr Bitboard kNot12Rank = 0xFFFFFFFFFFFF0000ULL;
 constexpr Bitboard kNot8Rank = 0x00FFFFFFFFFFFFFFULL;
 constexpr Bitboard kNot78Rank = 0x0000FFFFFFFFFFFFULL;
 
+constexpr std::array<int, 8> directions = {7, 8, 9, 1, -7, -8, -9, -1};
+
 inline constexpr int coord(const int rank, const int file) {
   return 8 * rank + file;
 }
@@ -62,9 +64,12 @@ inline constexpr Bitboard ShiftDir(Bitboard bb, const int dir) {
   std::unreachable();
 }
 
-inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir) {
+inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir, const Bitboard occupied) {
   Bitboard slides = ShiftDir(1ULL << sq, dir);
   for (std::size_t i = 0; i < 8; ++i) {
+    if (slides & occupied) {
+      break;
+    }
     slides |= ShiftDir(slides, dir);
   }
 
@@ -73,13 +78,12 @@ inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir) {
 
 inline constexpr auto kBetween = []() {
   std::array<std::array<Bitboard, kBoardSize>, kBoardSize> between{};
-  constexpr std::array<int, 8> directions = {7, 8, 9, 1, -7, -8, -9, -1};
   for (int sq1 = 0; sq1 < kBoardSize; ++sq1) {
     for (int dir: directions) {
-      Bitboard slide1 = GenerateSlide(sq1, dir);
-      for (int sq2 = sq1; sq2 < kBoardSize; ++sq2) {
+      Bitboard slide1 = GenerateSlide(sq1, dir, 0);
+      for (int sq2 = sq1 + 1; sq2 < kBoardSize; ++sq2) {
         if (slide1 & (1ULL << sq2)) {
-          between[sq1][sq2] = slide1 & GenerateSlide(sq2, -dir);
+          between[sq1][sq2] = slide1 & GenerateSlide(sq2, -dir, 0);
           between[sq2][sq1] = between[sq1][sq2];
         }
       }
@@ -87,6 +91,23 @@ inline constexpr auto kBetween = []() {
   }
 
   return between;
+}();
+
+inline constexpr auto kLines = []() {
+  std::array<std::array<Bitboard, kBoardSize>, kBoardSize> lines{};
+  for (int sq1 = 0; sq1 < kBoardSize; ++sq1) {
+    for (int dir: directions) {
+      Bitboard slide1 = GenerateSlide(sq1, dir, 0);
+      for (int sq2 = sq1 + 1; sq2 < kBoardSize; ++sq2) {
+        if (slide1 & (1ULL << sq2)) {
+          lines[sq1][sq2] = slide1 | GenerateSlide(sq2, -dir, 0);
+          lines[sq2][sq1] = lines[sq1][sq2];
+        }
+      }
+    }
+  }
+
+  return lines;
 }();
 
 }

@@ -55,13 +55,14 @@ inline constexpr ColorType operator!(const ColorType color) {
   return ColorType::kWhite;
 }
 
-inline constexpr std::array<std::string, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
-                                                                          "♟", "♞", "♝", "♜", "♛", "♚"};
+inline constexpr std::array<std::string_view, kPieceCount + 1> kPieceImages = {".", "♙", "♘", "♗", "♖", "♕", "♔",
+                                                                               "♟", "♞", "♝", "♜", "♛", "♚"};
 
 inline constexpr std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
                                                                     'p', 'n', 'b', 'r', 'q', 'k'};
   
 inline constexpr ColorType Color(PieceType piece) {
+  [[assume(piece != PieceType::kNone)]];
   return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;
 }
 
@@ -100,6 +101,10 @@ constexpr PieceType GetPieceType(char p) {
 inline constexpr PieceBase GetPieceType(PieceType piece) {
   const auto& map = (Color(piece) == ColorType::kWhite) ? kPieceMap[0] : kPieceMap[1];
   return static_cast<PieceBase>(std::ranges::find(map, piece) - map.begin());
+}
+
+constexpr char GetPieceCode(PieceBase piece) {
+  return kPieceTable[7 + static_cast<int>(piece)].code;
 }
 
 constexpr char GetPieceCode(PieceType piece) {

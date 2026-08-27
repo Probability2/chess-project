@@ -62,6 +62,30 @@ MoveList Position::GenerateMoves() const {
   return move_generator::GenerateMoves<type>(*this);
 }
 
+bool Position::is_pawn(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhitePawn || board_[sq] == PieceType::kBlackPawn);
+}
+
+bool Position::is_knight(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhiteKnight || board_[sq] == PieceType::kBlackKnight);
+}
+
+bool Position::is_bishop(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhiteBishop || board_[sq] == PieceType::kBlackBishop);
+}
+
+bool Position::is_rook(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhiteRook || board_[sq] == PieceType::kBlackRook);
+}
+
+bool Position::is_queen(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhiteQueen || board_[sq] == PieceType::kBlackQueen);
+}
+
+bool Position::is_king(const uint8_t sq) const {
+  return (board_[sq] == PieceType::kWhiteKing || board_[sq] == PieceType::kBlackKing);
+}
+
 namespace internal {
 FlippedPosition::FlippedPosition(const chess::Position& pos)
 : pos_(pos) {
@@ -92,10 +116,10 @@ void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  os << GetPieceCode(move.get_piece()) << ':' << static_cast<char>('a' + (move.get_from() & 7))
+  os << static_cast<char>('a' + (move.get_from() & 7))
      << static_cast<char>('1' + (move.get_from() >> 3 & 7)) << '-' << static_cast<char>('a' + (move.get_to() & 7))
      << static_cast<char>('1' + (move.get_to() >> 3 & 7));
-  if (move.get_promoted_piece() != chess::PieceType::kNone) {
+  if (move.has_promoted_piece()) {
     os << GetPieceCode(move.get_promoted_piece());
   }
   
@@ -113,7 +137,7 @@ std::ostream& operator<<(std::ostream& os, const chess::MoveList& list) {
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
   for (int i = chess::kMaxInd - 1; i >= 0; --i) {
     for (int j = 0; j < chess::kMaxInd; ++j) {
-      os << GetPieceIcon(pos.get_square(i, j)) << ' ';
+      os << GetPieceIcon(pos.get_piece(i, j)) << ' ';
     }
     os << '\n';
   }
@@ -125,7 +149,7 @@ std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
 std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos) {
   for (std::size_t i = 0; i < chess::kMaxInd; ++i) {
     for (int j = chess::kMaxInd - 1; j >= 0; --j) {
-      os << GetPieceIcon(flipped_pos.pos_.get_square(i, j)) << ' ';
+      os << GetPieceIcon(flipped_pos.pos_.get_piece(i, j)) << ' ';
     }
     os << '\n';
   }

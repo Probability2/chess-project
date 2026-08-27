@@ -8,6 +8,7 @@
 #include <iostream>
 #include <optional>
 #include <type_traits>
+#include <utility>
 
 namespace chess {
 
@@ -27,30 +28,34 @@ public:
 
   //A1 = 0, H8 = 63
   constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
-    uint8_t sq_coord = coord(x, y);
-    Bitboard mask = 1ULL << sq_coord;
-    auto color = Color(piece);
-    if (board_[sq_coord] != PieceType::kNone) {
-      pieces_[static_cast<int>(board_[sq_coord]) - 1] &= ~mask;
+    uint8_t sq = coord(x, y);
+    Bitboard mask = 1ULL << sq;
+    if (board_[sq] != PieceType::kNone) {
+      pieces_[std::to_underlying(board_[sq]) - 1] &= ~mask;
       all_white_pieces_ &= ~mask;
       all_black_pieces_ &= ~mask;
     }
-    board_[sq_coord] = piece;
+    board_[sq] = piece;
     if (piece == PieceType::kNone) {
       return;
-    } else if (color == ColorType::kWhite) {
+    }
+    if (Color(piece) == ColorType::kWhite) {
       all_white_pieces_ |= mask;
     } else {
       all_black_pieces_ |= mask;
     }
-    pieces_[static_cast<int>(piece) - 1] |= mask;
+    pieces_[std::to_underlying(piece) - 1] |= mask;
   }
 
-  constexpr PieceType get_square(const int x, const int y) const {
+  constexpr PieceType get_piece(const int x, const int y) const {
     return board_[coord(x, y)];
   }
 
-  constexpr void set_castling(const int position) {
+  constexpr PieceType get_piece(const uint8_t sq) const {
+    return board_[sq];
+  }
+
+  constexpr void set_castling(const uint8_t position) {
     castles_ |= (1 << position);
   }
 
@@ -72,7 +77,7 @@ public:
     move_ = moves;
   }
   
-  template<MovesType type>
+  template<MovesType Type>
   MoveList GenerateMoves() const;
 
   bool is_white_move() const;
@@ -86,6 +91,13 @@ public:
   uint8_t get_castles() const;
   uint8_t get_en_passant() const;
   std::string get_castling_notation() const;
+
+  bool is_pawn(const uint8_t sq) const;// for tests only
+  bool is_knight(const uint8_t sq) const;// for tests only
+  bool is_bishop(const uint8_t sq) const;// for tests only
+  bool is_rook(const uint8_t sq) const; // for tests only
+  bool is_queen(const uint8_t sq) const;// for tests only
+  bool is_king(const uint8_t) const;// for tests only
   
   private:
   std::array<PieceType, kBoardSize> board_{};

@@ -6,33 +6,40 @@ enum class MovesType: uint8_t {
   kPseudo, kLegal, kCaptures, kChecks, kEvasions
 };
 
+enum class MoveFlag: uint8_t {
+  kQuiet,//              0
+  kDoublePawnPush,//     1
+  kKingCastle,//         2
+  kQueenCastle,//        3
+  kCapture,//            4
+  kEpCapture,//          5
+  kKnightPromotion,//    8
+  kBishopPromotion,//    9
+  kRookPromotion,//      10
+  kQueenPromotion,//     11
+  kKnightPromoCapture,// 12
+  kBishopPromoCapture,// 13
+  kRookPromoCapture,//   14
+  kQueenPromoCapture//   15
+};
+
+//16 bit representation to preserve memory
 class Move {
 public:
   Move() = default;
-  Move(const PieceType piece, const uint8_t from, const uint8_t to);
-  Move(const PieceType piece, const uint8_t from, const uint8_t to, const PieceType promoted_piece);
+  Move(const uint8_t from, const uint8_t to);
+  Move(const uint8_t from, const uint8_t to, const MoveFlag flag);
   bool operator==(const Move& other) const = default;
-  PieceType get_piece() const;
   uint8_t get_from() const;
   uint8_t get_to() const;
-  PieceType get_promoted_piece() const;
+  PieceBase get_promoted_piece() const;
+  MoveFlag get_flag() const;
   bool has_promoted_piece() const;
-  bool is_pawn() const;// for tests only
-  bool is_knight() const;// for tests only
-  bool is_bishop() const;// for tests only
-  bool is_rook() const; // for tests only
-  bool is_queen() const;// for tests only
-  bool is_king() const;// for tests only
   bool is_en_passant() const;
   bool is_castle() const;
 
 private:
-  PieceType piece_; // the piece that has been moved
-  uint8_t from_ : 6;// a-h files, 1-8 ranks
-  uint8_t to_ : 6;// the same thing
-  PieceType promoted_piece_ = PieceType::kNone;
-  bool is_en_passant_ : 1 = false;
-  bool is_castle_ : 1 = false;
+  uint16_t move_val_ = 0;
 };
 
 class MoveList {
