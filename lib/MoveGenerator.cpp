@@ -221,7 +221,7 @@ Bitboard GetPinsBySlidingPiece(const uint8_t king_sq, const Bitboard own_pieces,
     }
     if ((attacks ^ (~own_pieces & attacks::SlidingAttacks<Base>(sq, all_pieces ^ blockers))) & (1ULL << king_sq)) {
       pinned_pieces |= ((~own_pieces & attacks::SlidingAttacks<Base>(king_sq, all_pieces)) & attacks);
-    }
+    } 
   });
 
   return pinned_pieces;
