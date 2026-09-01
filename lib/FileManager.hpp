@@ -11,6 +11,8 @@
 #include <fstream>
 #include <ranges>
 
+namespace fs = std::filesystem;
+
 namespace chess::fen_manager {
 
 namespace internal {
@@ -87,12 +89,12 @@ constexpr std::expected<void, std::string_view> ParseCastle(std::size_t& ind, st
     return {};
   }
   for (std::size_t i = 0; i < kMxCastles && ind < data.size(); ++i) {
-    auto it = std::ranges::find(kCastles, data[ind]);
-    if (it == kCastles.end()) {
+    auto it = std::ranges::find(kCastleChars, data[ind]);
+    if (it == kCastleChars.end()) {
       break;
     }
     ind++;
-    pos.set_castling(kMxCastles - std::ranges::distance(kCastles.begin(), it) - 1);
+    pos.set_castling(kMxCastles - std::ranges::distance(kCastleChars.begin(), it) - 1);
   }
   if (ind == data.size()) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));

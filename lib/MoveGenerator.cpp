@@ -8,24 +8,23 @@ namespace chess::move_generator {
 namespace {
 
 template<ColorType Color>
-void GenerateStandardPawnMoves(MoveList& list, Bitboard pawns, const int shift) {
-  BitLooping(pawns, [&](const uint8_t ind) {
-    list.push(Move(PieceBase::kPawn & Color, ind - shift, ind));
+void GenerateStandardPawnMoves(MoveList& list, const Bitboard pawns, const int shift, const MoveFlag flag) {
+  BitLooping(pawns, [&list, shift, flag](const uint8_t ind) {
+    list.push(Move(ind - shift, ind, flag));
   });
 }
 
 template<ColorType Color>
-void GeneratePawnPromotions(MoveList& list, Bitboard pawns, const int shift) {
-  constexpr PieceType pawn = PieceBase::kPawn & Color;
-  constexpr PieceType knight = PieceBase::kKnight & Color;
-  constexpr PieceType bishop = PieceBase::kBishop & Color;
-  constexpr PieceType rook = PieceBase::kRook & Color;
-  constexpr PieceType queen = PieceBase::kQueen & Color;
+void GeneratePawnPromotions(MoveList& list, Bitboard pawns, const int shift, const bool is_capture) {
+  MoveFlag knight_flag = (is_capture) ? MoveFlag::kKnightPromoCapture : MoveFlag::kKnightPromotion;
+  MoveFlag bishop_flag = (is_capture) ? MoveFlag::kBishopPromoCapture : MoveFlag::kBishopPromotion;
+  MoveFlag rook_flag = (is_capture) ? MoveFlag::kRookPromoCapture : MoveFlag::kRookPromotion;
+  MoveFlag queen_flag = (is_capture) ? MoveFlag::kQueenPromoCapture : MoveFlag::kQueenPromotion;
   BitLooping(pawns, [&](const uint8_t ind) {
-    list.push(Move(pawn, ind - shift, ind, knight));
-    list.push(Move(pawn, ind - shift, ind, bishop));
-    list.push(Move(pawn, ind - shift, ind, rook));
-    list.push(Move(pawn, ind - shift, ind, queen));
+    list.push(Move(ind - shift, ind, knight_flag));
+    list.push(Move(ind - shift, ind, bishop_flag));
+    list.push(Move(ind - shift, ind, rook_flag));
+    list.push(Move(ind - shift, ind, queen_flag));
   });
 }
 
@@ -36,29 +35,30 @@ void GeneratePawnQuietMoves(MoveList& list, const Bitboard pawns, const Bitboard
   constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? ~kNot8Rank : ~kNot1Rank;
   Bitboard single_shift = ShiftDir(pawns, board_single_shift);
   Bitboard able_to_push = single_shift & empty_squares & ~last_rank_mask;
-  GenerateStandardPawnMoves<Color>(list, able_to_push, board_single_shift);
+  GenerateStandardPawnMoves<Color>(list, able_to_push, board_single_shift, MoveFlag::kQuiet);
   GenerateStandardPawnMoves<Color>(list, double_rank_mask & ShiftDir(able_to_push, board_single_shift) & empty_squares,
-                                                                   2 * board_single_shift);// double pawn pushes
-  GeneratePawnPromotions<Color>(list, single_shift & empty_squares & last_rank_mask, board_single_shift);
+                                   2 * board_single_shift, MoveFlag::kQuiet);// double pawn pushes
+  GeneratePawnPromotions<Color>(list, single_shift & empty_squares & last_rank_mask, board_single_shift, false);
 }
 
 template<ColorType Color>
 void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& pos) {
-  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_all_black_pieces()
-                                                                : pos.get_all_white_pieces();
+  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
   constexpr int capture_left_shift = (Color == ColorType::kWhite) ? 7 : -9;
   constexpr int capture_right_shift = (Color == ColorType::kWhite) ? 9 : -7;
   constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? ~kNot8Rank : ~kNot1Rank;
   Bitboard left_attacks = ShiftDir(pawns, capture_left_shift);
   Bitboard right_attacks = ShiftDir(pawns, capture_right_shift);
-  GenerateStandardPawnMoves<Color>(list, opponent_pieces & left_attacks & ~last_rank_mask, capture_left_shift);
-  GenerateStandardPawnMoves<Color>(list, opponent_pieces & right_attacks & ~last_rank_mask, capture_right_shift);
-  GeneratePawnPromotions<Color>(list, opponent_pieces & left_attacks & last_rank_mask, capture_left_shift);
-  GeneratePawnPromotions<Color>(list, opponent_pieces & right_attacks & last_rank_mask, capture_right_shift);
+  GenerateStandardPawnMoves<Color>(list, opponent_pieces & left_attacks & ~last_rank_mask, capture_left_shift,
+                                                                                            MoveFlag::kCapture);
+  GenerateStandardPawnMoves<Color>(list, opponent_pieces & right_attacks & ~last_rank_mask, capture_right_shift,
+                                                                                            MoveFlag::kCapture);
+  GeneratePawnPromotions<Color>(list, opponent_pieces & left_attacks & last_rank_mask, capture_left_shift, true);
+  GeneratePawnPromotions<Color>(list, opponent_pieces & right_attacks & last_rank_mask, capture_right_shift, true);
   if (pos.is_en_passant()) {
     Bitboard en_passant_mask = 1ULL << pos.get_en_passant();
-    GenerateStandardPawnMoves<Color>(list, left_attacks & en_passant_mask, capture_left_shift);
-    GenerateStandardPawnMoves<Color>(list, right_attacks & en_passant_mask, capture_right_shift);
+    GenerateStandardPawnMoves<Color>(list, left_attacks & en_passant_mask, capture_left_shift, MoveFlag::kCapture);
+    GenerateStandardPawnMoves<Color>(list, right_attacks & en_passant_mask, capture_right_shift, MoveFlag::kCapture);
   }
 }
 
@@ -69,16 +69,18 @@ void GeneratePawnMoves(MoveList& list, const Position& pos) {
   GeneratePawnCaptures<Color>(list, pawns, pos);
 }
 
-template<ColorType Color, PieceBase piece_base>
+inline void AddMoves(const Bitboard mask, const Bitboard opponent_pieces, const uint8_t from, MoveList& list) {
+  BitLooping(mask, [opponent_pieces, from, &list](const uint8_t to) {
+    list.push(Move(from, to, (opponent_pieces & (1ULL << to)) ? MoveFlag::kCapture : MoveFlag::kQuiet));
+  });
+}
+
+template<ColorType Color, PieceBase Piece>
 void GenerateFixedAttackPieces(MoveList& list, const Position& pos) {
-  PieceType piece_type = piece_base & Color;
-  Bitboard pieces = pos.get_piece_metric(piece_type);
-  Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces()
-                                                     : pos.get_all_black_pieces();
-  BitLooping(pieces, [own_pieces, piece_type, &list](uint8_t from) {
-    BitLooping(~own_pieces & attacks::kAttacks<piece_base>[from], [from, piece_type, &list](uint8_t to) {
-      list.push(Move(piece_type, from, to));
-    });
+  Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
+  Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
+  BitLooping(pos.get_piece_metric(Piece & Color), [opponent_pieces, own_pieces, &list](const uint8_t from) {
+    AddMoves(~own_pieces & attacks::kAttacks<Piece>[from], opponent_pieces, from, list);
   });
 }
 
@@ -90,16 +92,16 @@ void GenerateKnightMoves(MoveList& list, const Position& pos) {
 template<ColorType Color>
 void GenerateCastleMoves(MoveList& list, const Position& pos) {
   const Bitboard all_pieces = pos.get_all_pieces();
-  constexpr PieceType piece = PieceBase::kKing & Color;
   constexpr std::array<Bitboard, kMxCastles> kEmptySquareCastles = {
     0x0000000000000060ULL, 0x000000000000000EULL, 0x6000000000000000ULL, 0x0E00000000000000ULL
   };
   constexpr std::array<int, 2> diffs = {2, -2};
   constexpr uint8_t start_pos = (Color == ColorType::kWhite) ? 4 : 60;
   constexpr uint8_t ind = (Color == ColorType::kWhite) ? 3 : 1;
+  constexpr std::array<MoveFlag, 2> castle_flags = {MoveFlag::kKingCastle, MoveFlag::kQueenCastle};
   for (uint8_t j = 0; j < 2; ++j) {
     if (((pos.get_castles() >> (ind - j)) & 1) && ((all_pieces & kEmptySquareCastles[3 - ind + j]) == 0)) {
-      list.push(Move(piece, start_pos, start_pos + diffs[j]));
+      list.push(Move(start_pos, start_pos + diffs[j], castle_flags[j]));
     }
   }
 }
@@ -113,13 +115,11 @@ void GenerateKingMoves(MoveList& list, const Position& pos) {
 template<ColorType Color, PieceBase Base, PieceType piece_type = Base & Color>
 void GenerateSlidingMoves(MoveList& list, const Position& pos) {
   const Bitboard all_pieces = pos.get_all_pieces();
-  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
+  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
+  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
   Bitboard pieces  = pos.get_piece_metric(piece_type);
-  BitLooping(pieces, [own_pieces, all_pieces, &list](const uint8_t from) {
-    Bitboard attacks = ~own_pieces & attacks::SlidingAttacks<Base>(from, all_pieces);
-    BitLooping(attacks, [from, &list](uint8_t to) {
-      list.push(Move(piece_type, from, to));
-    });
+  BitLooping(pieces, [own_pieces, opponent_pieces, all_pieces, &list](const uint8_t from) {
+    AddMoves(~own_pieces & attacks::SlidingAttacks<Base>(from, all_pieces), opponent_pieces, from, list);
   });
 }
 
@@ -140,7 +140,7 @@ void GenerateQueenMoves(MoveList& list, const Position& pos) {
 }
 
 template<ColorType Color>
-void GenerateAllMoves(MoveList& list, const Position& pos) {
+void GeneratePseudoMoves(MoveList& list, const Position& pos) {
   GeneratePawnMoves<Color>(list, pos);
   GenerateKnightMoves<Color>(list, pos);
   GenerateBishopMoves<Color>(list, pos);
@@ -149,119 +149,138 @@ void GenerateAllMoves(MoveList& list, const Position& pos) {
   GenerateKingMoves<Color>(list, pos);
 }
 
-MoveList GeneratePseudoMoves(const Position& pos) {
+Bitboard GetAttackerLines(const Position& pos, const Square from) {
+  const Bitboard attackers = pos.get_king_attackers();
+  Bitboard attacker_lines = 0;
+  BitLooping(attackers, [&](const Square sq) {
+    if (is_sliding(pos.get_piece(sq))) {
+      attacker_lines |= kLines[from][sq];
+      attacker_lines ^= (1ULL << sq);
+    }
+  });
+
+  return attacker_lines;
+}
+
+template<ColorType Color>
+void GenerateKingEvasions(MoveList& list, const Position& pos) {
+  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
+  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
+  const Square from = std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color));
+  AddMoves(~own_pieces & attacks::kAttacks<PieceBase::kKing>[from] & ~GetAttackerLines(pos, from),
+                                                                      opponent_pieces, from, list);
+}
+
+template<ColorType Color, PieceBase Base>
+inline void GenerateSquareEvasions(MoveList& list, const Position& pos,
+                                   const Bitboard opponent_pieces, const uint8_t from) {
+  const Bitboard attacks = [from]{//iife
+    if constexpr (Base == PieceBase::kPawn) {
+      return attacks::kAttacks<PieceBase::kPawn>[!Color, from];
+    } else {
+      return attacks::kAttacks<Base>[from];
+    }
+  }();
+  BitLooping(pos.get_piece_metric(Base & Color) & attacks, [&](const uint8_t to) {
+    list.push(Move(to, from, (opponent_pieces & (1ULL << to)) ? MoveFlag::kCapture : MoveFlag::kQuiet));
+  });
+}
+
+template<ColorType Color>
+void GeneratePieceEvasions(MoveList& list, const Position& pos) {
+  Bitboard attackers = pos.get_king_attackers();
+  Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
+  BitLooping(attackers, [&list, &pos, attackers, opponent_pieces](const uint8_t from) {
+    GenerateSquareEvasions<Color, PieceBase::kPawn>(list, pos, opponent_pieces, from);
+    GenerateSquareEvasions<Color, PieceBase::kKnight>(list, pos, opponent_pieces, from);
+    GenerateSquareEvasions<Color, PieceBase::kBishop>(list, pos, opponent_pieces, from);
+    GenerateSquareEvasions<Color, PieceBase::kRook>(list, pos, opponent_pieces, from);
+    GenerateSquareEvasions<Color, PieceBase::kQueen>(list, pos, opponent_pieces, from);
+  });
+}
+
+template<ColorType Color>
+void GenerateEvasions(MoveList& list, const Position& pos) {
+  GenerateKingEvasions<Color>(list, pos);
+  if (pos.is_double_check()) [[unlikely]] {
+    return;
+  }
+  GeneratePieceEvasions<Color>(list, pos);
+}
+
+template<ColorType Color>
+void GenerateLegalMoves(MoveList& list, const Position& pos) {
+  if (pos.is_check()) [[unlikely]] {
+    GenerateEvasions<Color>(list, pos);
+  }  else [[likely]] {
+    GeneratePseudoMoves<Color>(list, pos);
+  }
+  std::size_t ind = 0;
+  while (ind < list.size()) {
+    Move move = list[ind];
+    if (IsLegal<Color>(pos, move)) {
+      ind++;
+      continue;
+    }
+    list[ind] = list.back();
+    list.pop_back();
+  }
+}
+
+}// unnamed namespace
+
+template<MovesType Type, ColorType Color>
+MoveList GenerateMoves(const Position& pos) {
   MoveList list;
-  if (pos.is_white_move()) {
-    GenerateAllMoves<ColorType::kWhite>(list, pos);
+  if constexpr (Type == MovesType::kPseudo) {
+    GeneratePseudoMoves<Color>(list, pos);
+  } else if constexpr (Type == MovesType::kEvasions) {
+    GenerateEvasions<Color>(list, pos);
   } else {
-    GenerateAllMoves<ColorType::kBlack>(list, pos);
+    GenerateLegalMoves<Color>(list, pos);
   }
 
   return list;
 }
 
-MoveList GenerateLegalMoves(const Position& pos) {
-  ColorType color = ColorType::kWhite;
-  if (!pos.is_white_move()) {
-    color = ColorType::kBlack;
-  }
-  MoveList legal_list;
-  MoveList pseudo_list = GeneratePseudoMoves(pos);
-  for (const auto& move: pseudo_list.AsSpan()) {
-    if (pos.is_white_move() && !IsLegal<ColorType::kWhite>(pos, move) ||
-        !pos.is_white_move() && IsLegal<ColorType::kBlack>(pos, move)) {
-      continue;
-    }
-    legal_list.push(move);
-  }
-
-  return legal_list;
-}
-
-}// unnamed namespace
-
 template<MovesType Type>
 MoveList GenerateMoves(const Position& pos) {
-  if constexpr (Type == MovesType::kPseudo) {
-    return GeneratePseudoMoves(pos);
+  if (pos.is_white_move()) {
+    return GenerateMoves<Type, ColorType::kWhite>(pos);
   } else {
-    return GenerateLegalMoves(pos);
+    return GenerateMoves<Type, ColorType::kBlack>(pos);
   }
 }
 
 template<ColorType Color>
-Bitboard GetKingAttackers(const Position& pos) {
-  Bitboard attackers = 0;
-  const Bitboard all_pieces = pos.get_all_pieces();
-  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
-  uint8_t king_square = std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color));
-  Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(king_square, all_pieces);
-  Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(king_square, all_pieces);
-  attackers |= (attacks::kAttacks<PieceBase::kPawn>[std::to_underlying(Color)][king_square] &
-                pos.get_piece_metric(PieceBase::kPawn & !Color));// pawn attacks
-  attackers |= (attacks::kAttacks<PieceBase::kKnight>[king_square] &
-                pos.get_piece_metric(PieceBase::kKnight & !Color));// knight attacks
-  attackers |= (king_rook_attacks & pos.get_piece_metric(PieceBase::kRook & !Color));// rook attacks
-  attackers |= (king_bishop_attacks & pos.get_piece_metric(PieceBase::kBishop & !Color));// bishop attacks
-  attackers |= (king_rook_attacks & pos.get_piece_metric(PieceBase::kQueen & !Color));// queen attacks
-  attackers |= (king_bishop_attacks & pos.get_piece_metric(PieceBase::kQueen & !Color));
-
-  return attackers;
-}
-
-template<PieceBase Base>
-Bitboard GetPinsBySlidingPiece(const uint8_t king_sq, const Bitboard own_pieces, const Bitboard all_pieces,
-                                                                                     const Bitboard pieces) {
-  Bitboard pinned_pieces = 0;
-  BitLooping(pieces, [&pinned_pieces, own_pieces, all_pieces, king_sq](const uint8_t sq) {
-    Bitboard attacks = ~own_pieces & attacks::SlidingAttacks<Base>(sq, all_pieces);
-    Bitboard blockers = own_pieces & attacks;
-    if (blockers == 0) {
-      return;
-    }
-    if ((attacks ^ (~own_pieces & attacks::SlidingAttacks<Base>(sq, all_pieces ^ blockers))) & (1ULL << king_sq)) {
-      pinned_pieces |= ((~own_pieces & attacks::SlidingAttacks<Base>(king_sq, all_pieces)) & attacks);
-    } 
-  });
-
-  return pinned_pieces;
-}
-
-template<ColorType Color>
-Bitboard GetPinnedPieces(const Position& pos) {
-  Bitboard pinned_pieces = 0;
-  const Bitboard all_pieces = pos.get_all_pieces();
-  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_all_white_pieces() : pos.get_all_black_pieces();
-  uint8_t king_sq = pos.get_piece_metric(PieceBase::kKing & Color);
-  pinned_pieces |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces, all_pieces,
-                                           pos.get_piece_metric(PieceBase::kRook & !Color));
-  pinned_pieces |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces, all_pieces,
-                                           pos.get_piece_metric(PieceBase::kBishop & !Color));
-  pinned_pieces |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces, all_pieces,
-                                           pos.get_piece_metric(PieceBase::kQueen & !Color));
-  pinned_pieces |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces, all_pieces,
-                                           pos.get_piece_metric(PieceBase::kQueen & !Color));
-
-  return pinned_pieces;
+bool IsLegalEnPassant(const Position& pos, const Move& move) {
+  return false;
 }
 
 template<ColorType Color>
 bool IsLegal(const Position& pos, const Move& move) {
-  Bitboard attackers = GetKingAttackers<Color>(pos);
-  Bitboard pinned_pieces = GetPinnedPieces<Color>(pos);
-  if (move.get_piece() == PieceType::kWhiteKing || move.get_piece() == PieceType::kBlackKing) {
-    return !(attackers & (1ULL << move.get_to())) && (!move.is_castle() ||
-           !(attackers & (1ULL << (move.get_from() + move.get_to()) / 2)));
+  Square from = move.get_from();
+  Square to = move.get_to();
+  MoveFlag flag = move.get_flag();
+  if (pos.get_piece(from) == PieceType::kWhiteKing || pos.get_piece(from) == PieceType::kBlackKing) {
+    Bitboard attackers = pos.GetSquareAttackers(to);
+    if (attackers != 0) {
+      return false;
+    }
+    if (flag == MoveFlag::kKingCastle || flag == MoveFlag::kQueenCastle) {
+      const std::size_t ind = (flag == MoveFlag::kKingCastle) ? 0 : 1;
+      return pos.GetSquareAttackers(kCastleInterSq[ind][std::to_underlying(Color)]) == 0;
+    }
+    return true;
   }
-  if (!move.is_en_passant()) {
-    // if (move.get_from() & pinned_pieces == 0 || move.get_to() & (pinned_pieces | (1ULL << ))) {
-    //   return true;
-    // }
-    return false;
-    // if (move.get_to() & )
+  Bitboard pinned_pieces = pos.get_pinned_pieces();
+  if (((1ULL << from) & pinned_pieces) == 0) {
+    return true;
   }
-
-  return true;
+  if (move.is_en_passant()) [[unlikely]] {
+    return IsLegalEnPassant<Color>(pos, move);
+  }
+  return ((1ULL << to) & kLines[std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color))][from]) != 0;
 }
 
 // explicit template instantiation

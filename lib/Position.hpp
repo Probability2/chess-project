@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../core/utils.hpp"
+// #include "../core/utils.hpp"
+#include "types/Attacks.hpp"
 #include "types/Bitboard.hpp"
 #include "Move.hpp"
 
@@ -13,7 +14,7 @@ namespace chess {
 
 inline constexpr uint8_t kMxCastles = 4;
 
-inline constexpr std::array<char, kMxCastles> kCastles = {'K', 'Q', 'k', 'q'};
+inline constexpr std::array<char, kMxCastles> kCastleChars = {'K', 'Q', 'k', 'q'};
 
 class Position {
 public:
@@ -27,30 +28,34 @@ public:
 
   //A1 = 0, H8 = 63
   constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
-    uint8_t sq_coord = coord(x, y);
-    Bitboard mask = 1ULL << sq_coord;
-    auto color = Color(piece);
-    if (board_[sq_coord] != PieceType::kNone) {
-      pieces_[static_cast<int>(board_[sq_coord]) - 1] &= ~mask;
-      all_white_pieces_ &= ~mask;
-      all_black_pieces_ &= ~mask;
+    uint8_t sq = coord(x, y);
+    Bitboard mask = 1ULL << sq;
+    if (board_[sq] != PieceType::kNone) {
+      pieces_[std::to_underlying(board_[sq]) - 1] &= ~mask;
+      white_pieces_ &= ~mask;
+      black_pieces_ &= ~mask;
     }
-    board_[sq_coord] = piece;
+    board_[sq] = piece;
     if (piece == PieceType::kNone) {
       return;
-    } else if (color == ColorType::kWhite) {
-      all_white_pieces_ |= mask;
+    }
+    if (Color(piece) == ColorType::kWhite) {
+      white_pieces_ |= mask;
     } else {
-      all_black_pieces_ |= mask;
+      black_pieces_ |= mask;
     }
     pieces_[static_cast<int>(piece) - 1] |= mask;
   }
 
-  constexpr PieceType get_square(const int x, const int y) const {
+  constexpr PieceType get_piece(const int x, const int y) const noexcept {
     return board_[coord(x, y)];
   }
 
-  constexpr void set_castling(const int position) {
+  constexpr PieceType get_piece(const Square sq) const noexcept {
+    return board_[sq];
+  }
+
+  constexpr void set_castling(const uint8_t position) {
     castles_ |= (1 << position);
   }
 
@@ -72,31 +77,58 @@ public:
     move_ = moves;
   }
   
-  template<MovesType type>
-  MoveList GenerateMoves() const;
+  template<MovesType Type>
+  MoveList GenerateMoves();
 
-  bool is_white_move() const;
-  bool is_en_passant() const;
-  std::size_t get_no_capture_moves() const;
-  std::size_t get_move_number() const;
-  Bitboard get_all_pieces() const;
-  Bitboard get_all_white_pieces() const;
-  Bitboard get_all_black_pieces() const;
+  bool is_white_move() const noexcept;
+  bool is_en_passant() const noexcept;
+  std::size_t get_no_capture_moves() const noexcept;
+  std::size_t get_move_number() const noexcept;
+  Bitboard get_all_pieces() const noexcept;
+  Bitboard get_white_pieces() const noexcept;
+  Bitboard get_black_pieces() const noexcept;
   Bitboard get_piece_metric(const PieceType piece) const;
-  uint8_t get_castles() const;
-  uint8_t get_en_passant() const;
-  std::string get_castling_notation() const;
-  
-  private:
+  uint8_t get_castles() const noexcept;
+  uint8_t get_en_passant() const noexcept;
+  std::string get_castling_notation() const noexcept;
+
+  bool is_pawn(const Square sq) const;// for tests only
+  bool is_knight(const Square sq) const;// for tests only
+  bool is_bishop(const Square sq) const;// for tests only
+  bool is_rook(const Square sq) const; // for tests only
+  bool is_queen(const Square sq) const;// for tests only
+  bool is_king(const Square) const;// for tests only
+
+  Bitboard get_king_attackers() const;
+  Bitboard get_pinned_pieces() const;
+
+  Bitboard GetSquareAttackers(const Square sq) const;
+  bool is_single_check() const noexcept;
+  bool is_double_check() const noexcept;
+  bool is_check() const noexcept;
+
+private:
   std::array<PieceType, kBoardSize> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
-  Bitboard all_white_pieces_ = 0;
-  Bitboard all_black_pieces_ = 0;
+  Bitboard white_pieces_ = 0;
+  Bitboard black_pieces_ = 0;
   ColorType side_to_move_;
   uint8_t castles_ = 0;
   uint8_t en_passant_ = kBoardSize;
   std::size_t no_capture_moves_ = 0;
   std::size_t move_ = 1;
+
+  template<PieceBase Base>
+  Bitboard GetPinsBySlidingPiece(const uint8_t king_sq, const Bitboard own_pieces, const Bitboard pieces) const;
+  
+  void CalculatePinnedPieces();
+
+  struct InternalInfo {
+    Bitboard pinned_pieces_;
+    Bitboard king_attackers_;
+  };
+
+  InternalInfo info_;
   
   // FRIEND_TEST(PseudoMovesSuite, Pawns);
 };

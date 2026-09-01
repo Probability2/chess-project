@@ -3,47 +3,51 @@
 
 namespace chess {
 
-bool Position::is_white_move() const {
+bool Position::is_white_move() const noexcept {
   return side_to_move_ == ColorType::kWhite;
 }
 
-bool Position::is_en_passant() const {
+bool Position::is_en_passant() const noexcept {
   return en_passant_ != kBoardSize;
 }
 
-std::size_t Position::get_no_capture_moves() const {
+std::size_t Position::get_no_capture_moves() const noexcept {
   return no_capture_moves_;
 }
 
-std::size_t Position::get_move_number() const {
+std::size_t Position::get_move_number() const noexcept {
   return move_;
 }
 
-Bitboard Position::get_all_pieces() const {
-  return all_white_pieces_ | all_black_pieces_;
+Bitboard Position::get_all_pieces() const noexcept {
+  return white_pieces_ | black_pieces_;
 }
 
-Bitboard Position::get_all_white_pieces() const {
-  return all_white_pieces_;
+Bitboard Position::get_white_pieces() const noexcept {
+  return white_pieces_;
 }
 
-Bitboard Position::get_all_black_pieces() const {
-  return all_black_pieces_;
+Bitboard Position::get_black_pieces() const noexcept {
+  return black_pieces_;
 }
 
 Bitboard Position::get_piece_metric(const PieceType piece) const {
   return pieces_[std::to_underlying(piece) - 1];
 }
 
-uint8_t Position::get_castles() const {
+uint8_t Position::get_castles() const noexcept {
   return castles_;
 }
 
-std::string Position::get_castling_notation() const {
+uint8_t Position::get_en_passant() const noexcept {
+  return en_passant_;
+}
+
+std::string Position::get_castling_notation() const noexcept {
   std::string notation;
   for (int i = chess::kMxCastles - 1; i >= 0; --i) {
     if ((castles_ >> i) & 1) {
-      notation += chess::kCastles[chess::kMxCastles - i - 1];
+      notation += chess::kCastleChars[chess::kMxCastles - i - 1];
     }
   }
   if (notation.empty()) {
@@ -53,27 +57,118 @@ std::string Position::get_castling_notation() const {
   return notation;
 }
 
-uint8_t Position::get_en_passant() const {
-  return en_passant_;
+
+template<MovesType Type>
+MoveList Position::GenerateMoves() {
+  CalculatePinnedPieces();
+  info_.king_attackers_ = GetSquareAttackers(std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_)));
+  
+  return move_generator::GenerateMoves<Type>(*this);
 }
 
-template<MovesType type>
-MoveList Position::GenerateMoves() const {
-  return move_generator::GenerateMoves<type>(*this);
+bool Position::is_single_check() const noexcept {
+  return std::popcount(info_.king_attackers_) == 1;
+}
+
+bool Position::is_double_check() const noexcept {
+  return std::popcount(info_.king_attackers_) > 1;
+}
+
+bool Position::is_check() const noexcept {
+  return std::popcount(info_.king_attackers_) != 0;
+}
+
+bool Position::is_pawn(const Square sq) const {
+  return (board_[sq] == PieceType::kWhitePawn || board_[sq] == PieceType::kBlackPawn);
+}
+
+bool Position::is_knight(const Square sq) const {
+  return (board_[sq] == PieceType::kWhiteKnight || board_[sq] == PieceType::kBlackKnight);
+}
+
+bool Position::is_bishop(const Square sq) const {
+  return (board_[sq] == PieceType::kWhiteBishop || board_[sq] == PieceType::kBlackBishop);
+}
+
+bool Position::is_rook(const Square sq) const {
+  return (board_[sq] == PieceType::kWhiteRook || board_[sq] == PieceType::kBlackRook);
+}
+
+bool Position::is_queen(const Square sq) const {
+  return (board_[sq] == PieceType::kWhiteQueen || board_[sq] == PieceType::kBlackQueen);
+}
+
+bool Position::is_king(const Square sq) const {
+  return (board_[sq] == PieceType::kWhiteKing || board_[sq] == PieceType::kBlackKing);
 }
 
 namespace internal {
-FlippedPosition::FlippedPosition(const chess::Position& pos)
+FlippedPosition::FlippedPosition(const Position& pos)
 : pos_(pos) {
 }
+
 }// namespace chess::internal
 
+Bitboard Position::get_pinned_pieces() const {
+  return info_.pinned_pieces_;
+}
+
+Bitboard Position::get_king_attackers() const {
+  return info_.king_attackers_;
+}
+
+Bitboard Position::GetSquareAttackers(const Square sq) const {
+  Bitboard attackers = 0;
+  const Bitboard all_pieces = get_all_pieces();
+  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
+  Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, all_pieces);
+  Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, all_pieces);
+  attackers |= (attacks::kAttacks<PieceBase::kPawn>[!side_to_move_, sq] &
+                get_piece_metric(PieceBase::kPawn & !side_to_move_));// pawn attacks
+  attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &
+                get_piece_metric(PieceBase::kKnight & !side_to_move_));// knight attacks
+  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kRook & !side_to_move_));// rook attacks
+  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kBishop & !side_to_move_));// bishop attacks
+  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));// queen attacks
+  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
+
+  return attackers;
+}
+
+template<PieceBase Base>
+Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard own_pieces,
+                                                                   const Bitboard pieces) const {
+  Bitboard pinned_pieces = 0;
+  BitLooping(pieces, [&pinned_pieces, own_pieces, king_sq](const Square sq) {
+    Bitboard line = own_pieces & kBetween[king_sq][sq];
+    if (std::popcount(line) == 1) {
+      pinned_pieces |= line;
+    }
+  });
+
+  return pinned_pieces;
+}
+
+void Position::CalculatePinnedPieces() {
+  info_.pinned_pieces_ = 0;
+  uint8_t king_sq = std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_));
+  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces,
+                                  get_piece_metric(PieceBase::kRook & !side_to_move_));
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces,
+                                  get_piece_metric(PieceBase::kBishop & !side_to_move_));
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces,
+                                  get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces,
+                                  get_piece_metric(PieceBase::kQueen & !side_to_move_));
+}
 
 // explicit template instantiation
-template MoveList Position::GenerateMoves<MovesType::kPseudo>() const;
-template MoveList Position::GenerateMoves<MovesType::kLegal>() const;
-template MoveList Position::GenerateMoves<MovesType::kCaptures>() const;
-template MoveList Position::GenerateMoves<MovesType::kChecks>() const;
+template MoveList Position::GenerateMoves<MovesType::kPseudo>();
+template MoveList Position::GenerateMoves<MovesType::kLegal>();
+template MoveList Position::GenerateMoves<MovesType::kCaptures>();
+template MoveList Position::GenerateMoves<MovesType::kChecks>();
+template MoveList Position::GenerateMoves<MovesType::kEvasions>();
 
 }// namespace chess
 
@@ -92,10 +187,10 @@ void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  os << GetPieceCode(move.get_piece()) << ':' << static_cast<char>('a' + (move.get_from() & 7))
+  os << static_cast<char>('a' + (move.get_from() & 7))
      << static_cast<char>('1' + (move.get_from() >> 3 & 7)) << '-' << static_cast<char>('a' + (move.get_to() & 7))
      << static_cast<char>('1' + (move.get_to() >> 3 & 7));
-  if (move.get_promoted_piece() != chess::PieceType::kNone) {
+  if (move.has_promoted_piece()) {
     os << GetPieceCode(move.get_promoted_piece());
   }
   
@@ -113,7 +208,7 @@ std::ostream& operator<<(std::ostream& os, const chess::MoveList& list) {
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
   for (int i = chess::kMaxInd - 1; i >= 0; --i) {
     for (int j = 0; j < chess::kMaxInd; ++j) {
-      os << GetPieceIcon(pos.get_square(i, j)) << ' ';
+      os << chess::GetPieceIcon(pos.get_piece(i, j)) << ' ';
     }
     os << '\n';
   }
@@ -125,7 +220,7 @@ std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
 std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos) {
   for (std::size_t i = 0; i < chess::kMaxInd; ++i) {
     for (int j = chess::kMaxInd - 1; j >= 0; --j) {
-      os << GetPieceIcon(flipped_pos.pos_.get_square(i, j)) << ' ';
+      os << chess::GetPieceIcon(flipped_pos.pos_.get_piece(i, j)) << ' ';
     }
     os << '\n';
   }

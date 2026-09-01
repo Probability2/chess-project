@@ -8,7 +8,7 @@
 #include <type_traits>
 
 using Bitboard = uint64_t;
-// using Square = uint8_t;
+using Square = uint8_t;
 
 namespace chess {
 
@@ -48,6 +48,8 @@ void BitLooping(Bitboard bb, std::invocable<uint8_t> auto&& f) {
   }
 }
 
+constexpr std::array<int, 8> directions = {7, 8, 9, 1, -7, -8, -9, -1};
+
 inline constexpr Bitboard ShiftDir(Bitboard bb, const int dir) {
   switch (dir) {
     case 7:  return (bb & kNotAFile & kNot8Rank) << 7;
@@ -62,31 +64,40 @@ inline constexpr Bitboard ShiftDir(Bitboard bb, const int dir) {
   std::unreachable();
 }
 
-inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir) {
+inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir, const Bitboard occupied) {
   Bitboard slides = ShiftDir(1ULL << sq, dir);
   for (std::size_t i = 0; i < 8; ++i) {
+    if (occupied & slides) {
+      break;
+    }
     slides |= ShiftDir(slides, dir);
   }
 
   return slides;
 }
 
-inline constexpr auto kBetween = []() {
-  std::array<std::array<Bitboard, kBoardSize>, kBoardSize> between{};
-  constexpr std::array<int, 8> directions = {7, 8, 9, 1, -7, -8, -9, -1};
+namespace internal {
+
+constexpr auto GenerateRays(auto oper) {
+  std::array<std::array<Bitboard, kBoardSize>, kBoardSize> rays{};
   for (int sq1 = 0; sq1 < kBoardSize; ++sq1) {
     for (int dir: directions) {
-      Bitboard slide1 = GenerateSlide(sq1, dir);
+      Bitboard slide1 = GenerateSlide(sq1, dir, 0);
       for (int sq2 = sq1; sq2 < kBoardSize; ++sq2) {
         if (slide1 & (1ULL << sq2)) {
-          between[sq1][sq2] = slide1 & GenerateSlide(sq2, -dir);
-          between[sq2][sq1] = between[sq1][sq2];
+          rays[sq1][sq2] = oper(slide1, GenerateSlide(sq2, -dir, 0));
+          rays[sq2][sq1] = rays[sq1][sq2];
         }
       }
     }
   }
 
-  return between;
-}();
+  return rays;
+}
+
+}// namespace internal
+
+inline constexpr auto kBetween = internal::GenerateRays([](auto a, auto b) { return a & b; });;
+inline constexpr auto kLines = internal::GenerateRays([](auto a, auto b) { return a | b; });
 
 }

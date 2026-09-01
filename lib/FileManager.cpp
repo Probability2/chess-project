@@ -63,7 +63,7 @@ void WritePositionSquares(std::ofstream& file, const Position& pos) {
       }
     };
     for (int j = 0; j < kMaxInd; ++j) {
-      PieceType square = pos.get_square(i, j);
+      PieceType square = pos.get_piece(i, j);
       if (square == PieceType::kNone) {
         empty_count++;
         continue;

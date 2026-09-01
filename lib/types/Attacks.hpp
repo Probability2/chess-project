@@ -8,6 +8,7 @@
 #include <bit>
 #include <concepts>
 #include <cstdint>
+#include <utility>
 
 namespace chess::attacks {
   
@@ -17,13 +18,21 @@ concept SlidingPiece = (Piece == PieceBase::kBishop || Piece == PieceBase::kRook
 template<PieceBase Piece>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks{};//unknown piece
 
+struct PawnTable {
+  std::array<std::array<Bitboard, kBoardSize>, 2> attacks_{};
+
+  constexpr decltype(auto) operator[](this auto& self, const ColorType color, const Square sq) {
+    return self.attacks_[std::to_underlying(color)][sq];
+  }
+};
+
 template<>
-inline constexpr std::array<std::array<Bitboard, kBoardSize>, 2> kAttacks<PieceBase::kPawn> = []() {
-  std::array<std::array<Bitboard, kBoardSize>, 2> attacks{};
-  for (std::size_t i = 0; i < kBoardSize; ++i) {
-    Bitboard pawn_sq = 1ULL << i;
-    attacks[0][i] = ShiftDir(pawn_sq, 7) | ShiftDir(pawn_sq, 9);// white
-    attacks[1][i] = ShiftDir(pawn_sq, -7) | ShiftDir(pawn_sq, -9);// black
+inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
+  PawnTable attacks{};
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
+    Bitboard pawn_sq = 1ULL << sq;
+    attacks[ColorType::kWhite, sq] = ShiftDir(pawn_sq, 7) | ShiftDir(pawn_sq, 9);
+    attacks[ColorType::kBlack, sq] = ShiftDir(pawn_sq, -7) | ShiftDir(pawn_sq, -9);
   }
 
   return attacks;
@@ -69,20 +78,20 @@ namespace internal {
 
 inline constexpr Bitboard GetRookSlides(const int square) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(square, 1) & kNotHFile;
-  magic_slides |= GenerateSlide(square, -1) & kNotAFile;
-  magic_slides |= GenerateSlide(square, 8) & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -8) & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 1, 0) & kNotHFile;
+  magic_slides |= GenerateSlide(square, -1, 0) & kNotAFile;
+  magic_slides |= GenerateSlide(square, 8, 0) & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -8, 0) & kNot1Rank;
   
   return magic_slides;
 }
 
 inline constexpr Bitboard GetBishopSlides(const int square) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(square, 7) & kNotAFile & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -7) & kNotHFile & kNot1Rank;
-  magic_slides |= GenerateSlide(square, 9) & kNotHFile & kNot8Rank;
-  magic_slides |= GenerateSlide(square, -9) & kNotAFile & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 7, 0) & kNotAFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -7, 0) & kNotHFile & kNot1Rank;
+  magic_slides |= GenerateSlide(square, 9, 0) & kNotHFile & kNot8Rank;
+  magic_slides |= GenerateSlide(square, -9, 0) & kNotAFile & kNot1Rank;
   
   return magic_slides;
 }

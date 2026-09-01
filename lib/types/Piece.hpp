@@ -35,13 +35,14 @@ enum class PieceType: uint8_t {
   kBlackPawn, kBlackKnight, kBlackBishop, kBlackRook, kBlackQueen, kBlackKing
 };
 
+
 constexpr char kEmptySquare = '.';
 
 inline constexpr std::array<std::array<PieceType, kPieceBaseCount>, 2> kPieceMap = {{
   {PieceType::kWhitePawn, PieceType::kWhiteKnight, PieceType::kWhiteBishop,
   PieceType::kWhiteRook, PieceType::kWhiteQueen, PieceType::kWhiteKing},
   {PieceType::kBlackPawn, PieceType::kBlackKnight, PieceType::kBlackBishop,
-  PieceType::kBlackRook, PieceType::kBlackQueen, PieceType::kBlackKing}
+    PieceType::kBlackRook, PieceType::kBlackQueen, PieceType::kBlackKing}
 }};
 
 inline constexpr PieceType operator&(const PieceBase base, const ColorType color) {
@@ -72,19 +73,19 @@ struct PieceData {
 };
 
 inline constexpr std::array<PieceData, kPieceCount + 1> kPieceTable {{
-    { PieceType::kNone,       '.', "." },
-    { PieceType::kWhitePawn,   'P', "\033[97m♟\033[0m"},
-    { PieceType::kWhiteKnight, 'N', "\033[97m♞\033[0m" },
-    { PieceType::kWhiteBishop, 'B', "\033[97m♝\033[0m" },
-    { PieceType::kWhiteRook,   'R', "\033[97m♜\033[0m" },
-    { PieceType::kWhiteQueen,  'Q', "\033[97m♛\033[0m" },
-    { PieceType::kWhiteKing,   'K', "\033[97m♚\033[0m" },
-    { PieceType::kBlackPawn,   'p', "\033[30m♟\033[0m" },
-    { PieceType::kBlackKnight, 'n', "\033[30m♞\033[0m" },
-    { PieceType::kBlackBishop, 'b', "\033[30m♝\033[0m" },
-    { PieceType::kBlackRook,   'r', "\033[30m♜\033[0m" },
-    { PieceType::kBlackQueen,  'q', "\033[30m♛\033[0m" },
-    { PieceType::kBlackKing,   'k', "\033[30m♚\033[0m" }
+  { PieceType::kNone,       '.', "." },
+  { PieceType::kWhitePawn,   'P', "\033[97m♟\033[0m"},
+  { PieceType::kWhiteKnight, 'N', "\033[97m♞\033[0m" },
+  { PieceType::kWhiteBishop, 'B', "\033[97m♝\033[0m" },
+  { PieceType::kWhiteRook,   'R', "\033[97m♜\033[0m" },
+  { PieceType::kWhiteQueen,  'Q', "\033[97m♛\033[0m" },
+  { PieceType::kWhiteKing,   'K', "\033[97m♚\033[0m" },
+  { PieceType::kBlackPawn,   'p', "\033[30m♟\033[0m" },
+  { PieceType::kBlackKnight, 'n', "\033[30m♞\033[0m" },
+  { PieceType::kBlackBishop, 'b', "\033[30m♝\033[0m" },
+  { PieceType::kBlackRook,   'r', "\033[30m♜\033[0m" },
+  { PieceType::kBlackQueen,  'q', "\033[30m♛\033[0m" },
+  { PieceType::kBlackKing,   'k', "\033[30m♚\033[0m" }
 }};
 
 constexpr PieceType GetPieceType(char p) {
@@ -93,13 +94,22 @@ constexpr PieceType GetPieceType(char p) {
       return data.piece;
     }
   }
-
+  
   return PieceType::kNone;
 }
 
 inline constexpr PieceBase GetPieceType(PieceType piece) {
   const auto& map = (Color(piece) == ColorType::kWhite) ? kPieceMap[0] : kPieceMap[1];
   return static_cast<PieceBase>(std::ranges::find(map, piece) - map.begin());
+}
+
+inline bool is_sliding(const PieceType piece) {
+  const PieceBase base = GetPieceType(piece);
+  return (base == PieceBase::kBishop || base == PieceBase::kRook || base == PieceBase::kQueen);
+}
+
+constexpr char GetPieceCode(PieceBase piece) {
+  return kPieceTable[7 + static_cast<int>(piece)].code;
 }
 
 constexpr char GetPieceCode(PieceType piece) {
