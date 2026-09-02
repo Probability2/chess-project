@@ -29,7 +29,7 @@ public:
   //A1 = 0, H8 = 63
   constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
     uint8_t sq = coord(x, y);
-    Bitboard mask = 1ULL << sq;
+    Bitboard mask = ToBB(sq);
     if (board_[sq] != PieceType::kNone) {
       pieces_[std::to_underlying(board_[sq]) - 1] &= ~mask;
       white_pieces_ &= ~mask;
@@ -92,17 +92,17 @@ public:
   uint8_t get_en_passant() const noexcept;
   std::string get_castling_notation() const noexcept;
 
-  bool is_pawn(const Square sq) const;// for tests only
-  bool is_knight(const Square sq) const;// for tests only
-  bool is_bishop(const Square sq) const;// for tests only
-  bool is_rook(const Square sq) const; // for tests only
-  bool is_queen(const Square sq) const;// for tests only
-  bool is_king(const Square) const;// for tests only
+  bool is_pawn(const Square sq) const noexcept;// for tests only
+  bool is_knight(const Square sq) const noexcept;// for tests only
+  bool is_bishop(const Square sq) const noexcept;// for tests only
+  bool is_rook(const Square sq) const noexcept; // for tests only
+  bool is_queen(const Square sq) const noexcept;// for tests only
+  bool is_king(const Square) const noexcept;// for tests only
 
   Bitboard get_king_attackers() const;
   Bitboard get_pinned_pieces() const;
 
-  Bitboard GetSquareAttackers(const Square sq) const;
+  Bitboard GetSquareAttackers(const Square sq, const Square cleared) const;
   bool is_single_check() const noexcept;
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;

@@ -61,7 +61,7 @@ std::string Position::get_castling_notation() const noexcept {
 template<MovesType Type>
 MoveList Position::GenerateMoves() {
   CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_)));
+  info_.king_attackers_ = GetSquareAttackers(std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_)), 64);
   
   return move_generator::GenerateMoves<Type>(*this);
 }
@@ -78,27 +78,27 @@ bool Position::is_check() const noexcept {
   return std::popcount(info_.king_attackers_) != 0;
 }
 
-bool Position::is_pawn(const Square sq) const {
+bool Position::is_pawn(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhitePawn || board_[sq] == PieceType::kBlackPawn);
 }
 
-bool Position::is_knight(const Square sq) const {
+bool Position::is_knight(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhiteKnight || board_[sq] == PieceType::kBlackKnight);
 }
 
-bool Position::is_bishop(const Square sq) const {
+bool Position::is_bishop(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhiteBishop || board_[sq] == PieceType::kBlackBishop);
 }
 
-bool Position::is_rook(const Square sq) const {
+bool Position::is_rook(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhiteRook || board_[sq] == PieceType::kBlackRook);
 }
 
-bool Position::is_queen(const Square sq) const {
+bool Position::is_queen(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhiteQueen || board_[sq] == PieceType::kBlackQueen);
 }
 
-bool Position::is_king(const Square sq) const {
+bool Position::is_king(const Square sq) const noexcept {
   return (board_[sq] == PieceType::kWhiteKing || board_[sq] == PieceType::kBlackKing);
 }
 
@@ -117,12 +117,13 @@ Bitboard Position::get_king_attackers() const {
   return info_.king_attackers_;
 }
 
-Bitboard Position::GetSquareAttackers(const Square sq) const {
+Bitboard Position::GetSquareAttackers(const Square sq, const Square cleared) const {
+  [[assume(sq <= kBoardSize && cleared < kBoardSize)]];
   Bitboard attackers = 0;
-  const Bitboard all_pieces = get_all_pieces();
+  const Bitboard blockers = (cleared == kBoardSize) ? get_all_pieces() : get_all_pieces() & ~ToBB(cleared);
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
-  Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, all_pieces);
-  Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, all_pieces);
+  Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
+  Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
   attackers |= (attacks::kAttacks<PieceBase::kPawn>[!side_to_move_, sq] &
                 get_piece_metric(PieceBase::kPawn & !side_to_move_));// pawn attacks
   attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &

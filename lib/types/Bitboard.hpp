@@ -12,6 +12,22 @@ using Square = uint8_t;
 
 namespace chess {
 
+enum class SSquare: uint8_t {
+  A1, B1, C1, D1, E1, F1, G1, H1,
+  A2, B2, C2, D2, E2, F2, G2, H2,
+  A3, B3, C3, D3, E3, F3, G3, H3,
+  A4, B4, C4, D4, E4, F4, G4, H4,
+  A5, B5, C5, D5, E5, F5, G5, H5,
+  A6, B6, C6, D6, E6, F6, G6, H6,
+  A7, B7, C7, D7, E7, F7, G7, H7,
+  A8, B8, C8, D8, E8, F8, G8, H8,
+  kNone
+};
+
+constexpr SSquare operator++(const SSquare sq) {
+  return static_cast<SSquare>(std::to_underlying(sq) + 1);
+}
+
 constexpr Bitboard kNotAFile = 0xFEFEFEFEFEFEFEFEULL;
 constexpr Bitboard kNotHFile = 0x7F7F7F7F7F7F7F7FULL;
 constexpr Bitboard kNotABFile = 0xFCFCFCFCFCFCFCFCULL;
@@ -23,6 +39,11 @@ constexpr Bitboard kNot78Rank = 0x0000FFFFFFFFFFFFULL;
 
 inline constexpr int coord(const int rank, const int file) {
   return 8 * rank + file;
+}
+
+inline constexpr Bitboard ToBB(const Square sq) noexcept {
+  [[assume(sq < kBoardSize)]];
+  return 1ULL << sq;
 }
 
 inline void PrintBitboard(Bitboard b) {
@@ -40,9 +61,10 @@ inline std::string get_notation(const uint8_t move) {
                      static_cast<char>(((move >> 3) & 0x07) + '1')};
 }
 
-void BitLooping(Bitboard bb, std::invocable<uint8_t> auto&& f) {
+inline void BitLooping(Bitboard bb, std::invocable<uint8_t> auto&& f) {
   while (bb > 0) {
     uint8_t ind = std::countr_zero(bb);
+    [[assume(ind < 64)]];
     f(ind);
     bb &= (bb - 1); //Brian Kernighan's algorithm
   }
@@ -65,7 +87,7 @@ inline constexpr Bitboard ShiftDir(Bitboard bb, const int dir) {
 }
 
 inline constexpr Bitboard GenerateSlide(const uint8_t sq, const int dir, const Bitboard occupied) {
-  Bitboard slides = ShiftDir(1ULL << sq, dir);
+  Bitboard slides = ShiftDir(ToBB(sq), dir);
   for (std::size_t i = 0; i < 8; ++i) {
     if (occupied & slides) {
       break;
@@ -84,7 +106,7 @@ constexpr auto GenerateRays(auto oper) {
     for (int dir: directions) {
       Bitboard slide1 = GenerateSlide(sq1, dir, 0);
       for (int sq2 = sq1; sq2 < kBoardSize; ++sq2) {
-        if (slide1 & (1ULL << sq2)) {
+        if (slide1 & ToBB(sq2)) {
           rays[sq1][sq2] = oper(slide1, GenerateSlide(sq2, -dir, 0));
           rays[sq2][sq1] = rays[sq1][sq2];
         }

@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   std::random_device rd;
   std::mt19937_64 magic_generator(rd());
 
-  auto pos = fen_manager::Get("4rk2/3r3b/8/3B2b1/1b3P2/2Q5/rR1K1Nr1/8 w - - 0 1");
+  auto pos = fen_manager::Get("q6k/8/4K2N/5nN1/2B5/b5Pb/5Q2/4r3 w - - 0 1");;
   std::cout << *pos << '\n';
   auto list = pos->GenerateMoves<MovesType::kLegal>();
 

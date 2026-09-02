@@ -35,17 +35,16 @@ enum class PieceType: uint8_t {
   kBlackPawn, kBlackKnight, kBlackBishop, kBlackRook, kBlackQueen, kBlackKing
 };
 
-
 constexpr char kEmptySquare = '.';
 
 inline constexpr std::array<std::array<PieceType, kPieceBaseCount>, 2> kPieceMap = {{
   {PieceType::kWhitePawn, PieceType::kWhiteKnight, PieceType::kWhiteBishop,
-  PieceType::kWhiteRook, PieceType::kWhiteQueen, PieceType::kWhiteKing},
+   PieceType::kWhiteRook, PieceType::kWhiteQueen, PieceType::kWhiteKing},
   {PieceType::kBlackPawn, PieceType::kBlackKnight, PieceType::kBlackBishop,
-    PieceType::kBlackRook, PieceType::kBlackQueen, PieceType::kBlackKing}
+   PieceType::kBlackRook, PieceType::kBlackQueen, PieceType::kBlackKing}
 }};
 
-inline constexpr PieceType operator&(const PieceBase base, const ColorType color) {
+inline constexpr PieceType operator&(const PieceBase base, const ColorType color) noexcept {
   return kPieceMap[std::to_underlying(color)][std::to_underlying(base)];
 }
 

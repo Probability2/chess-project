@@ -30,7 +30,7 @@ template<>
 inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
   PawnTable attacks{};
   for (Square sq = 0; sq < kBoardSize; ++sq) {
-    Bitboard pawn_sq = 1ULL << sq;
+    Bitboard pawn_sq = ToBB(sq);
     attacks[ColorType::kWhite, sq] = ShiftDir(pawn_sq, 7) | ShiftDir(pawn_sq, 9);
     attacks[ColorType::kBlack, sq] = ShiftDir(pawn_sq, -7) | ShiftDir(pawn_sq, -9);
   }
@@ -41,16 +41,16 @@ inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kKnight> = []() {
   std::array<Bitboard, kBoardSize> attacks{};
-  for (std::size_t i = 0; i < kBoardSize; ++i) {
-    Bitboard knight_coord = 1ULL << i;
-    attacks[i] = (knight_coord & kNotAFile & kNot78Rank) << 15; //e4->d6
-    attacks[i] |= (knight_coord & kNotABFile & kNot8Rank) << 6; //e4->c5
-    attacks[i] |= (knight_coord & kNotABFile & kNot1Rank) >> 10;//e4->c3
-    attacks[i] |= (knight_coord & kNotAFile & kNot12Rank) >> 17;//e4->d2
-    attacks[i] |= (knight_coord & kNotHFile & kNot12Rank) >> 15;//e4->f2
-    attacks[i] |= (knight_coord & kNotGHFile & kNot1Rank) >> 6; //e4->g3
-    attacks[i] |= (knight_coord & kNotGHFile & kNot8Rank) << 10;//e4->g5
-    attacks[i] |= (knight_coord & kNotHFile & kNot78Rank) << 17;//e4->f6
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
+    Bitboard knight_coord = ToBB(sq);
+    attacks[sq] = (knight_coord & kNotAFile & kNot78Rank) << 15; //e4->d6
+    attacks[sq] |= (knight_coord & kNotABFile & kNot8Rank) << 6; //e4->c5
+    attacks[sq] |= (knight_coord & kNotABFile & kNot1Rank) >> 10;//e4->c3
+    attacks[sq] |= (knight_coord & kNotAFile & kNot12Rank) >> 17;//e4->d2
+    attacks[sq] |= (knight_coord & kNotHFile & kNot12Rank) >> 15;//e4->f2
+    attacks[sq] |= (knight_coord & kNotGHFile & kNot1Rank) >> 6; //e4->g3
+    attacks[sq] |= (knight_coord & kNotGHFile & kNot8Rank) << 10;//e4->g5
+    attacks[sq] |= (knight_coord & kNotHFile & kNot78Rank) << 17;//e4->f6
   }
 
   return attacks;
@@ -59,16 +59,16 @@ inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kKnight> =
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kKing> = []() {
   std::array<Bitboard, kBoardSize> attacks{};
-  for (std::size_t i = 0; i < kBoardSize; ++i) {
-    const Bitboard king_sq = 1ULL << i;
-    attacks[i] |= ShiftDir(king_sq, 7);
-    attacks[i] |= ShiftDir(king_sq, 8);
-    attacks[i] |= ShiftDir(king_sq, 9);
-    attacks[i] |= ShiftDir(king_sq, 1);
-    attacks[i] |= ShiftDir(king_sq, -7);
-    attacks[i] |= ShiftDir(king_sq, -8);
-    attacks[i] |= ShiftDir(king_sq, -9);
-    attacks[i] |= ShiftDir(king_sq, -1);
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
+    const Bitboard king_sq = ToBB(sq);
+    attacks[sq] |= ShiftDir(king_sq, 7);
+    attacks[sq] |= ShiftDir(king_sq, 8);
+    attacks[sq] |= ShiftDir(king_sq, 9);
+    attacks[sq] |= ShiftDir(king_sq, 1);
+    attacks[sq] |= ShiftDir(king_sq, -7);
+    attacks[sq] |= ShiftDir(king_sq, -8);
+    attacks[sq] |= ShiftDir(king_sq, -9);
+    attacks[sq] |= ShiftDir(king_sq, -1);
   }
   
   return attacks;
@@ -101,7 +101,7 @@ inline constexpr Bitboard GetBishopSlides(const int square) {
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kRook> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
-  for (int sq = 0; sq < kBoardSize; ++sq) {
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = internal::GetRookSlides(sq);
   }
   
@@ -111,7 +111,7 @@ inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kRook> = [
 template<>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks<PieceBase::kBishop> = [](){
   std::array<Bitboard, kBoardSize> attacks{};
-  for (int sq = 0; sq < kBoardSize; ++sq) {
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = internal::GetBishopSlides(sq);
   }
   
@@ -136,7 +136,7 @@ inline constexpr std::array<uint8_t, kBoardSize> kShifts<PieceBase::kRook> = [](
 template<>
 inline constexpr std::array<uint8_t, kBoardSize> kShifts<PieceBase::kBishop> = [](){
   std::array<uint8_t, kBoardSize> attacks{};
-  for (int sq = 0; sq < kBoardSize; ++sq) {
+  for (Square sq = 0; sq < kBoardSize; ++sq) {
     attacks[sq] = static_cast<uint8_t>(kBoardSize - std::popcount(kAttacks<PieceBase::kBishop>[sq]));
   }
     
@@ -193,36 +193,10 @@ inline Bitboard GetAttackMask(const uint8_t square, const Bitboard occupied);
 template<>
 inline Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
-  uint8_t file = square % 8;
-  uint8_t rank = square / 8;
-  for (int i = file - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << coord(rank, i));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = file + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << coord(rank, i));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = rank - 1; i >= 0; --i) {
-    Bitboard bb = (1ULL << coord(i, file));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
-  for (int i = rank + 1; i < 8; ++i) {
-    Bitboard bb = (1ULL << coord(i, file));
-    mask |= bb;
-    if (occupied & bb) {
-      break;
-    }
-  }
+  mask |= GenerateSlide(square, 1, occupied);
+  mask |= GenerateSlide(square, -1, occupied);
+  mask |= GenerateSlide(square, 8, occupied);
+  mask |= GenerateSlide(square, -8, occupied);
 
   return mask;
 }
@@ -230,25 +204,10 @@ inline Bitboard GetAttackMask<PieceBase::kRook>(const uint8_t square, const Bitb
 template<>
 inline Bitboard GetAttackMask<PieceBase::kBishop>(const uint8_t square, const Bitboard occupied) {
   Bitboard mask = 0;
-  int file = square % 8;
-  int rank = square / 8;
-  const auto traverse_diagonal = [&mask, occupied, file, rank](const int dir_file, const int dir_rank) {
-    int r = rank + dir_rank;
-    int f = file + dir_file;
-    while (r >= 0 && r < 8 && f >= 0 && f < 8) {
-      Bitboard bb = (1ULL << coord(r, f));
-      mask |= bb;
-      if (occupied & bb) {
-        break;
-      }
-      r += dir_rank;
-      f += dir_file;
-    }
-  };
-  traverse_diagonal(1, 1);
-  traverse_diagonal(1, -1);
-  traverse_diagonal(-1, 1);
-  traverse_diagonal(-1, -1);
+  mask |= GenerateSlide(square, 7, occupied);
+  mask |= GenerateSlide(square, -7, occupied);
+  mask |= GenerateSlide(square, 9, occupied);
+  mask |= GenerateSlide(square, -9, occupied);
 
   return mask;
 }
