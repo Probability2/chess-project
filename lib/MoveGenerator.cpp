@@ -96,7 +96,7 @@ void GenerateCastleMoves(MoveList& list, const Position& pos) {
     0x0000000000000060ULL, 0x000000000000000EULL, 0x6000000000000000ULL, 0x0E00000000000000ULL
   };
   constexpr std::array<int, 2> diffs = {2, -2};
-  constexpr uint8_t start_pos = (Color == ColorType::kWhite) ? 4 : 60;
+  constexpr Square start_pos = (Color == ColorType::kWhite) ? Square::E1 : Square::E8;
   constexpr uint8_t ind = (Color == ColorType::kWhite) ? 3 : 1;
   constexpr std::array<MoveFlag, 2> castle_flags = {MoveFlag::kKingCastle, MoveFlag::kQueenCastle};
   for (uint8_t j = 0; j < 2; ++j) {
@@ -153,7 +153,7 @@ Bitboard GetAttackerLines(const Position& pos, const Square from) {
   Bitboard attacker_lines = 0;
   BitLooping(attackers, [&](const Square sq) {
     if (is_sliding(pos.get_piece(sq))) {
-      attacker_lines |= kLines[from][sq];
+      attacker_lines |= kLines[from, sq];
       attacker_lines ^= ToBB(sq);
     }
   });
@@ -165,18 +165,22 @@ template<ColorType Color>
 void GenerateKingEvasions(MoveList& list, const Position& pos) {
   const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
   const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
-  const Square from = std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color));
+  const Square from = GetLSB(pos.get_piece_metric(PieceBase::kKing & Color));
   AddMoves(~own_pieces & attacks::kAttacks<PieceBase::kKing>[from] & ~GetAttackerLines(pos, from),
                                                                       opponent_pieces, from, list);
+}
+
+template<ColorType Color>
+inline void GeneratePawnSquareEvasions(MoveList& list, const Position& pos,
+                                       const Bitboard opponent_pieces, const Square from) {
+
 }
 
 template<ColorType Color, PieceBase Base>
 inline void GenerateSquareEvasions(MoveList& list, const Position& pos,
                                    const Bitboard opponent_pieces, const Square from) {
   const Bitboard attacks = [from]{//iife
-    if constexpr (Base == PieceBase::kPawn) {
-      return attacks::kAttacks<Base>[!Color, from];
-    } else if constexpr (Base == PieceBase::kQueen) {
+    if constexpr (Base == PieceBase::kQueen) {
       return attacks::kAttacks<PieceBase::kRook>[from] | attacks::kAttacks<PieceBase::kBishop>[from];
     } else {
       return attacks::kAttacks<Base>[from];
@@ -190,11 +194,10 @@ inline void GenerateSquareEvasions(MoveList& list, const Position& pos,
 template<ColorType Color>
 void GeneratePieceEvasions(MoveList& list, const Position& pos) {
   const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
-  const uint8_t attacker = std::countr_zero(pos.get_king_attackers());
-  const uint8_t king_sq = std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color));
-  BitLooping(kBetween[attacker][king_sq] | ToBB(attacker),
-            [&list, &pos, opponent_pieces](const uint8_t from) {
-    GenerateSquareEvasions<Color, PieceBase::kPawn>(list, pos, opponent_pieces, from);
+  const Square attacker = GetLSB(pos.get_king_attackers());
+  const Square king_sq = GetLSB(pos.get_piece_metric(PieceBase::kKing & Color));
+  BitLooping(kBetween[attacker, king_sq] | ToBB(attacker), [&list, &pos, opponent_pieces](const Square from) {
+    GeneratePawnSquareEvasions<Color>(list, pos, opponent_pieces, from);
     GenerateSquareEvasions<Color, PieceBase::kKnight>(list, pos, opponent_pieces, from);
     GenerateSquareEvasions<Color, PieceBase::kBishop>(list, pos, opponent_pieces, from);
     GenerateSquareEvasions<Color, PieceBase::kRook>(list, pos, opponent_pieces, from);
@@ -214,8 +217,8 @@ void GenerateEvasions(MoveList& list, const Position& pos) {
 template<ColorType Color>
 void GenerateLegalMoves(MoveList& list, const Position& pos) {
   if (pos.is_check()) [[unlikely]] {
-    // GenerateEvasions<Color>(list, pos);
-    GeneratePseudoMoves<Color>(list, pos);
+    GenerateEvasions<Color>(list, pos);
+    // GeneratePseudoMoves<Color>(list, pos);
   }  else [[likely]] {
     GeneratePseudoMoves<Color>(list, pos);
   }
@@ -264,8 +267,8 @@ template<ColorType Color>
 bool IsLegal(const Position& pos, const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
+  const Square king_sq = GetLSB(pos.get_piece_metric(PieceBase::kKing & Color));
   const MoveFlag flag = move.get_flag();
-  const uint8_t king_sq = std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color));
   if (pos.get_piece(from) == (PieceBase::kKing & Color)) {
     const Bitboard attackers = pos.GetSquareAttackers(to, from);
     if (attackers != 0) {
@@ -274,7 +277,7 @@ bool IsLegal(const Position& pos, const Move& move) {
     if (flag == MoveFlag::kKingCastle || flag == MoveFlag::kQueenCastle) {
       const std::size_t ind = (flag == MoveFlag::kKingCastle) ? 0 : 1;
       return !pos.is_check() && (pos.GetSquareAttackers(kCastleInterSq[ind][std::to_underlying(Color)],
-                                                                                     kBoardSize) == 0);
+                                                                                  Square::kNone) == 0);
     }
     return true;
   }
@@ -286,8 +289,8 @@ bool IsLegal(const Position& pos, const Move& move) {
     if (pinned_pieces & ToBB(from)) {
       return false;
     }
-    const uint8_t attacker_sq = std::countr_zero(pos.get_king_attackers());
-    return (ToBB(to) & (kBetween[king_sq][attacker_sq] | ToBB(attacker_sq))) != 0;
+    const Square attacker_sq = GetLSB(pos.get_king_attackers());
+    return (ToBB(to) & (kBetween[king_sq, attacker_sq] | ToBB(attacker_sq))) != 0;
   }
   if ((ToBB(from) & pinned_pieces) == 0) {
     return true;
@@ -299,7 +302,7 @@ bool IsLegal(const Position& pos, const Move& move) {
 
     return IsLegalEnPassant<Color>(pos, move);
   }
-  return (ToBB(to) & kLines[std::countr_zero(pos.get_piece_metric(PieceBase::kKing & Color))][from]) != 0;
+  return (ToBB(to) & kLines[GetLSB(pos.get_piece_metric(PieceBase::kKing & Color)), from]) != 0;
 }
 
 // explicit template instantiation

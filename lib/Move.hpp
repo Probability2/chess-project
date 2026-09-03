@@ -1,4 +1,5 @@
 #include "types/Piece.hpp"
+#include "types/Bitboard.hpp"
 
 namespace chess {
 
@@ -23,17 +24,18 @@ enum class MoveFlag: uint8_t {
   kQueenPromoCapture//   15
 };
 
-inline constexpr std::array<std::array<uint8_t, 2>, 2> kCastleInterSq = {{{5, 61}, {3, 59}}};
+inline constexpr std::array<std::array<Square, 2>, 2> kCastleInterSq = {{{Square::F1, Square::F8},
+                                                                         {Square::D1, Square::D8}}};
 
 //16 bit representation to preserve memory
 class Move {
 public:
   Move() = default;
-  Move(const uint8_t from, const uint8_t to);
-  Move(const uint8_t from, const uint8_t to, const MoveFlag flag);
+  Move(const Square from, const Square to);
+  Move(const Square from, const Square to, const MoveFlag flag);
   bool operator==(const Move& other) const = default;
-  uint8_t get_from() const;
-  uint8_t get_to() const;
+  Square get_from() const;
+  Square get_to() const;
   PieceBase get_promoted_piece() const;
   MoveFlag get_flag() const;
   bool has_promoted_piece() const;

@@ -14,8 +14,8 @@ std::string to_notation(const PieceType piece, const Move& move) {
   if (piece != PieceType::kWhitePawn && piece != PieceType::kBlackPawn) {
     notation += GetPieceCode(piece);
   }
-  notation += get_notation(move.get_from());
-  notation += get_notation(move.get_to());
+  notation += get_notation(std::to_underlying(move.get_from()));
+  notation += get_notation(std::to_underlying(move.get_to()));
   if (move.has_promoted_piece()) {
     notation += GetPieceCode(move.get_promoted_piece());
   }

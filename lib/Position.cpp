@@ -8,7 +8,7 @@ bool Position::is_white_move() const noexcept {
 }
 
 bool Position::is_en_passant() const noexcept {
-  return en_passant_ != kBoardSize;
+  return en_passant_ != Square::kNone;
 }
 
 std::size_t Position::get_no_capture_moves() const noexcept {
@@ -39,7 +39,7 @@ uint8_t Position::get_castles() const noexcept {
   return castles_;
 }
 
-uint8_t Position::get_en_passant() const noexcept {
+Square Position::get_en_passant() const noexcept {
   return en_passant_;
 }
 
@@ -61,7 +61,8 @@ std::string Position::get_castling_notation() const noexcept {
 template<MovesType Type>
 MoveList Position::GenerateMoves() {
   CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_)), 64);
+  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)),
+                                                                                         Square::kNone);
   
   return move_generator::GenerateMoves<Type>(*this);
 }
@@ -118,9 +119,9 @@ Bitboard Position::get_king_attackers() const {
 }
 
 Bitboard Position::GetSquareAttackers(const Square sq, const Square cleared) const {
-  [[assume(sq <= kBoardSize && cleared < kBoardSize)]];
+  [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
-  const Bitboard blockers = (cleared == kBoardSize) ? get_all_pieces() : get_all_pieces() & ~ToBB(cleared);
+  const Bitboard blockers = (cleared == Square::kNone) ? get_all_pieces() : get_all_pieces() & ~ToBB(cleared);
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
@@ -141,7 +142,7 @@ Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard ow
                                                                    const Bitboard pieces) const {
   Bitboard pinned_pieces = 0;
   BitLooping(pieces, [&pinned_pieces, own_pieces, king_sq](const Square sq) {
-    Bitboard line = own_pieces & kBetween[king_sq][sq];
+    Bitboard line = own_pieces & kBetween[king_sq, sq];
     if (std::popcount(line) == 1) {
       pinned_pieces |= line;
     }
@@ -152,7 +153,7 @@ Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard ow
 
 void Position::CalculatePinnedPieces() {
   info_.pinned_pieces_ = 0;
-  uint8_t king_sq = std::countr_zero(get_piece_metric(PieceBase::kKing & side_to_move_));
+  Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
   info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces,
                                   get_piece_metric(PieceBase::kRook & !side_to_move_));
@@ -179,7 +180,7 @@ namespace {
 void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
   os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
   if (pos.is_en_passant() > 0) {
-    os << chess::get_notation(pos.get_en_passant());
+    os << chess::get_notation(std::to_underlying(pos.get_en_passant()));
   } else {
     os << "no en-passant";
   }
@@ -188,9 +189,11 @@ void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  os << static_cast<char>('a' + (move.get_from() & 7))
-     << static_cast<char>('1' + (move.get_from() >> 3 & 7)) << '-' << static_cast<char>('a' + (move.get_to() & 7))
-     << static_cast<char>('1' + (move.get_to() >> 3 & 7));
+  const uint8_t from_shift = std::to_underlying(move.get_from());
+  const uint8_t to_shift = std::to_underlying(move.get_to());
+  os << static_cast<char>('a' + (from_shift & 7))
+     << static_cast<char>('1' + (from_shift >> 3 & 7)) << '-' << static_cast<char>('a' + (to_shift & 7))
+     << static_cast<char>('1' + (to_shift >> 3 & 7));
   if (move.has_promoted_piece()) {
     os << GetPieceCode(move.get_promoted_piece());
   }

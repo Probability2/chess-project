@@ -40,9 +40,8 @@ int main(int argc, char** argv) {
   std::random_device rd;
   std::mt19937_64 magic_generator(rd());
 
-  auto pos = fen_manager::Get("q6k/8/4K2N/5nN1/2B5/b5Pb/5Q2/4r3 w - - 0 1");;
-  std::cout << *pos << '\n';
-  auto list = pos->GenerateMoves<MovesType::kLegal>();
+  // std::cout << *pos << '\n';
+  PrintBitboard(kStartingPosition.get_piece_metric(PieceType::kWhiteBishop));
 
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

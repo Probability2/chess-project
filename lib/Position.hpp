@@ -28,7 +28,7 @@ public:
 
   //A1 = 0, H8 = 63
   constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
-    uint8_t sq = coord(x, y);
+    Square sq = coord(x, y);
     Bitboard mask = ToBB(sq);
     if (board_[sq] != PieceType::kNone) {
       pieces_[std::to_underlying(board_[sq]) - 1] &= ~mask;
@@ -63,8 +63,8 @@ public:
     side_to_move_ = (move) ? ColorType::kWhite : ColorType::kBlack;
   }
 
-  constexpr void set_en_passant(const int ind) {
-    en_passant_ = ind;
+  constexpr void set_en_passant(const Square sq) {
+    en_passant_ = sq;
   }
 
   constexpr void set_no_captures(const int moves) {
@@ -89,7 +89,7 @@ public:
   Bitboard get_black_pieces() const noexcept;
   Bitboard get_piece_metric(const PieceType piece) const;
   uint8_t get_castles() const noexcept;
-  uint8_t get_en_passant() const noexcept;
+  Square get_en_passant() const noexcept;
   std::string get_castling_notation() const noexcept;
 
   bool is_pawn(const Square sq) const noexcept;// for tests only
@@ -108,18 +108,19 @@ public:
   bool is_check() const noexcept;
 
 private:
-  std::array<PieceType, kBoardSize> board_{};
+  LookupTable<PieceType> board_{};
+  // std::array<PieceType, kBoardSize> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
   Bitboard white_pieces_ = 0;
   Bitboard black_pieces_ = 0;
   ColorType side_to_move_;
   uint8_t castles_ = 0;
-  uint8_t en_passant_ = kBoardSize;
+  Square en_passant_ = Square::kNone;
   std::size_t no_capture_moves_ = 0;
   std::size_t move_ = 1;
 
   template<PieceBase Base>
-  Bitboard GetPinsBySlidingPiece(const uint8_t king_sq, const Bitboard own_pieces, const Bitboard pieces) const;
+  Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard own_pieces, const Bitboard pieces) const;
   
   void CalculatePinnedPieces();
 

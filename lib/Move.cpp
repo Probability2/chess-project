@@ -2,20 +2,20 @@
 
 namespace chess {
 
-Move::Move(const uint8_t from, const uint8_t to)
-: move_val_(from | (to << 6)) {
+Move::Move(const Square from, const Square to)
+: move_val_(std::to_underlying(from) | (std::to_underlying(to) << 6)) {
 }
 
-Move::Move(const uint8_t from, const uint8_t to, const MoveFlag flag) : Move(from, to) {
+Move::Move(const Square from, const Square to, const MoveFlag flag) : Move(from, to) {
   move_val_ |= (std::to_underlying(flag) << 12);
 }
 
-uint8_t Move::get_from() const {
-  return move_val_ & 0x3F;
+Square Move::get_from() const {
+  return static_cast<Square>(move_val_ & 0x3F);
 }
 
-uint8_t Move::get_to() const {
-  return (move_val_ >> 6) & 0x3F;
+Square Move::get_to() const {
+  return static_cast<Square>((move_val_ >> 6) & 0x3F);
 }
 
 MoveFlag Move::get_flag() const {
