@@ -8,20 +8,20 @@ enum class MovesType: uint8_t {
 };
 
 enum class MoveFlag: uint8_t {
-  kQuiet,//              0
-  kDoublePawnPush,//     1
-  kKingCastle,//         2
-  kQueenCastle,//        3
-  kCapture,//            4
-  kEpCapture,//          5
-  kKnightPromotion,//    8
-  kBishopPromotion,//    9
-  kRookPromotion,//      10
-  kQueenPromotion,//     11
-  kKnightPromoCapture,// 12
-  kBishopPromoCapture,// 13
-  kRookPromoCapture,//   14
-  kQueenPromoCapture//   15
+  kQuiet = 0,
+  kDoublePawnPush = 1,
+  kKingCastle = 2,
+  kQueenCastle = 3,
+  kCapture = 4,
+  kEpCapture = 5,
+  kKnightPromotion = 8,
+  kBishopPromotion = 9,
+  kRookPromotion = 10,
+  kQueenPromotion = 11,
+  kKnightPromoCapture = 12,
+  kBishopPromoCapture = 13,
+  kRookPromoCapture = 14,
+  kQueenPromoCapture = 15
 };
 
 inline constexpr std::array<std::array<Square, 2>, 2> kCastleInterSq = {{{Square::F1, Square::F8},

@@ -23,7 +23,7 @@ MoveFlag Move::get_flag() const {
 }
 
 PieceBase Move::get_promoted_piece() const {
-  return static_cast<PieceBase>((move_val_ & 0x3000) >> 12);
+  return static_cast<PieceBase>(((move_val_ & 0x3000) >> 12) + 1);
 }
 
 bool Move::has_promoted_piece() const {

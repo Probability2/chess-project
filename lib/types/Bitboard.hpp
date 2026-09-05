@@ -19,6 +19,7 @@ constexpr Bitboard kNot1Rank = 0xFFFFFFFFFFFFFF00ULL;
 constexpr Bitboard kNot12Rank = 0xFFFFFFFFFFFF0000ULL;
 constexpr Bitboard kNot8Rank = 0x00FFFFFFFFFFFFFFULL;
 constexpr Bitboard kNot78Rank = 0x0000FFFFFFFFFFFFULL;
+constexpr Bitboard kAllSquares = 0xFFFFFFFFFFFFFFFFULL;
 
 enum class Square: uint8_t {
   A1, B1, C1, D1, E1, F1, G1, H1,
@@ -31,6 +32,16 @@ enum class Square: uint8_t {
   A8, B8, C8, D8, E8, F8, G8, H8,
   kNone
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Square sq) {
+  if (sq == Square::kNone) {
+    os << "kNone";
+  } else {
+    os << static_cast<char>('A' + std::to_underlying(sq) / 8)
+       << static_cast<char>('1' + std::to_underlying(sq) % 8);
+  }
+  return os;
+}
 
 constexpr Square operator++(const Square sq) {
   return static_cast<Square>(std::to_underlying(sq) + 1);
@@ -54,7 +65,6 @@ inline constexpr auto Board = []() {
 
   return squares;
 }();
-
 
 inline constexpr Square coord(const int rank, const int file) {
   [[assume(8 * rank + file <= kBoardSize)]];
@@ -134,6 +144,7 @@ struct LookupTable {
   std::array<T, kBoardSize> table_{};
 
   constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
+    [[assume(sq != Square::kNone)]];
     return self.table_[std::to_underlying(sq)];
   }
 };
@@ -146,6 +157,7 @@ struct MultiLookupTable {
   std::array<std::array<Bitboard, kBoardSize>, N> table_{};
 
   constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
+    [[assume(sq != Square::kNone)]];
     return self.table_[std::to_underlying(ind)][std::to_underlying(sq)];
   }
 };

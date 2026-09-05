@@ -57,12 +57,10 @@ std::string Position::get_castling_notation() const noexcept {
   return notation;
 }
 
-
 template<MovesType Type>
 MoveList Position::GenerateMoves() {
   CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)),
-                                                                                         Square::kNone);
+  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
   
   return move_generator::GenerateMoves<Type>(*this);
 }
@@ -118,10 +116,10 @@ Bitboard Position::get_king_attackers() const {
   return info_.king_attackers_;
 }
 
-Bitboard Position::GetSquareAttackers(const Square sq, const Square cleared) const {
-  [[assume(sq != Square::kNone)]];
+Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied) const {
+  // [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
-  const Bitboard blockers = (cleared == Square::kNone) ? get_all_pieces() : get_all_pieces() & ~ToBB(cleared);
+  const Bitboard blockers = get_all_pieces() & ~occupied;
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
@@ -133,16 +131,17 @@ Bitboard Position::GetSquareAttackers(const Square sq, const Square cleared) con
   attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kBishop & !side_to_move_));// bishop attacks
   attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));// queen attacks
   attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  attackers |= (attacks::kAttacks<PieceBase::kKing>[sq] & get_piece_metric(PieceBase::kKing & !side_to_move_));
 
   return attackers;
 }
 
 template<PieceBase Base>
-Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard own_pieces,
+Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied,
                                                                    const Bitboard pieces) const {
   Bitboard pinned_pieces = 0;
-  BitLooping(pieces, [&pinned_pieces, own_pieces, king_sq](const Square sq) {
-    Bitboard line = own_pieces & kBetween[king_sq, sq];
+  BitLooping(pieces, [&pinned_pieces, occupied, king_sq](const Square sq) {
+    Bitboard line = occupied & kBetween[king_sq, sq];
     if (std::popcount(line) == 1) {
       pinned_pieces |= line;
     }
@@ -153,15 +152,15 @@ Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard ow
 
 void Position::CalculatePinnedPieces() {
   info_.pinned_pieces_ = 0;
-  Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
-  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces,
+  const Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
+  const Bitboard all_pieces = get_all_pieces();
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
                                   get_piece_metric(PieceBase::kRook & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces,
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
                                   get_piece_metric(PieceBase::kBishop & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, own_pieces,
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
                                   get_piece_metric(PieceBase::kQueen & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, own_pieces,
+  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
                                   get_piece_metric(PieceBase::kQueen & !side_to_move_));
 }
 

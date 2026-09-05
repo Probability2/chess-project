@@ -7,7 +7,7 @@ project(
     LANGUAGES CXX
 )
 
-# add_compile_options(-O3 -march=native)
+add_compile_options(-O3 -march=native)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

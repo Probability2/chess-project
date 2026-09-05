@@ -1,7 +1,6 @@
 add_library(ChessLibrary 
     History.cpp
     Position.cpp
-    Game.cpp
     FileManager.cpp
     MoveGenerator.cpp
     Move.cpp

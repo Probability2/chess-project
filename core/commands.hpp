@@ -2,7 +2,6 @@
 
 #include "lib/Position.hpp"
 #include "lib/FileManager.hpp"
-#include "lib/Game.hpp"
 
 #include <map>
 #include <memory>

@@ -201,3 +201,18 @@ std::expected<void, std::string_view> Save(const Position& pos);
 std::expected<void, std::string_view> Save(const Position& pos, const fs::path& file_name);
 
 }// namespace chess::fen_manager
+
+namespace chess {
+
+inline constexpr std::string_view kDefaultPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+inline constexpr Position kStartingPosition = []() {
+  auto res = fen_manager::Get(kDefaultPosition);
+  if (!res) {
+    throw "Failed to parse FEN in constexpr context";
+  }
+
+  return *res;
+}();
+
+}

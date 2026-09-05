@@ -102,7 +102,7 @@ public:
   Bitboard get_king_attackers() const;
   Bitboard get_pinned_pieces() const;
 
-  Bitboard GetSquareAttackers(const Square sq, const Square cleared) const;
+  Bitboard GetSquareAttackers(const Square sq, const Bitboard occupied) const;
   bool is_single_check() const noexcept;
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;
@@ -120,7 +120,7 @@ private:
   std::size_t move_ = 1;
 
   template<PieceBase Base>
-  Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard own_pieces, const Bitboard pieces) const;
+  Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) const;
   
   void CalculatePinnedPieces();
 
@@ -135,11 +135,13 @@ private:
 };
 
 namespace internal {
+
 struct FlippedPosition {
   FlippedPosition(const chess::Position& pos);
 
   const chess::Position& pos_;
 };
+
 }// namespace chess::internal
 
 }// namespace chess
