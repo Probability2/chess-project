@@ -50,10 +50,10 @@ constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view d
   uint8_t col = 0;
   while (i < data.size() && data[i] != kFenDelimeter && data[i] != kSpaceDelimiter && col <= 8) {
     if (data[i] > '0' && data[i] < '9') {
-      pos.set_squares(PieceType::kNone, coord, col, data[i] - '0');
+      pos.SetSquares(PieceType::kNone, coord, col, data[i] - '0');
       col += (data[i] - '0');
     } else if (std::ranges::contains(kPieceSymbols, data[i])) {
-      pos.set_square(GetPieceType(data[i]), coord, col);
+      pos.SetSquare(GetPieceType(data[i]), coord, col);
       col++;
     } else {
       return std::unexpected(to_string(ErrorCode::kDataIsDamaged));

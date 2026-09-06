@@ -23,8 +23,10 @@ inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
   MultiLookupTable<2> attacks{};
   for (Square sq : Board) {
     Bitboard pawn_sq = ToBB(sq);
-    attacks[ColorType::kWhite, sq] = ShiftDir(pawn_sq, 7) | ShiftDir(pawn_sq, 9);
-    attacks[ColorType::kBlack, sq] = ShiftDir(pawn_sq, -7) | ShiftDir(pawn_sq, -9);
+    attacks[ColorType::kWhite, sq] = ShiftDir(pawn_sq, Direction::kNorthWest) |
+                                     ShiftDir(pawn_sq, Direction::kNorthEast);
+    attacks[ColorType::kBlack, sq] = ShiftDir(pawn_sq, Direction::kSouthEast) |
+                                     ShiftDir(pawn_sq, Direction::kSouthWest);
   }
 
   return attacks;
@@ -53,14 +55,9 @@ inline constexpr auto kAttacks<PieceBase::kKing> = []() {
   LookupTable<Bitboard> attacks{};
   for (Square sq : Board) {
     const Bitboard king_sq = ToBB(sq);
-    attacks[sq] |= ShiftDir(king_sq, 7);
-    attacks[sq] |= ShiftDir(king_sq, 8);
-    attacks[sq] |= ShiftDir(king_sq, 9);
-    attacks[sq] |= ShiftDir(king_sq, 1);
-    attacks[sq] |= ShiftDir(king_sq, -7);
-    attacks[sq] |= ShiftDir(king_sq, -8);
-    attacks[sq] |= ShiftDir(king_sq, -9);
-    attacks[sq] |= ShiftDir(king_sq, -1);
+    for (Direction dir: directions) {
+      attacks[sq] |= ShiftDir(king_sq, dir);
+    }
   }
   
   return attacks;
@@ -70,20 +67,20 @@ namespace internal {
 
 inline constexpr Bitboard GetRookSlides(const Square sq) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(sq, 1, 0) & kNotHFile;
-  magic_slides |= GenerateSlide(sq, -1, 0) & kNotAFile;
-  magic_slides |= GenerateSlide(sq, 8, 0) & kNot8Rank;
-  magic_slides |= GenerateSlide(sq, -8, 0) & kNot1Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kEast, 0) & kNotHFile;
+  magic_slides |= GenerateSlide(sq, Direction::kWest, 0) & kNotAFile;
+  magic_slides |= GenerateSlide(sq, Direction::kNorth, 0) & kNot8Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kSouth, 0) & kNot1Rank;
   
   return magic_slides;
 }
 
 inline constexpr Bitboard GetBishopSlides(const Square sq) {
   Bitboard magic_slides = 0;
-  magic_slides |= GenerateSlide(sq, 7, 0) & kNotAFile & kNot8Rank;
-  magic_slides |= GenerateSlide(sq, -7, 0) & kNotHFile & kNot1Rank;
-  magic_slides |= GenerateSlide(sq, 9, 0) & kNotHFile & kNot8Rank;
-  magic_slides |= GenerateSlide(sq, -9, 0) & kNotAFile & kNot1Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kNorthWest, 0) & kNotAFile & kNot8Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kSouthEast, 0) & kNotHFile & kNot1Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kNorthEast, 0) & kNotHFile & kNot8Rank;
+  magic_slides |= GenerateSlide(sq, Direction::kSouthWest, 0) & kNotAFile & kNot1Rank;
   
   return magic_slides;
 }
@@ -139,7 +136,7 @@ template<PieceBase Piece> requires SlidingPiece<Piece>
 consteval uint32_t GetTotalConfigurations() {
   uint32_t offset = 0;
   for (Square sq : Board) {
-    offset += (1 << (kBoardSize - kShifts<Piece>[sq]));
+    offset += (1ULL << (kBoardSize - kShifts<Piece>[sq]));
   }
 
   return offset;
@@ -159,7 +156,7 @@ private:
     uint32_t curr_offset = 0;
     for (Square sq : Board) {
       offsets[sq] = curr_offset;
-      curr_offset += (1 << (kBoardSize - kShifts<Piece>[sq]));
+      curr_offset += (1ULL << (kBoardSize - kShifts<Piece>[sq]));
     }
 
     return offsets;
@@ -170,7 +167,7 @@ inline Bitboard GetSlidingPiecesOccupied(const int blocker, const Bitboard mask)
   Bitboard res = 0;
   uint8_t sz = 0;
   BitLooping(mask, [blocker, &sz, &res](const Square sq) {
-    if (blocker & (1 << sz)) {
+    if (blocker & (1ULL << sz)) {
       res |= ToBB(sq);
     }
     sz++;
@@ -185,10 +182,10 @@ inline Bitboard GetAttackMask(const Square sq, const Bitboard occupied);
 template<>
 inline Bitboard GetAttackMask<PieceBase::kRook>(const Square sq, const Bitboard occupied) {
   Bitboard mask = 0;
-  mask |= GenerateSlide(sq, 1, occupied);
-  mask |= GenerateSlide(sq, -1, occupied);
-  mask |= GenerateSlide(sq, 8, occupied);
-  mask |= GenerateSlide(sq, -8, occupied);
+  mask |= GenerateSlide(sq, Direction::kEast, occupied);
+  mask |= GenerateSlide(sq, Direction::kWest, occupied);
+  mask |= GenerateSlide(sq, Direction::kNorth, occupied);
+  mask |= GenerateSlide(sq, Direction::kSouth, occupied);
 
   return mask;
 }
@@ -196,10 +193,10 @@ inline Bitboard GetAttackMask<PieceBase::kRook>(const Square sq, const Bitboard 
 template<>
 inline Bitboard GetAttackMask<PieceBase::kBishop>(const Square sq, const Bitboard occupied) {
   Bitboard mask = 0;
-  mask |= GenerateSlide(sq, 7, occupied);
-  mask |= GenerateSlide(sq, -7, occupied);
-  mask |= GenerateSlide(sq, 9, occupied);
-  mask |= GenerateSlide(sq, -9, occupied);
+  mask |= GenerateSlide(sq, Direction::kNorthWest, occupied);
+  mask |= GenerateSlide(sq, Direction::kSouthEast, occupied);
+  mask |= GenerateSlide(sq, Direction::kNorthEast, occupied);
+  mask |= GenerateSlide(sq, Direction::kSouthWest, occupied);
 
   return mask;
 }
@@ -251,7 +248,7 @@ template<PieceBase Piece> requires SlidingPiece<Piece>
 inline const auto kSlidingTable = []() {
   FancyMagicTable<Piece> attacks;// probably just creating arrays and offsets is better but idk
   for (Square sq : Board) {
-    for (std::size_t b = 0, config = (1 << (kBoardSize - kShifts<Piece>[sq])); b < config; ++b) {
+    for (std::size_t b = 0, config = (1ULL << (kBoardSize - kShifts<Piece>[sq])); b < config; ++b) {
       Bitboard occupied = GetSlidingPiecesOccupied(b, kAttacks<Piece>[sq]);
       std::size_t index = ((occupied * kMagicBitboards<Piece>[sq]) >> kShifts<Piece>[sq]);
       attacks[sq, index] = GetAttackMask<Piece>(sq, occupied);

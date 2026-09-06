@@ -3,16 +3,38 @@
 
 namespace chess {
 
+void StateStack::push(const InternalInfo& info) {
+  stack_[size_++] = info;
+}
+
+void StateStack::pop() {
+  [[assume(size_ != 0)]];
+  size_--;
+}
+
+InternalInfo StateStack::top() const {
+  [[assume(size_ != 0)]];
+  return stack_[size_ - 1];
+}
+
+std::size_t StateStack::size() const {
+  return size_;
+}
+
+bool StateStack::empty() const {
+  return (size_ == 0);
+}
+
 bool Position::is_white_move() const noexcept {
   return side_to_move_ == ColorType::kWhite;
 }
 
 bool Position::is_en_passant() const noexcept {
-  return en_passant_ != Square::kNone;
+  return info_.en_passant_ != Square::kNone;
 }
 
 std::size_t Position::get_no_capture_moves() const noexcept {
-  return no_capture_moves_;
+  return info_.no_capture_moves_;
 }
 
 std::size_t Position::get_move_number() const noexcept {
@@ -36,17 +58,17 @@ Bitboard Position::get_piece_metric(const PieceType piece) const {
 }
 
 uint8_t Position::get_castles() const noexcept {
-  return castles_;
+  return info_.castling_rights_;
 }
 
 Square Position::get_en_passant() const noexcept {
-  return en_passant_;
+  return info_.en_passant_;
 }
 
 std::string Position::get_castling_notation() const noexcept {
   std::string notation;
   for (int i = chess::kMxCastles - 1; i >= 0; --i) {
-    if ((castles_ >> i) & 1) {
+    if ((info_.castling_rights_ >> i) & 1) {
       notation += chess::kCastleChars[chess::kMxCastles - i - 1];
     }
   }
@@ -164,6 +186,86 @@ void Position::CalculatePinnedPieces() {
                                   get_piece_metric(PieceBase::kQueen & !side_to_move_));
 }
 
+inline void Position::ClearCastling(const uint8_t ind) {
+  info_.castling_rights_ &= ~(1 << ind);
+}
+
+inline void Position::ClearCastling(const Square sq, const ColorType side) {
+  const int ind = std::to_underlying(side);
+  if (sq == kRookCastleSquares[0][ind]) {
+    ClearCastling(2 * ind + 0);
+  } else if (sq == kRookCastleSquares[1][ind]) {
+    ClearCastling(2 * ind + 1);
+  }
+}
+
+inline void Position::UpdateCastleFlags(const MoveFlag flag) {
+  const int color = std::to_underlying(side_to_move_);
+  const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
+  ClearSquare(kRookCastleSquares[castle_type][color]);
+  AddSquareMask(PieceBase::kRook & side_to_move_, 1ULL << kCastleInterSq[castle_type][color]);
+}
+
+inline void Position::UpdateMoveClocks(const Move& move) {
+  if (side_to_move_ == ColorType::kBlack) {
+    move_++;
+  }
+  if (move.is_50_moves_eligible() && (board_[move.get_from()] != (PieceBase::kPawn & side_to_move_))) {
+    info_.no_capture_moves_++;
+  } else {
+    info_.no_capture_moves_ = 0;
+  }
+}
+
+void Position::MakeMove(const Move& move) {
+  const Square from = move.get_from();
+  const Square to = move.get_to();
+  const PieceType piece = board_[from];
+  UpdateMoveClocks(move);
+  info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
+  ClearSquare(from);
+  info_.en_passant_ = Square::kNone;
+  if (move.is_capture()) {
+    ClearSquare(to);
+  } else if (move.is_en_passant()) {
+    const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
+    ClearSquare(to + shift);
+  } else if (move.is_castle()) {
+    UpdateCastleFlags(move.get_flag());
+  } else if (move.is_promotion()) {
+    ClearSquare(to);
+    AddSquareMask(move.get_promoted_piece() & side_to_move_, 1ULL << to);
+    side_to_move_ = !side_to_move_;
+    return;
+  }
+  if (Bitboard bb_to = 1ULL << to; move.is_double_pawn_push() &&
+     (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
+                                                             ShiftDir(bb_to, Direction::kWest)))) {
+    const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kNorth : Direction::kSouth;
+    info_.en_passant_ = from + shift;
+  }
+  AddSquareMask(piece, ToBB(to));
+  state_stack_.push(info_);
+  side_to_move_ = !side_to_move_;
+}
+
+void Position::UnmakeMove(const Move& move) {
+  const Square from = move.get_from();
+  const Square to = move.get_to();
+  info_ = state_stack_.top();
+  state_stack_.pop();
+  PieceType piece_before = (move.is_promotion()) ? (PieceBase::kPawn & !side_to_move_) : board_[to];
+  SetSquare(piece_before, from);
+  ClearSquare(to);
+  if (move.is_castle()) {
+
+  } else if (move.is_en_passant()) {
+
+  } else {
+    SetSquare(info_.captured_piece_, to);
+  }
+}
+
 // explicit template instantiation
 template MoveList Position::GenerateMoves<MovesType::kPseudo>();
 template MoveList Position::GenerateMoves<MovesType::kLegal>();
@@ -178,8 +280,8 @@ namespace {
 
 void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
   os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
-  if (pos.is_en_passant() > 0) {
-    os << chess::get_notation(std::to_underlying(pos.get_en_passant()));
+  if (pos.is_en_passant()) {
+    os << pos.get_en_passant();
   } else {
     os << "no en-passant";
   }
@@ -193,7 +295,7 @@ std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
   os << static_cast<char>('a' + (from_shift & 7))
      << static_cast<char>('1' + (from_shift >> 3 & 7)) << '-' << static_cast<char>('a' + (to_shift & 7))
      << static_cast<char>('1' + (to_shift >> 3 & 7));
-  if (move.has_promoted_piece()) {
+  if (move.is_promotion()) {
     os << GetPieceCode(move.get_promoted_piece());
   }
   

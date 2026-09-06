@@ -26,7 +26,15 @@ PieceBase Move::get_promoted_piece() const {
   return static_cast<PieceBase>(((move_val_ & 0x3000) >> 12) + 1);
 }
 
-bool Move::has_promoted_piece() const {
+bool Move::is_capture() const {
+  return get_flag() == MoveFlag::kCapture;
+}
+
+bool Move::is_double_pawn_push() const {
+  return get_flag() == MoveFlag::kDoublePawnPush;
+}
+
+bool Move::is_promotion() const {
   return move_val_ & 0x8000;
 }
 
@@ -36,6 +44,11 @@ bool Move::is_en_passant() const {
 
 bool Move::is_castle() const{
   return get_flag() == MoveFlag::kKingCastle || get_flag() == MoveFlag::kQueenCastle;
+}
+
+bool Move::is_50_moves_eligible() const {
+  const MoveFlag flag = get_flag();
+  return (flag == MoveFlag::kQuiet) || (flag == MoveFlag::kKingCastle) || (flag == MoveFlag::kQueenCastle);
 }
 
 std::size_t MoveList::size() const {
@@ -57,18 +70,6 @@ bool MoveList::empty() const {
 void MoveList::push(const Move& move) {
   assert(size_ < kMaxMoves && "Movelist overflow");
   moves_[size_++] = move;
-}
-
-// decltype(auto) MoveList::operator[](this auto& self, const std::size_t ind) {
-//   return self.moves_[ind];
-// }
-
-Move MoveList::operator[](const std::size_t ind) const {
-  return moves_[ind];
-}
-
-Move& MoveList::operator[](const std::size_t ind) {
-  return moves_[ind];
 }
 
 void MoveList::pop_back() {

@@ -24,9 +24,6 @@ enum class MoveFlag: uint8_t {
   kQueenPromoCapture = 15
 };
 
-inline constexpr std::array<std::array<Square, 2>, 2> kCastleInterSq = {{{Square::F1, Square::F8},
-                                                                         {Square::D1, Square::D8}}};
-
 //16 bit representation to preserve memory
 class Move {
 public:
@@ -38,9 +35,12 @@ public:
   Square get_to() const;
   PieceBase get_promoted_piece() const;
   MoveFlag get_flag() const;
-  bool has_promoted_piece() const;
+  bool is_capture() const;;
+  bool is_double_pawn_push() const;
+  bool is_promotion() const;
   bool is_en_passant() const;
   bool is_castle() const;
+  bool is_50_moves_eligible() const;
 
 private:
   uint16_t move_val_ = 0;
@@ -54,11 +54,9 @@ public:
   std::span<const Move> AsSpan() const;
   bool contains(const Move& move) const;
   bool empty() const;
-  // decltype(auto) operator[](this auto& self, const std::size_t ind) {
-  //   return self.moves_[ind];
-  // }
-  Move operator[](const std::size_t ind) const;
-  Move& operator[](const std::size_t ind);
+  decltype(auto) operator[](this auto& self, const std::size_t ind) {
+    return self.moves_[ind];
+  }
   void pop_back();
   const Move& back() const;
 

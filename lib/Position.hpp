@@ -7,8 +7,8 @@
 
 #include <bit>
 #include <iostream>
-#include <optional>
 #include <type_traits>
+#include <stack>
 
 namespace chess {
 
@@ -16,35 +16,76 @@ inline constexpr uint8_t kMxCastles = 4;
 
 inline constexpr std::array<char, kMxCastles> kCastleChars = {'K', 'Q', 'k', 'q'};
 
+constexpr int kMaxHalfMoves = 512;
+
+struct InternalInfo {
+  Square en_passant_ = Square::kNone;
+  PieceType captured_piece_ = PieceType::kNone;
+  uint8_t castling_rights_ = 0;
+  std::size_t no_capture_moves_ = 0;
+  Bitboard pinned_pieces_ = 0;
+  Bitboard king_attackers_ = 0;
+};
+
+class StateStack {
+public:
+  void push(const InternalInfo& info);
+  void pop();
+  InternalInfo top() const;
+  std::size_t size() const;
+  bool empty() const;
+private:
+  std::array<InternalInfo, kMaxHalfMoves> stack_{};
+  std::size_t size_ = 0;
+};
+
 class Position {
 public:
   constexpr Position() = default;
 
-  constexpr void set_squares(PieceType p, const std::size_t x, const std::size_t y, const std::size_t n) {
+  constexpr void SetSquares(PieceType p, const std::size_t x, const std::size_t y, const std::size_t n) {
     for (std::size_t i = 0; i < n; ++i) {
-      set_square(p, x, y + i);
+      SetSquare(p, x, y + i);
     }
   }
-
-  //A1 = 0, H8 = 63
-  constexpr void set_square(const PieceType piece, const std::size_t x, const std::size_t y) {
-    Square sq = coord(x, y);
-    Bitboard mask = ToBB(sq);
-    if (board_[sq] != PieceType::kNone) {
-      pieces_[std::to_underlying(board_[sq]) - 1] &= ~mask;
-      white_pieces_ &= ~mask;
-      black_pieces_ &= ~mask;
-    }
+  
+  constexpr void SetSquare(const PieceType piece, const Square sq) {
+    ClearSquare(sq);
     board_[sq] = piece;
     if (piece == PieceType::kNone) {
       return;
     }
+    AddSquareMask(piece, ToBB(sq));
+  }
+
+  //A1 = 0, H8 = 63
+  constexpr void SetSquare(const PieceType piece, const std::size_t x, const std::size_t y) {
+    SetSquare(piece, coord(x, y));
+  }
+
+  inline constexpr void ClearSquare(const Square sq) {
+    if (board_[sq] == PieceType::kNone) {
+      return;
+    }
+    const Bitboard mask = ToBB(sq);
+    PieceOccupied(board_[sq]) &= ~mask;
+    white_pieces_ &= ~mask;
+    black_pieces_ &= ~mask;
+  }
+
+  inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
+    [[assume(piece != PieceType::kNone)]];
     if (Color(piece) == ColorType::kWhite) {
       white_pieces_ |= mask;
     } else {
       black_pieces_ |= mask;
     }
-    pieces_[static_cast<int>(piece) - 1] |= mask;
+    PieceOccupied(piece) |= mask;
+  }
+
+  constexpr Bitboard& PieceOccupied(const PieceType piece) {
+    [[assume(piece != PieceType::kNone)]];
+    return pieces_[std::to_underlying(piece) - 1];
   }
 
   constexpr PieceType get_piece(const int x, const int y) const noexcept {
@@ -56,7 +97,7 @@ public:
   }
 
   constexpr void set_castling(const uint8_t position) {
-    castles_ |= (1 << position);
+    info_.castling_rights_ |= (1 << position);
   }
 
   constexpr void set_white_move(const bool move) {
@@ -64,12 +105,12 @@ public:
   }
 
   constexpr void set_en_passant(const Square sq) {
-    en_passant_ = sq;
+    info_.en_passant_ = sq;
   }
 
   constexpr void set_no_captures(const int moves) {
     assert(moves >= 0 && "No capture moves number is not valid");
-    no_capture_moves_ = moves;
+    info_.no_capture_moves_ = moves;
   }
 
   constexpr void set_move_number(const int moves) {
@@ -107,31 +148,27 @@ public:
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;
 
+  void MakeMove(const Move& move);
+  void UnmakeMove(const Move& move);
+
 private:
   LookupTable<PieceType> board_{};
-  // std::array<PieceType, kBoardSize> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
   Bitboard white_pieces_ = 0;
   Bitboard black_pieces_ = 0;
   ColorType side_to_move_;
-  uint8_t castles_ = 0;
-  Square en_passant_ = Square::kNone;
-  std::size_t no_capture_moves_ = 0;
   std::size_t move_ = 1;
+  InternalInfo info_{};
+  StateStack state_stack_{};
 
   template<PieceBase Base>
   Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) const;
   
   void CalculatePinnedPieces();
-
-  struct InternalInfo {
-    Bitboard pinned_pieces_;
-    Bitboard king_attackers_;
-  };
-
-  InternalInfo info_;
-  
-  // FRIEND_TEST(PseudoMovesSuite, Pawns);
+  inline void ClearCastling(const uint8_t ind);
+  inline void ClearCastling(const Square sq, const ColorType side);
+  inline void UpdateMoveClocks(const Move& move);
+  inline void UpdateCastleFlags(const MoveFlag flag);
 };
 
 namespace internal {

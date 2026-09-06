@@ -33,13 +33,36 @@ enum class Square: uint8_t {
   kNone
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Square sq) {
+enum class Direction: int8_t {
+  kNorth = 8,
+  kNorthEast = 9,
+  kEast = 1,
+  kSouthEast = -7,
+  kSouth = -8,
+  kSouthWest = -9,
+  kWest = -1,
+  kNorthWest = 7,
+};
+
+inline constexpr Direction operator-(const Direction dir) {
+  return static_cast<Direction>(-std::to_underlying(dir));
+}
+
+inline std::string to_string(const Square sq) {
+  std::string str;
   if (sq == Square::kNone) {
-    os << "kNone";
+    str += "kNone";
   } else {
-    os << static_cast<char>('A' + std::to_underlying(sq) / 8)
-       << static_cast<char>('1' + std::to_underlying(sq) % 8);
+    str += static_cast<char>('a' + std::to_underlying(sq) % 8);
+    str += static_cast<char>('1' + std::to_underlying(sq) / 8);
   }
+
+  return str;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Square sq) {
+  os << to_string(sq);
+
   return os;
 }
 
@@ -47,23 +70,82 @@ constexpr Square operator++(const Square sq) {
   return static_cast<Square>(std::to_underlying(sq) + 1);
 }
 
-inline Square operator-(const Square sq, const int shift) {
-  uint8_t ind = std::to_underlying(sq);
-  assert(ind - shift >= 0 && ind - shift < kBoardSize);
-  return static_cast<Square>(ind - shift);
+inline Square operator-(const Square sq, const int dir) {
+  const uint8_t sq_val = std::to_underlying(sq);
+  assert(sq_val - dir >= 0 && sq_val - dir < kBoardSize);
+  return static_cast<Square>(sq_val - dir);
 }
 
-inline Square operator+(const Square sq, const int shift) {
-  return sq - (-shift);
+inline Square operator+(const Square sq, const int dir) {
+  return sq - (-dir);
 }
+
+inline Square operator-(const Square sq, const Direction dir) {
+  return sq - std::to_underlying(dir);
+}
+
+inline Square operator+(const Square sq, const Direction dir) {
+  return sq + std::to_underlying(dir);
+}
+
+inline Bitboard operator<<(const Bitboard base, const Square sq) {
+  return base << std::to_underlying(sq);
+}
+
+template<typename T>
+struct LookupTable {
+  std::array<T, kBoardSize> table_{};
+
+  constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
+    [[assume(sq != Square::kNone)]];
+    return self.table_[std::to_underlying(sq)];
+  }
+};
+
+template<typename T>
+concept EnumClass = std::is_scoped_enum_v<T>;
+
+template<std::size_t N>
+struct MultiLookupTable {
+  std::array<std::array<Bitboard, kBoardSize>, N> table_{};
+
+  constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
+    [[assume(sq != Square::kNone)]];
+    return self.table_[std::to_underlying(ind)][std::to_underlying(sq)];
+  }
+};
 
 inline constexpr auto Board = []() {
   std::array<Square, kBoardSize> squares{};
   for (int i = 0; i < kBoardSize; ++i) {
     squares[i] = static_cast<Square>(i);
   }
-
+  
   return squares;
+}();
+
+inline constexpr std::array<std::array<Square, 2>, 2> kCastleInterSq = {{{Square::F1, Square::F8},
+                                                                         {Square::D1, Square::D8}}};
+
+inline constexpr std::array<std::array<Square, 2>, 2> kRookCastleSquares = {{{Square::H1, Square::H8},
+                                                                             {Square::A1, Square::A8}}};
+inline constexpr std::array<int, 2> kCastleShifts = {2, -2};
+
+inline constexpr auto kCastlingRights = []() {
+  LookupTable<uint8_t> rights;
+  for (Square sq : Board) {
+    switch (sq) {
+      case Square::A1: rights[sq] = 0x0D; break;
+      case Square::E1: rights[sq] = 0x0C; break;
+      case Square::H1: rights[sq] = 0x0E; break;
+      case Square::A8: rights[sq] = 0x07; break;
+      case Square::E8: rights[sq] = 0x03; break;
+      case Square::H8: rights[sq] = 0x0B; break;
+      default: rights[sq] = 0xFF;
+    }
+  }
+
+  return rights;
 }();
 
 inline constexpr Square coord(const int rank, const int file) {
@@ -91,15 +173,15 @@ inline void PrintBitboard(const Bitboard b) {
   }
 }
 
-inline std::string get_notation(const uint8_t move) {
-  return std::string{static_cast<char>((move & 0x07) + 'a'),
-                     static_cast<char>(((move >> 3) & 0x07) + '1')};
-}
+// inline std::string get_notation(const uint8_t move) {
+//   return std::string{static_cast<char>((move & 0x07) + 'a'),
+//                      static_cast<char>(((move >> 3) & 0x07) + '1')};
+// }
 
 inline constexpr Square GetLSB(Bitboard bb) {
   const uint8_t ind = std::countr_zero(bb);
   [[assume(ind < 64)]];
-
+  
   return static_cast<Square>(ind);
 }
 
@@ -111,23 +193,26 @@ inline constexpr void BitLooping(Bitboard bb, std::invocable<Square> auto&& fun)
   }
 }
 
-constexpr std::array<int, 8> directions = {7, 8, 9, 1, -7, -8, -9, -1};
+constexpr std::array<Direction, 8> directions = {Direction::kNorthWest, Direction::kNorth,
+                                                 Direction::kNorthEast, Direction::kEast,
+                                                 Direction::kSouthEast, Direction::kSouth,
+                                                 Direction::kSouthWest, Direction::kWest};
 
-inline constexpr Bitboard ShiftDir(Bitboard bb, const int dir) {
+inline constexpr Bitboard ShiftDir(Bitboard bb, const Direction dir) {
   switch (dir) {
-    case 7:  return (bb & kNotAFile & kNot8Rank) << 7;
-    case 8:  return (bb & kNot8Rank) << 8;
-    case 9:  return (bb & kNotHFile & kNot8Rank) << 9;
-    case 1:  return (bb & kNotHFile) << 1;
-    case -7: return (bb & kNotHFile & kNot1Rank) >> 7;
-    case -8: return (bb & kNot1Rank) >> 8;
-    case -9: return (bb & kNotAFile & kNot1Rank) >> 9;
-    case -1: return (bb & kNotAFile) >> 1;
+    case Direction::kNorthWest:  return (bb & kNotAFile & kNot8Rank) << 7;
+    case Direction::kNorth:  return (bb & kNot8Rank) << 8;
+    case Direction::kNorthEast:  return (bb & kNotHFile & kNot8Rank) << 9;
+    case Direction::kEast:  return (bb & kNotHFile) << 1;
+    case Direction::kSouthEast: return (bb & kNotHFile & kNot1Rank) >> 7;
+    case Direction::kSouth: return (bb & kNot1Rank) >> 8;
+    case Direction::kSouthWest: return (bb & kNotAFile & kNot1Rank) >> 9;
+    case Direction::kWest: return (bb & kNotAFile) >> 1;
   }
   std::unreachable();
 }
 
-inline constexpr Bitboard GenerateSlide(const Square sq, const int dir, const Bitboard occupied) {
+inline constexpr Bitboard GenerateSlide(const Square sq, const Direction dir, const Bitboard occupied) {
   Bitboard slides = ShiftDir(ToBB(sq), dir);
   for (std::size_t i = 0; i < 8; ++i) {
     if (occupied & slides) {
@@ -139,35 +224,12 @@ inline constexpr Bitboard GenerateSlide(const Square sq, const int dir, const Bi
   return slides;
 }
 
-template<typename T>
-struct LookupTable {
-  std::array<T, kBoardSize> table_{};
-
-  constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
-    [[assume(sq != Square::kNone)]];
-    return self.table_[std::to_underlying(sq)];
-  }
-};
-
-template<typename T>
-concept EnumClass = std::is_scoped_enum_v<T>;
-
-template<std::size_t N>
-struct MultiLookupTable {
-  std::array<std::array<Bitboard, kBoardSize>, N> table_{};
-
-  constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
-    [[assume(sq != Square::kNone)]];
-    return self.table_[std::to_underlying(ind)][std::to_underlying(sq)];
-  }
-};
-
 namespace internal {
 
 constexpr auto GenerateRays(auto oper) {
   MultiLookupTable<kBoardSize> rays{};
   for (Square sq1 : Board) {
-    for (int dir: directions) {
+    for (Direction dir: directions) {
       Bitboard slide1 = GenerateSlide(sq1, dir, 0);
       BitLooping(slide1, [&rays, &oper, dir, slide1, sq1](const Square sq2) {
         if (sq1 >= sq2) {

@@ -3,6 +3,7 @@
 #include "lib/MoveGenerator.hpp"
 
 #include "gtest/gtest.h"
+#include <iostream>
 #include <unordered_set>
 
 namespace chess {
@@ -14,9 +15,9 @@ std::string to_notation(const PieceType piece, const Move& move) {
   if (piece != PieceType::kWhitePawn && piece != PieceType::kBlackPawn) {
     notation += GetPieceCode(piece);
   }
-  notation += get_notation(std::to_underlying(move.get_from()));
-  notation += get_notation(std::to_underlying(move.get_to()));
-  if (move.has_promoted_piece()) {
+  notation += to_string(move.get_from());
+  notation += to_string(move.get_to());
+  if (move.is_promotion()) {
     notation += GetPieceCode(move.get_promoted_piece());
   }
 
