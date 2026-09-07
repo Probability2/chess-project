@@ -7,8 +7,10 @@
 
 #include <bit>
 #include <iostream>
+#include <expected>
 #include <type_traits>
-#include <stack>
+#include <ranges>
+#include <span>
 
 namespace chess {
 
@@ -19,6 +21,8 @@ inline constexpr std::array<char, kMxCastles> kCastleChars = {'K', 'Q', 'k', 'q'
 constexpr int kMaxHalfMoves = 512;
 
 struct InternalInfo {
+  bool operator==(const InternalInfo& other) const = default;
+
   Square en_passant_ = Square::kNone;
   PieceType captured_piece_ = PieceType::kNone;
   uint8_t castling_rights_ = 0;
@@ -29,11 +33,14 @@ struct InternalInfo {
 
 class StateStack {
 public:
+  bool operator==(const StateStack& other) const;
   void push(const InternalInfo& info);
   void pop();
   InternalInfo top() const;
   std::size_t size() const;
   bool empty() const;
+  std::span<const InternalInfo> AsSpan() const;
+
 private:
   std::array<InternalInfo, kMaxHalfMoves> stack_{};
   std::size_t size_ = 0;
@@ -42,6 +49,8 @@ private:
 class Position {
 public:
   constexpr Position() = default;
+
+  bool operator==(const Position& other) const = default;
 
   constexpr void SetSquares(PieceType p, const std::size_t x, const std::size_t y, const std::size_t n) {
     for (std::size_t i = 0; i < n; ++i) {
@@ -69,23 +78,14 @@ public:
     }
     const Bitboard mask = ToBB(sq);
     PieceOccupied(board_[sq]) &= ~mask;
-    white_pieces_ &= ~mask;
-    black_pieces_ &= ~mask;
+    all_pieces_[std::to_underlying(Color(board_[sq]))] &= ~mask;
+    board_[sq] = PieceType::kNone;
   }
 
   inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
     [[assume(piece != PieceType::kNone)]];
-    if (Color(piece) == ColorType::kWhite) {
-      white_pieces_ |= mask;
-    } else {
-      black_pieces_ |= mask;
-    }
+    all_pieces_[std::to_underlying(Color(piece))] |= mask;
     PieceOccupied(piece) |= mask;
-  }
-
-  constexpr Bitboard& PieceOccupied(const PieceType piece) {
-    [[assume(piece != PieceType::kNone)]];
-    return pieces_[std::to_underlying(piece) - 1];
   }
 
   constexpr PieceType get_piece(const int x, const int y) const noexcept {
@@ -108,18 +108,24 @@ public:
     info_.en_passant_ = sq;
   }
 
-  constexpr void set_no_captures(const int moves) {
-    assert(moves >= 0 && "No capture moves number is not valid");
+  constexpr std::expected<void, std::string_view> set_no_captures(const int moves) {
+    if (moves < 0) {
+      return std::unexpected("No capture moves number is not valid");
+    }
     info_.no_capture_moves_ = moves;
+    return {};
   }
 
-  constexpr void set_move_number(const int moves) {
-    assert(moves >= 0 && "Move number is not valid");
-    move_ = moves;
+  constexpr std::expected<void, std::string_view> set_move_number(const int moves) {
+    if (moves < 0) {
+      return std::unexpected("Move number is not valid");
+    }
+    halfmoves_ = 2 * moves + std::to_underlying(side_to_move_);
+    return {};
   }
   
   template<MovesType Type>
-  MoveList GenerateMoves();
+  void GenerateMoves(MoveList& list);
 
   bool is_white_move() const noexcept;
   bool is_en_passant() const noexcept;
@@ -132,6 +138,8 @@ public:
   uint8_t get_castles() const noexcept;
   Square get_en_passant() const noexcept;
   std::string get_castling_notation() const noexcept;
+  InternalInfo GetInfo() const;
+  StateStack GetStateStack() const;
 
   bool is_pawn(const Square sq) const noexcept;// for tests only
   bool is_knight(const Square sq) const noexcept;// for tests only
@@ -154,21 +162,27 @@ public:
 private:
   LookupTable<PieceType> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
-  Bitboard white_pieces_ = 0;
-  Bitboard black_pieces_ = 0;
+  std::array<Bitboard, 2> all_pieces_{};
   ColorType side_to_move_;
-  std::size_t move_ = 1;
+  std::size_t halfmoves_ = 1;
   InternalInfo info_{};
   StateStack state_stack_{};
 
   template<PieceBase Base>
   Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) const;
+
+  constexpr Bitboard& PieceOccupied(const PieceType piece) {
+    [[assume(piece != PieceType::kNone)]];
+    return pieces_[std::to_underlying(piece) - 1];
+  }
   
   void CalculatePinnedPieces();
   inline void ClearCastling(const uint8_t ind);
   inline void ClearCastling(const Square sq, const ColorType side);
   inline void UpdateMoveClocks(const Move& move);
   inline void UpdateCastleFlags(const MoveFlag flag);
+  inline void UndoRookCastle(const MoveFlag flag);
+  void PutPiece(const PieceType piece, const Square sq);
 };
 
 namespace internal {
@@ -181,14 +195,11 @@ struct FlippedPosition {
 
 }// namespace chess::internal
 
+std::ostream& operator<<(std::ostream& os, const Position& pos);
+
+std::ostream& operator<<(std::ostream& os, const internal::FlippedPosition& flipped_pos);
+
 }// namespace chess
 
-std::ostream& operator<<(std::ostream& os, const chess::Move& list);
-
-std::ostream& operator<<(std::ostream& os, const chess::MoveList& list);
-
-std::ostream& operator<<(std::ostream& os, const chess::Position& pos);
-
-std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos);
 
 chess::internal::FlippedPosition flipped(const chess::Position& pos);

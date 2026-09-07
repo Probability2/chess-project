@@ -1,3 +1,5 @@
+#pragma once
+
 #include "types/Piece.hpp"
 #include "types/Bitboard.hpp"
 
@@ -64,5 +66,9 @@ private:
   std::array<Move, kMaxMoves> moves_;
   std::size_t size_ = 0;
 };
+
+std::ostream& operator<<(std::ostream& os, const Move& move);
+
+std::ostream& operator<<(std::ostream& os, const MoveList& list);
 
 }// namespace chess

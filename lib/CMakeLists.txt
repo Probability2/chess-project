@@ -4,6 +4,7 @@ add_library(ChessLibrary
     FileManager.cpp
     MoveGenerator.cpp
     Move.cpp
+    Perft.hpp
 )
 
 # target_link_libraries(ChessLibrary 

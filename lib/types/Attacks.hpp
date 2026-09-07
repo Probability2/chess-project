@@ -13,7 +13,7 @@
 namespace chess::attacks {
   
 template<PieceBase Piece>
-concept SlidingPiece = (Piece == PieceBase::kBishop || Piece == PieceBase::kRook);
+concept SlidingPiece = (Piece == PieceBase::kBishop || Piece == PieceBase::kRook || Piece == PieceBase::kQueen);
 
 template<PieceBase Piece>
 inline constexpr std::array<Bitboard, kBoardSize> kAttacks{};//unknown piece
@@ -265,6 +265,11 @@ inline Bitboard SlidingAttacks(const Square sq, const Bitboard occupied) {
   std::size_t index = ((occupied & kAttacks<Piece>[sq]) * internal::kMagicBitboards<Piece>[sq]) >>
                                                                       internal::kShifts<Piece>[sq];
   return internal::kSlidingTable<Piece>[sq, index];
+};
+
+template<>
+inline Bitboard SlidingAttacks<PieceBase::kQueen>(const Square sq, const Bitboard occupied) {
+  return SlidingAttacks<PieceBase::kRook>(sq, occupied) | SlidingAttacks<PieceBase::kBishop>(sq, occupied);
 };
 
 }// namespace chess::attacks

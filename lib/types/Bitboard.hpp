@@ -96,6 +96,8 @@ template<typename T>
 struct LookupTable {
   std::array<T, kBoardSize> table_{};
 
+  bool operator==(const LookupTable& other) const = default;
+
   constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
     [[assume(sq != Square::kNone)]];
     return self.table_[std::to_underlying(sq)];
@@ -108,6 +110,8 @@ concept EnumClass = std::is_scoped_enum_v<T>;
 template<std::size_t N>
 struct MultiLookupTable {
   std::array<std::array<Bitboard, kBoardSize>, N> table_{};
+
+  bool operator==(const MultiLookupTable& other) const = default;
 
   constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
     [[assume(sq != Square::kNone)]];

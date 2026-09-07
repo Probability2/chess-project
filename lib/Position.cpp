@@ -3,6 +3,26 @@
 
 namespace chess {
 
+namespace {
+
+void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
+  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
+  if (pos.is_en_passant()) {
+    os << pos.get_en_passant();
+  } else {
+    os << "no en-passant";
+  }
+  os << ", no capture moves: " << pos.get_no_capture_moves() << ", move number: " << pos.get_move_number() << '\n';
+}
+}
+
+bool StateStack::operator==(const StateStack& other) const {
+  if (this->size_ != other.size()) {
+    return false;
+  }
+  return std::ranges::equal(AsSpan(), other.AsSpan());
+}
+
 void StateStack::push(const InternalInfo& info) {
   stack_[size_++] = info;
 }
@@ -25,6 +45,10 @@ bool StateStack::empty() const {
   return (size_ == 0);
 }
 
+std::span<const InternalInfo> StateStack::AsSpan() const {
+  return std::span<const InternalInfo>{stack_}.first(size_);
+}
+
 bool Position::is_white_move() const noexcept {
   return side_to_move_ == ColorType::kWhite;
 }
@@ -38,19 +62,19 @@ std::size_t Position::get_no_capture_moves() const noexcept {
 }
 
 std::size_t Position::get_move_number() const noexcept {
-  return move_;
+  return (halfmoves_ + 1) / 2;
 }
 
 Bitboard Position::get_all_pieces() const noexcept {
-  return white_pieces_ | black_pieces_;
+  return all_pieces_[0] | all_pieces_[1];
 }
 
 Bitboard Position::get_white_pieces() const noexcept {
-  return white_pieces_;
+  return all_pieces_[0];
 }
 
 Bitboard Position::get_black_pieces() const noexcept {
-  return black_pieces_;
+  return all_pieces_[1];
 }
 
 Bitboard Position::get_piece_metric(const PieceType piece) const {
@@ -79,12 +103,20 @@ std::string Position::get_castling_notation() const noexcept {
   return notation;
 }
 
+InternalInfo Position::GetInfo() const {
+  return info_;
+}
+
+StateStack Position::GetStateStack() const {
+  return state_stack_;
+}
+
 template<MovesType Type>
-MoveList Position::GenerateMoves() {
+void Position::GenerateMoves(MoveList& list) {
   CalculatePinnedPieces();
   info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
   
-  return move_generator::GenerateMoves<Type>(*this);
+  move_generator::GenerateMoves<Type>(*this, list);
 }
 
 bool Position::is_single_check() const noexcept {
@@ -139,10 +171,10 @@ Bitboard Position::get_king_attackers() const {
 }
 
 Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied) const {
-  // [[assume(sq != Square::kNone)]];
+  [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
   const Bitboard blockers = get_all_pieces() & ~occupied;
-  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? white_pieces_ : black_pieces_;
+  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? all_pieces_[0] : all_pieces_[1];
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
   attackers |= (attacks::kAttacks<PieceBase::kPawn>[!side_to_move_, sq] &
@@ -203,13 +235,18 @@ inline void Position::UpdateCastleFlags(const MoveFlag flag) {
   const int color = std::to_underlying(side_to_move_);
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   ClearSquare(kRookCastleSquares[castle_type][color]);
-  AddSquareMask(PieceBase::kRook & side_to_move_, 1ULL << kCastleInterSq[castle_type][color]);
+  SetSquare(PieceBase::kRook & side_to_move_, kCastleInterSq[castle_type][color]);
+}
+
+inline void Position::UndoRookCastle(const MoveFlag flag) {
+  const int color = std::to_underlying(side_to_move_);
+  const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
+  ClearSquare(kCastleInterSq[castle_type][color]);
+  SetSquare(PieceBase::kRook & side_to_move_, kRookCastleSquares[castle_type][color]);
 }
 
 inline void Position::UpdateMoveClocks(const Move& move) {
-  if (side_to_move_ == ColorType::kBlack) {
-    move_++;
-  }
+  halfmoves_++;
   if (move.is_50_moves_eligible() && (board_[move.get_from()] != (PieceBase::kPawn & side_to_move_))) {
     info_.no_capture_moves_++;
   } else {
@@ -217,97 +254,64 @@ inline void Position::UpdateMoveClocks(const Move& move) {
   }
 }
 
+void Position::PutPiece(const PieceType piece, const Square sq) {
+  if (piece == PieceType::kNone) {
+    std::cout << GetPieceIcon(piece) << '\n';
+    std::cout << *this << '\n';
+  }
+  [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
+  board_[sq] = piece;
+  AddSquareMask(piece, ToBB(sq));
+}
+
 void Position::MakeMove(const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
   const PieceType piece = board_[from];
   UpdateMoveClocks(move);
-  info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   ClearSquare(from);
-  info_.en_passant_ = Square::kNone;
-  if (move.is_capture()) {
-    ClearSquare(to);
-  } else if (move.is_en_passant()) {
+  if (move.is_en_passant()) {
+    info_.captured_piece_ = (PieceBase::kPawn & !side_to_move_);
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
     ClearSquare(to + shift);
-  } else if (move.is_castle()) {
-    UpdateCastleFlags(move.get_flag());
-  } else if (move.is_promotion()) {
+  } else if (move.is_capture()) {
+    info_.captured_piece_ = board_[to];
     ClearSquare(to);
-    AddSquareMask(move.get_promoted_piece() & side_to_move_, 1ULL << to);
-    side_to_move_ = !side_to_move_;
-    return;
+  }  else if (move.is_castle()) {
+    UpdateCastleFlags(move.get_flag());
   }
-  if (Bitboard bb_to = 1ULL << to; move.is_double_pawn_push() &&
-     (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
+  state_stack_.push(info_);
+  info_.en_passant_ = Square::kNone;
+  if (Bitboard bb_to = ToBB(to); move.is_double_pawn_push() &&
+      (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
                                                              ShiftDir(bb_to, Direction::kWest)))) {
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kNorth : Direction::kSouth;
     info_.en_passant_ = from + shift;
   }
-  AddSquareMask(piece, ToBB(to));
-  state_stack_.push(info_);
+  info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
+  PutPiece((move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece, to);
   side_to_move_ = !side_to_move_;
+
+  CalculatePinnedPieces();
+  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
 }
 
 void Position::UnmakeMove(const Move& move) {
-  const Square from = move.get_from();
-  const Square to = move.get_to();
+  side_to_move_ = !side_to_move_;
+  halfmoves_--;
   info_ = state_stack_.top();
   state_stack_.pop();
-  PieceType piece_before = (move.is_promotion()) ? (PieceBase::kPawn & !side_to_move_) : board_[to];
-  SetSquare(piece_before, from);
+  const Square to = move.get_to();
+  PutPiece((move.is_promotion()) ? (PieceBase::kPawn & side_to_move_) : board_[to], move.get_from());
   ClearSquare(to);
-  if (move.is_castle()) {
-
-  } else if (move.is_en_passant()) {
-
-  } else {
-    SetSquare(info_.captured_piece_, to);
+  if (move.is_castle()) [[unlikely]] {
+    UndoRookCastle(move.get_flag());
+  } else if (move.is_en_passant()) [[unlikely]] {
+    const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
+    PutPiece(PieceBase::kPawn & !side_to_move_, to + shift);
+  } else if (move.is_capture()) {
+    PutPiece(info_.captured_piece_, to);
   }
-}
-
-// explicit template instantiation
-template MoveList Position::GenerateMoves<MovesType::kPseudo>();
-template MoveList Position::GenerateMoves<MovesType::kLegal>();
-template MoveList Position::GenerateMoves<MovesType::kCaptures>();
-template MoveList Position::GenerateMoves<MovesType::kChecks>();
-template MoveList Position::GenerateMoves<MovesType::kEvasions>();
-
-}// namespace chess
-
-
-namespace {
-
-void PrintPositionDetails(std::ostream& os, const chess::Position& pos) {
-  os << (pos.is_white_move() ? "White's move, " : "Black's move, ") << pos.get_castling_notation() << ", ";
-  if (pos.is_en_passant()) {
-    os << pos.get_en_passant();
-  } else {
-    os << "no en-passant";
-  }
-  os << ", no capture moves: " << pos.get_no_capture_moves() << ", move number: " << pos.get_move_number() << '\n';
-}
-}
-
-std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
-  const uint8_t from_shift = std::to_underlying(move.get_from());
-  const uint8_t to_shift = std::to_underlying(move.get_to());
-  os << static_cast<char>('a' + (from_shift & 7))
-     << static_cast<char>('1' + (from_shift >> 3 & 7)) << '-' << static_cast<char>('a' + (to_shift & 7))
-     << static_cast<char>('1' + (to_shift >> 3 & 7));
-  if (move.is_promotion()) {
-    os << GetPieceCode(move.get_promoted_piece());
-  }
-  
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const chess::MoveList& list) {
-  for (auto move: list.AsSpan()) {
-    os << move << ", ";
-  }
-
-  return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
@@ -333,6 +337,15 @@ std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPositio
 
   return os;
 }
+
+// explicit template instantiation
+template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list);
+
+}// namespace chess
 
 chess::internal::FlippedPosition flipped(const chess::Position& pos) {
   return chess::internal::FlippedPosition(pos);

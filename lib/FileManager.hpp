@@ -113,9 +113,9 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
     ind += 2;
     return {};
   }
-  uint8_t x = data[ind] - 'a';
+  int x = data[ind] - 'a';
   ind++;
-  if (ind >= data.size() || data[ind] < '1' || data[ind] > '8') {
+  if (x < 0 || x > 8 || ind >= data.size() || data[ind] < '1' || data[ind] > '8') {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
   pos.set_en_passant(coord(data[ind] - '1', x));
@@ -124,32 +124,41 @@ constexpr std::expected<void, std::string_view> ParseEnPassant(std::size_t& ind,
   return {};
 }
 
-constexpr void ParseNoCaptures(std::size_t& ind, std::string_view data, Position& pos) {
+constexpr std::expected<void, std::string_view> ParseNoCaptures(std::size_t& ind, std::string_view data,
+                                                                                          Position& pos) {
   if (ind >= data.size()) {
-    return;
+    return {};
   }
   int num = 0;
   auto res = std::from_chars(data.data() + ind, data.data() + data.length(), num);
   ind = (res.ptr - data.data()) + 1;
-  pos.set_no_captures(num);
+  auto p = pos.set_no_captures(num);
+  if (!p) {
+    return std::unexpected(p.error());
+  }
+  return {};
 }
 
-constexpr void ParseMoveNumber(std::size_t& ind, std::string_view data, Position& pos) {
+constexpr std::expected<void, std::string_view> ParseMoveNumber(std::size_t& ind, std::string_view data,
+                                                                                          Position& pos) {
   if (ind >= data.size()) {
-    return;
+    return {};
   }
   int num = 0;
   auto res = std::from_chars(data.data() + ind, data.data() + data.length(), num);
-  pos.set_move_number(num);
+  auto p = pos.set_move_number(num);
+  if (!p) {
+    return std::unexpected(p.error());
+  }
+  return {};
 }
 
 constexpr std::expected<void, std::string_view> ParseParameters(std::string_view data, std::size_t& ind,
                                                                                           Position& pos) {
-  if (!ParseTurn(ind, data, pos) || !ParseCastle(ind, data, pos) || !ParseEnPassant(ind, data, pos)) {
+  if (!ParseTurn(ind, data, pos) || !ParseCastle(ind, data, pos) || !ParseEnPassant(ind, data, pos) ||
+      !ParseNoCaptures(ind, data, pos) || !ParseMoveNumber(ind, data, pos)) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));
   }
-  ParseNoCaptures(ind, data, pos);
-  ParseMoveNumber(ind, data, pos);
 
   return {};
 }

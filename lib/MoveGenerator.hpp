@@ -7,7 +7,7 @@
 namespace chess::move_generator {
 
 template<MovesType type>
-MoveList GenerateMoves(const Position& pos);
+void GenerateMoves(const Position& pos, MoveList& list);
 
 template<ColorType Color>
 bool IsLegal(const Position& pos, const Move& move);

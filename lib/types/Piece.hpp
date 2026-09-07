@@ -108,15 +108,15 @@ inline bool is_sliding(const PieceType piece) {
 }
 
 constexpr char GetPieceCode(PieceBase piece) {
-  return kPieceTable[7 + static_cast<int>(piece)].code;
+  return kPieceTable[7 + std::to_underlying(piece)].code;
 }
 
 constexpr char GetPieceCode(PieceType piece) {
-  return kPieceTable[static_cast<int>(piece)].code;
+  return kPieceTable[std::to_underlying(piece)].code;
 }
 
 constexpr std::string GetPieceIcon(PieceType piece) {
-  return kPieceTable[static_cast<int>(piece)].icon;
+  return kPieceTable[std::to_underlying(piece)].icon;
 }
 
 

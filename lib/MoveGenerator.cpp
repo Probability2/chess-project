@@ -124,13 +124,13 @@ void GenerateKingMoves(MoveList& list, const Position& pos) {
   GenerateCastleMoves<Color>(list, pos);
 }
 
-template<ColorType Color, PieceBase Base, PieceType piece_type = Base & Color>
+template<ColorType Color, PieceBase Base>
 void GenerateSlidingMoves(MoveList& list, const Position& pos, const Bitboard target_squares) {
   const Bitboard all_pieces = pos.get_all_pieces();
   const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
   const Bitboard opponent_pieces = all_pieces ^ own_pieces;
-  BitLooping(pos.get_piece_metric(piece_type), [all_pieces, own_pieces, opponent_pieces, target_squares, &list]
-                                                                                            (const Square from) {
+  BitLooping(pos.get_piece_metric(Base & Color), [all_pieces, own_pieces, opponent_pieces, target_squares, &list]
+                                                                                              (const Square from) {
     AddMoves(list, ~own_pieces & attacks::SlidingAttacks<Base>(from, all_pieces) & target_squares,
                                                                             from, opponent_pieces);
   });
@@ -148,8 +148,7 @@ void GenerateRookMoves(MoveList& list, const Position& pos, const Bitboard targe
 
 template<ColorType Color>
 void GenerateQueenMoves(MoveList& list, const Position& pos, const Bitboard target_squares) {
-  GenerateSlidingMoves<Color, PieceBase::kRook, PieceBase::kQueen & Color>(list, pos, target_squares);
-  GenerateSlidingMoves<Color, PieceBase::kBishop, PieceBase::kQueen & Color>(list, pos, target_squares);
+  GenerateSlidingMoves<Color, PieceBase::kQueen>(list, pos, target_squares);
 }
 
 template<ColorType Color>
@@ -225,8 +224,7 @@ void GenerateLegalMoves(MoveList& list, const Position& pos) {
 }// unnamed namespace
 
 template<MovesType Type, ColorType Color>
-MoveList GenerateMoves(const Position& pos) {
-  MoveList list;
+MoveList GenerateMoves(const Position& pos, MoveList& list) {
   if constexpr (Type == MovesType::kPseudo) {
     GeneratePseudoMoves<Color>(list, pos);
   } else if constexpr (Type == MovesType::kEvasions) {
@@ -239,16 +237,18 @@ MoveList GenerateMoves(const Position& pos) {
 }
 
 template<MovesType Type>
-MoveList GenerateMoves(const Position& pos) {
+void GenerateMoves(const Position& pos, MoveList& list) {
   if (pos.is_white_move()) {
-    return GenerateMoves<Type, ColorType::kWhite>(pos);
+    GenerateMoves<Type, ColorType::kWhite>(pos, list);
+    return;
   }
-  return GenerateMoves<Type, ColorType::kBlack>(pos);
+  GenerateMoves<Type, ColorType::kBlack>(pos, list);
 }
 
 template<ColorType Color>
-bool IsLegalEP(const Position& pos, const Bitboard bb_from, const Square to, const Square king_sq) {
-  if (bb_from & pos.get_pinned_pieces()) {
+bool IsLegalEP(const Position& pos, const Square from, const Square to, const Square king_sq) {
+  Bitboard bb_from = ToBB(from);
+  if ((bb_from & pos.get_pinned_pieces()) && !(ToBB(to) & kLines[king_sq, from])) {
     return false;
   }
   const Direction shift = (Color == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
@@ -280,7 +280,7 @@ bool IsLegal(const Position& pos, const Move& move) {
   const Bitboard pinned_pieces = pos.get_pinned_pieces();
   if (pos.is_single_check()) {
     if (move.is_en_passant()) [[unlikely]] {
-      return IsLegalEP<Color>(pos, bb_from, to, king_sq);
+      return IsLegalEP<Color>(pos, from, to, king_sq);
     }
     if (pinned_pieces & bb_from) {
       return false;
@@ -289,7 +289,7 @@ bool IsLegal(const Position& pos, const Move& move) {
     return (bb_to & (kBetween[king_sq, attacker_sq] | ToBB(attacker_sq))) != 0;
   }
   if (move.is_en_passant()) [[unlikely]] {
-    return IsLegalEP<Color>(pos, bb_from, to, king_sq);
+    return IsLegalEP<Color>(pos, from, to, king_sq);
   }
   if ((bb_from & pinned_pieces) == 0) {
     return true;
@@ -298,10 +298,10 @@ bool IsLegal(const Position& pos, const Move& move) {
 }
 
 // explicit template instantiation
-template MoveList GenerateMoves<MovesType::kPseudo>(const Position& pos);
-template MoveList GenerateMoves<MovesType::kLegal>(const Position& pos);
-template MoveList GenerateMoves<MovesType::kCaptures>(const Position& pos);
-template MoveList GenerateMoves<MovesType::kChecks>(const Position& pos);
-template MoveList GenerateMoves<MovesType::kEvasions>(const Position& pos);
+template void GenerateMoves<MovesType::kPseudo>(const Position& pos, MoveList& list);
+template void GenerateMoves<MovesType::kLegal>(const Position& pos, MoveList& list);
+template void GenerateMoves<MovesType::kCaptures>(const Position& pos, MoveList& list);
+template void GenerateMoves<MovesType::kChecks>(const Position& pos, MoveList& list);
+template void GenerateMoves<MovesType::kEvasions>(const Position& pos, MoveList& list);
 
 }// namespace chess::move_generator
