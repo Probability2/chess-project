@@ -141,7 +141,7 @@ public:
   Bitboard get_king_attackers() const;
   Bitboard get_pinned_pieces() const;
 
-  Bitboard GetSquareAttackers(const Square sq, const Bitboard occupied) const;
+  Bitboard GetSquareAttackers(const Square sq, const Bitboard occupied, const Bitboard padding) const;
   bool is_single_check() const noexcept;
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;
@@ -172,7 +172,7 @@ private:
   // inline void ClearCastling(const uint8_t ind) noexcept;
   // inline void ClearCastling(const Square sq, const ColorType side) noexcept;
   inline void UpdateMoveClocks(const Move& move) noexcept;
-  inline void UpdateCastleFlags(const MoveFlag flag) noexcept;
+  inline void DoRookCastle(const MoveFlag flag) noexcept;
   inline void UndoRookCastle(const MoveFlag flag) noexcept;
 
   inline constexpr void PutPiece(const PieceType piece, const Square sq) noexcept {

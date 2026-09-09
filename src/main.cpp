@@ -38,12 +38,16 @@ int main(int argc, char** argv) {
   std::mt19937_64 magic_generator(rd());
 
   MoveList list;
-  auto def = kStartingPosition;
-  auto pos = chess::fen_manager::Get("rnbqkbnr/1p2pppp/p7/2Pp4/8/8/PPPKPPPP/RNBQ1BNR w kq d6 0 4");
-  // pos->GenerateMoves<MovesType::kLegal>(list);
-  // std::cout << list << '\n';
-  // std::cout << list.size() << '\n';
-  PerftPrint(*pos, 1);
+  auto pos1 = kStartingPosition;
+  auto pos2 = fen_manager::Get("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+  auto pos3 = (fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ")).value();
+  auto pos4 = (fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")).value();
+  auto pos5 = (fen_manager::Get("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ")).value();
+  auto pos6 = (fen_manager::Get("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ")).value();
+  for (int i = 1; i <= 6; ++i) {
+    PerftPrint(pos6, i);
+    std::cout << '\n';
+  }
 
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

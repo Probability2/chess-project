@@ -76,7 +76,7 @@ bool MoveList::empty() const {
 }
 
 void MoveList::push(const Move& move) {
-  assert(size_ < kMaxMoves && "Movelist overflow");
+  [[assume(size_ != kMaxMoves)]];
   moves_[size_++] = move;
 }
 
@@ -86,6 +86,7 @@ void MoveList::pop_back() {
 }
 
 const Move& MoveList::back() const {
+  [[assume(size_ != 0)]];
   return moves_[size_ - 1];
 }
 

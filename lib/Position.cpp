@@ -114,7 +114,7 @@ StateStack Position::GetStateStack() const {
 template<MovesType Type>
 void Position::GenerateMoves(MoveList& list) {
   CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
+  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0, 0);
   
   move_generator::GenerateMoves<Type>(*this, list);
 }
@@ -170,18 +170,15 @@ Bitboard Position::get_king_attackers() const {
   return info_.king_attackers_;
 }
 
-Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied) const {
-  if (sq == Square::kNone) {
-    std::cout << *this << '\n';
-  }
+Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied, const Bitboard padding) const {
   [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
-  const Bitboard blockers = get_all_pieces() & ~occupied;
+  const Bitboard blockers = (get_all_pieces() | padding) & ~occupied;
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? all_pieces_[0] : all_pieces_[1];
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
   attackers |= (attacks::kAttacks<PieceBase::kPawn>[side_to_move_, sq] &
-                get_piece_metric(PieceBase::kPawn & !side_to_move_));// pawn attacks
+                get_piece_metric(PieceBase::kPawn & !side_to_move_) & ~occupied);// pawn attacks
   attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &
                 get_piece_metric(PieceBase::kKnight & !side_to_move_));// knight attacks
   attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kRook & !side_to_move_));// rook attacks
@@ -235,7 +232,7 @@ void Position::CalculatePinnedPieces() noexcept {
 //   }
 // }
 
-inline void Position::UpdateCastleFlags(const MoveFlag flag) noexcept {
+inline void Position::DoRookCastle(const MoveFlag flag) noexcept {
   const int color = std::to_underlying(side_to_move_);
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   ClearSquare(kRookCastleSquares[castle_type][color]);
@@ -269,14 +266,14 @@ void Position::MakeMove(const Move& move) {
   const Square to = move.get_to();
   const PieceType piece = board_[from];
   ClearSquare(from);
-  if (move.is_en_passant()) {
+  if (move.is_castle()) [[unlikely]] {
+    DoRookCastle(move.get_flag());
+  } else if (move.is_en_passant()) [[unlikely]] {
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
     ClearSquare(to + shift);
   } else if (move.is_capture()) {
     info_.captured_piece_ = board_[to];
     ClearSquare(to);
-  }  else if (move.is_castle()) {
-    UpdateCastleFlags(move.get_flag());
   }
   state_stack_.push(info_);
   UpdateMoveClocks(move);

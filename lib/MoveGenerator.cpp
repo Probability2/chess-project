@@ -72,10 +72,12 @@ void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& 
   GeneratePawnPromotions(list, opponent_pieces & right_attacks & ~last_rank_mask & target_squares,
                                                              capture_right_shift, true);
   if (pos.is_en_passant()) {
+    constexpr Direction dir = (Color == ColorType::kWhite) ? Direction::kNorth : Direction::kSouth;
     Bitboard en_passant_mask = ToBB(pos.get_en_passant());
-    GenerateStandardPawnMoves(list, left_attacks & en_passant_mask & target_squares,
+    Bitboard ep_target_squares = ShiftDir(target_squares, dir);
+    GenerateStandardPawnMoves(list, left_attacks & en_passant_mask & ep_target_squares,
                                            capture_left_shift, MoveFlag::kEpCapture);
-    GenerateStandardPawnMoves(list, right_attacks & en_passant_mask & target_squares,
+    GenerateStandardPawnMoves(list, right_attacks & en_passant_mask & ep_target_squares,
                                            capture_right_shift, MoveFlag::kEpCapture);
   }
 }
@@ -205,7 +207,6 @@ void GenerateEvasions(MoveList& list, const Position& pos) {
   GenerateBishopMoves<Color>(list, pos, target_squares);
   GenerateRookMoves<Color>(list, pos, target_squares);
   GenerateQueenMoves<Color>(list, pos, target_squares);
-  // GeneratePieceEvasions<Color>(list, pos);
 }
 
 template<ColorType Color>
@@ -262,7 +263,7 @@ bool IsLegalEP(const Position& pos, const Square from, const Square to, const Sq
     return false;
   }
   const Direction shift = (Color == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
-  return pos.GetSquareAttackers(king_sq, bb_from | ToBB(to + shift)) == 0;
+  return pos.GetSquareAttackers(king_sq, bb_from | ToBB(to + shift), ToBB(to)) == 0;
 }
 
 template<ColorType Color>
@@ -273,13 +274,13 @@ bool IsLegal(const Position& pos, const Move& move) {
   const Bitboard bb_from = ToBB(from);
   const Square to = move.get_to();
   if (pos.PieceOn(from) == king) {
-    const Bitboard attackers = pos.GetSquareAttackers(to, bb_from);
+    const Bitboard attackers = pos.GetSquareAttackers(to, bb_from, 0);
     if (attackers != 0) {
       return false;
     }
     if (move.is_castle()) [[unlikely]] {
       const std::size_t ind = (move.is_king_castle()) ? 0 : 1;
-      return (!pos.is_check() && (pos.GetSquareAttackers(kCastleInterSq[ind][color_ind], bb_from) == 0));
+      return (!pos.is_check() && (pos.GetSquareAttackers(kCastleInterSq[ind][color_ind], bb_from, 0) == 0));
     }
     return true;
   }

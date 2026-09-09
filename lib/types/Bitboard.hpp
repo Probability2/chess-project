@@ -66,9 +66,9 @@ inline std::ostream& operator<<(std::ostream& os, const Square sq) {
   return os;
 }
 
-constexpr Square operator++(const Square sq) {
-  return static_cast<Square>(std::to_underlying(sq) + 1);
-}
+// constexpr Square operator++(const Square sq) {
+//   return static_cast<Square>(std::to_underlying(sq) + 1);
+// }
 
 inline Square operator-(const Square sq, const int dir) {
   const uint8_t sq_val = std::to_underlying(sq);
@@ -88,9 +88,9 @@ inline Square operator+(const Square sq, const Direction dir) {
   return sq + std::to_underlying(dir);
 }
 
-inline Bitboard operator<<(const Bitboard base, const Square sq) {
-  return base << std::to_underlying(sq);
-}
+// inline Bitboard operator<<(const Bitboard base, const Square sq) {
+//   return base << std::to_underlying(sq);
+// }
 
 template<typename T>
 struct LookupTable {
