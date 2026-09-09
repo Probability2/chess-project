@@ -7,6 +7,9 @@ project(
     LANGUAGES CXX
 )
 
+include(CheckIPOSupported)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 add_compile_options(-O3 -march=native)
 
 set(CMAKE_CXX_STANDARD 23)

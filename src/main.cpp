@@ -37,8 +37,13 @@ int main(int argc, char** argv) {
   std::random_device rd;
   std::mt19937_64 magic_generator(rd());
 
-  auto pos = kStartingPosition;
-  PerftPrint(pos, 6);
+  MoveList list;
+  auto def = kStartingPosition;
+  auto pos = chess::fen_manager::Get("rnbqkbnr/1p2pppp/p7/2Pp4/8/8/PPPKPPPP/RNBQ1BNR w kq d6 0 4");
+  // pos->GenerateMoves<MovesType::kLegal>(list);
+  // std::cout << list << '\n';
+  // std::cout << list.size() << '\n';
+  PerftPrint(*pos, 1);
 
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

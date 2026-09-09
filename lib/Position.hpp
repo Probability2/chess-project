@@ -57,19 +57,15 @@ public:
       SetSquare(p, x, y + i);
     }
   }
-  
-  constexpr void SetSquare(const PieceType piece, const Square sq) {
-    ClearSquare(sq);
-    board_[sq] = piece;
-    if (piece == PieceType::kNone) {
-      return;
-    }
-    AddSquareMask(piece, ToBB(sq));
-  }
 
   //A1 = 0, H8 = 63
   constexpr void SetSquare(const PieceType piece, const std::size_t x, const std::size_t y) {
-    SetSquare(piece, coord(x, y));
+    Square sq = coord(x, y);
+    if (piece == PieceType::kNone) {
+      board_[sq] = piece;
+      return;
+    }
+    PutPiece(piece, sq);
   }
 
   inline constexpr void ClearSquare(const Square sq) {
@@ -82,17 +78,11 @@ public:
     board_[sq] = PieceType::kNone;
   }
 
-  inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
-    [[assume(piece != PieceType::kNone)]];
-    all_pieces_[std::to_underlying(Color(piece))] |= mask;
-    PieceOccupied(piece) |= mask;
-  }
-
-  constexpr PieceType get_piece(const int x, const int y) const noexcept {
+  inline constexpr PieceType PieceOn(const int x, const int y) const noexcept {
     return board_[coord(x, y)];
   }
 
-  constexpr PieceType get_piece(const Square sq) const noexcept {
+  inline constexpr PieceType PieceOn(const Square sq) const noexcept {
     return board_[sq];
   }
 
@@ -159,6 +149,8 @@ public:
   void MakeMove(const Move& move);
   void UnmakeMove(const Move& move);
 
+  bool IsPinned(const Square sq) const noexcept;
+
 private:
   LookupTable<PieceType> board_{};
   std::array<Bitboard, kPieceCount> pieces_{};
@@ -168,21 +160,32 @@ private:
   InternalInfo info_{};
   StateStack state_stack_{};
 
-  template<PieceBase Base>
-  Bitboard GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) const;
+  template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
+  void GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) noexcept;
 
   constexpr Bitboard& PieceOccupied(const PieceType piece) {
     [[assume(piece != PieceType::kNone)]];
     return pieces_[std::to_underlying(piece) - 1];
   }
   
-  void CalculatePinnedPieces();
-  inline void ClearCastling(const uint8_t ind);
-  inline void ClearCastling(const Square sq, const ColorType side);
-  inline void UpdateMoveClocks(const Move& move);
-  inline void UpdateCastleFlags(const MoveFlag flag);
-  inline void UndoRookCastle(const MoveFlag flag);
-  void PutPiece(const PieceType piece, const Square sq);
+  void CalculatePinnedPieces() noexcept;
+  // inline void ClearCastling(const uint8_t ind) noexcept;
+  // inline void ClearCastling(const Square sq, const ColorType side) noexcept;
+  inline void UpdateMoveClocks(const Move& move) noexcept;
+  inline void UpdateCastleFlags(const MoveFlag flag) noexcept;
+  inline void UndoRookCastle(const MoveFlag flag) noexcept;
+
+  inline constexpr void PutPiece(const PieceType piece, const Square sq) noexcept {
+    [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
+    board_[sq] = piece;
+    AddSquareMask(piece, ToBB(sq));
+  }
+
+  inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
+    [[assume(piece != PieceType::kNone)]];
+    all_pieces_[std::to_underlying(Color(piece))] |= mask;
+    PieceOccupied(piece) |= mask;
+  }
 };
 
 namespace internal {

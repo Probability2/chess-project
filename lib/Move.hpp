@@ -42,6 +42,8 @@ public:
   bool is_promotion() const;
   bool is_en_passant() const;
   bool is_castle() const;
+  bool is_king_castle() const;
+  bool is_queen_castle() const;
   bool is_50_moves_eligible() const;
 
 private:

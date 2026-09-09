@@ -263,7 +263,7 @@ inline const auto kSlidingTable = []() {
 template<PieceBase Piece> requires SlidingPiece<Piece>
 inline Bitboard SlidingAttacks(const Square sq, const Bitboard occupied) {
   std::size_t index = ((occupied & kAttacks<Piece>[sq]) * internal::kMagicBitboards<Piece>[sq]) >>
-                                                                      internal::kShifts<Piece>[sq];
+                                                                       internal::kShifts<Piece>[sq];
   return internal::kSlidingTable<Piece>[sq, index];
 };
 

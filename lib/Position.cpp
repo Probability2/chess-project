@@ -171,13 +171,16 @@ Bitboard Position::get_king_attackers() const {
 }
 
 Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied) const {
+  if (sq == Square::kNone) {
+    std::cout << *this << '\n';
+  }
   [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
   const Bitboard blockers = get_all_pieces() & ~occupied;
   const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? all_pieces_[0] : all_pieces_[1];
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
-  attackers |= (attacks::kAttacks<PieceBase::kPawn>[!side_to_move_, sq] &
+  attackers |= (attacks::kAttacks<PieceBase::kPawn>[side_to_move_, sq] &
                 get_piece_metric(PieceBase::kPawn & !side_to_move_));// pawn attacks
   attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &
                 get_piece_metric(PieceBase::kKnight & !side_to_move_));// knight attacks
@@ -190,62 +193,63 @@ Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied) 
   return attackers;
 }
 
-template<PieceBase Base>
-Bitboard Position::GetPinsBySlidingPiece(const Square king_sq, const Bitboard occupied,
-                                                                   const Bitboard pieces) const {
-  Bitboard pinned_pieces = 0;
-  BitLooping(pieces, [&pinned_pieces, occupied, king_sq](const Square sq) {
+bool Position::IsPinned(const Square sq) const noexcept {
+  return (info_.pinned_pieces_ & ToBB(sq)) != 0;
+}
+
+template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
+void Position::GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occupied,
+                                                               const Bitboard pieces) noexcept {
+  BitLooping(pieces & attacks::SlidingAttacks<Piece>(king_sq, 0), [this, occupied, king_sq](const Square sq) {
     Bitboard line = occupied & kBetween[king_sq, sq];
     if (std::popcount(line) == 1) {
-      pinned_pieces |= line;
+      info_.pinned_pieces_ |= line;
     }
   });
-
-  return pinned_pieces;
 }
 
-void Position::CalculatePinnedPieces() {
-  info_.pinned_pieces_ = 0;
+void Position::CalculatePinnedPieces() noexcept {
   const Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
   const Bitboard all_pieces = get_all_pieces();
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
-                                  get_piece_metric(PieceBase::kRook & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
-                                  get_piece_metric(PieceBase::kBishop & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
-                                  get_piece_metric(PieceBase::kQueen & !side_to_move_));
-  info_.pinned_pieces_ |= GetPinsBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
-                                  get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  info_.pinned_pieces_ = 0;
+  GetPinnedBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
+                               get_piece_metric(PieceBase::kRook & !side_to_move_));
+  GetPinnedBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
+                               get_piece_metric(PieceBase::kBishop & !side_to_move_));
+  GetPinnedBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
+                               get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  GetPinnedBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
+                               get_piece_metric(PieceBase::kQueen & !side_to_move_));
 }
 
-inline void Position::ClearCastling(const uint8_t ind) {
-  info_.castling_rights_ &= ~(1 << ind);
-}
+// inline void Position::ClearCastling(const uint8_t ind) noexcept {
+//   info_.castling_rights_ &= ~(1 << ind);
+// }
 
-inline void Position::ClearCastling(const Square sq, const ColorType side) {
-  const int ind = std::to_underlying(side);
-  if (sq == kRookCastleSquares[0][ind]) {
-    ClearCastling(2 * ind + 0);
-  } else if (sq == kRookCastleSquares[1][ind]) {
-    ClearCastling(2 * ind + 1);
-  }
-}
+// inline void Position::ClearCastling(const Square sq, const ColorType side) noexcept {
+//   const int ind = std::to_underlying(side);
+//   if (sq == kRookCastleSquares[0][ind]) {
+//     ClearCastling(2 * ind + 0);
+//   } else if (sq == kRookCastleSquares[1][ind]) {
+//     ClearCastling(2 * ind + 1);
+//   }
+// }
 
-inline void Position::UpdateCastleFlags(const MoveFlag flag) {
+inline void Position::UpdateCastleFlags(const MoveFlag flag) noexcept {
   const int color = std::to_underlying(side_to_move_);
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   ClearSquare(kRookCastleSquares[castle_type][color]);
-  SetSquare(PieceBase::kRook & side_to_move_, kCastleInterSq[castle_type][color]);
+  PutPiece(PieceBase::kRook & side_to_move_, kCastleInterSq[castle_type][color]);
 }
 
-inline void Position::UndoRookCastle(const MoveFlag flag) {
+inline void Position::UndoRookCastle(const MoveFlag flag) noexcept {
   const int color = std::to_underlying(side_to_move_);
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   ClearSquare(kCastleInterSq[castle_type][color]);
-  SetSquare(PieceBase::kRook & side_to_move_, kRookCastleSquares[castle_type][color]);
+  PutPiece(PieceBase::kRook & side_to_move_, kRookCastleSquares[castle_type][color]);
 }
 
-inline void Position::UpdateMoveClocks(const Move& move) {
+inline void Position::UpdateMoveClocks(const Move& move) noexcept {
   halfmoves_++;
   if (move.is_50_moves_eligible() && (board_[move.get_from()] != (PieceBase::kPawn & side_to_move_))) {
     info_.no_capture_moves_++;
@@ -254,24 +258,18 @@ inline void Position::UpdateMoveClocks(const Move& move) {
   }
 }
 
-void Position::PutPiece(const PieceType piece, const Square sq) {
-  if (piece == PieceType::kNone) {
-    std::cout << GetPieceIcon(piece) << '\n';
-    std::cout << *this << '\n';
-  }
-  [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
-  board_[sq] = piece;
-  AddSquareMask(piece, ToBB(sq));
-}
+// inline void Position::PutPiece(const PieceType piece, const Square sq) noexcept {
+//   [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
+//   board_[sq] = piece;
+//   AddSquareMask(piece, ToBB(sq));
+// }
 
 void Position::MakeMove(const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
   const PieceType piece = board_[from];
-  UpdateMoveClocks(move);
   ClearSquare(from);
   if (move.is_en_passant()) {
-    info_.captured_piece_ = (PieceBase::kPawn & !side_to_move_);
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
     ClearSquare(to + shift);
   } else if (move.is_capture()) {
@@ -281,9 +279,10 @@ void Position::MakeMove(const Move& move) {
     UpdateCastleFlags(move.get_flag());
   }
   state_stack_.push(info_);
+  UpdateMoveClocks(move);
   info_.en_passant_ = Square::kNone;
   if (Bitboard bb_to = ToBB(to); move.is_double_pawn_push() &&
-      (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
+     (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
                                                              ShiftDir(bb_to, Direction::kWest)))) {
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kNorth : Direction::kSouth;
     info_.en_passant_ = from + shift;
@@ -291,12 +290,12 @@ void Position::MakeMove(const Move& move) {
   info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   PutPiece((move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece, to);
   side_to_move_ = !side_to_move_;
-
-  CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
+  // CalculatePinnedPieces();
+  // info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
 }
 
 void Position::UnmakeMove(const Move& move) {
+  [[assume(halfmoves_ != 0)]];
   side_to_move_ = !side_to_move_;
   halfmoves_--;
   info_ = state_stack_.top();
@@ -317,7 +316,7 @@ void Position::UnmakeMove(const Move& move) {
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
   for (int i = chess::kMaxInd - 1; i >= 0; --i) {
     for (int j = 0; j < chess::kMaxInd; ++j) {
-      os << chess::GetPieceIcon(pos.get_piece(i, j)) << ' ';
+      os << chess::GetPieceIcon(pos.PieceOn(i, j)) << ' ';
     }
     os << '\n';
   }
@@ -329,7 +328,7 @@ std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
 std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPosition& flipped_pos) {
   for (std::size_t i = 0; i < chess::kMaxInd; ++i) {
     for (int j = chess::kMaxInd - 1; j >= 0; --j) {
-      os << chess::GetPieceIcon(flipped_pos.pos_.get_piece(i, j)) << ' ';
+      os << chess::GetPieceIcon(flipped_pos.pos_.PieceOn(i, j)) << ' ';
     }
     os << '\n';
   }

@@ -94,7 +94,7 @@ constexpr std::expected<void, std::string_view> ParseCastle(std::size_t& ind, st
       break;
     }
     ind++;
-    pos.set_castling(kMxCastles - std::ranges::distance(kCastleChars.begin(), it) - 1);
+    pos.set_castling(std::ranges::distance(kCastleChars.begin(), it));
   }
   if (ind == data.size()) {
     return std::unexpected(to_string(ErrorCode::kDataIsDamaged));

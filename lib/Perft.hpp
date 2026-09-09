@@ -8,19 +8,29 @@
 
 namespace chess {
 
-void Perft(Position& pos, const std::size_t curr_depth,
-           const std::size_t max_depth, std::size_t& nodes) {
-  if (curr_depth == max_depth) {
-    nodes++;
-    return;
+std::size_t Perft(Position& pos, const std::size_t depth) {
+  if (depth == 0) {
+    return 1ULL;
   }
+  std::size_t nodes = 0;
   MoveList list;
   pos.GenerateMoves<MovesType::kLegal>(list);
-  for (const auto& move : list.AsSpan()) {
+  if (depth == 1) {
+    // for (const auto& move : list.AsSpan()) {
+    //   if (move.is_castle()) {
+    //       // std::cout << move << " last move\n";
+    //       nodes++;
+    //     }
+    //   }
+    // return nodes;
+    return list.size();
+  }
+  for (const auto& move: list.AsSpan()) {
     pos.MakeMove(move);
-    Perft(pos, curr_depth + 1, max_depth, nodes);
+    nodes += Perft(pos, depth - 1);
     pos.UnmakeMove(move);
   }
+  return nodes;
 }
 
 void PerftPrint(Position& pos, const std::size_t depth) {
@@ -28,9 +38,17 @@ void PerftPrint(Position& pos, const std::size_t depth) {
     std::cout << " zeros\n";
     return;
   }
-  std::size_t nodes = 0;
   auto start_time = std::chrono::high_resolution_clock::now();
-  Perft(pos, 0, depth, nodes);
+  std::size_t nodes = 0;
+  MoveList list;
+  pos.GenerateMoves<MovesType::kLegal>(list);
+  for (const auto& move: list.AsSpan()) {
+    pos.MakeMove(move);
+    std::size_t num = Perft(pos, depth - 1);
+    std::cout << move << ": " << num << '\n';
+    nodes += num;
+    pos.UnmakeMove(move);
+  }
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
   std::cout << "Depth: " << depth << '\n';
@@ -41,16 +59,6 @@ void PerftPrint(Position& pos, const std::size_t depth) {
   } else {
     std::cout << "NPS: " << (nodes * 1000) / duration << " nodes per second\n";
   }
-}
-
-std::size_t Perft(Position& pos, const std::size_t depth) {
-  if (depth == 0) {
-    return 1;
-  }
-  std::size_t nodes = 0;
-  Perft(pos, 0, depth, nodes);
-  
-  return nodes;
 }
 
 }

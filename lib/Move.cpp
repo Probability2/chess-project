@@ -46,6 +46,14 @@ bool Move::is_castle() const{
   return get_flag() == MoveFlag::kKingCastle || get_flag() == MoveFlag::kQueenCastle;
 }
 
+bool Move::is_king_castle() const {
+  return get_flag() == MoveFlag::kKingCastle;
+}
+
+bool Move::is_queen_castle() const {
+  return get_flag() == MoveFlag::kQueenCastle;
+}
+
 bool Move::is_50_moves_eligible() const {
   const MoveFlag flag = get_flag();
   return (flag == MoveFlag::kQuiet) || (flag == MoveFlag::kKingCastle) || (flag == MoveFlag::kQueenCastle);

@@ -98,7 +98,7 @@ struct LookupTable {
 
   bool operator==(const LookupTable& other) const = default;
 
-  constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
+  inline constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
     [[assume(sq != Square::kNone)]];
     return self.table_[std::to_underlying(sq)];
   }
@@ -113,7 +113,7 @@ struct MultiLookupTable {
 
   bool operator==(const MultiLookupTable& other) const = default;
 
-  constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
+  inline constexpr decltype(auto) operator[](this auto& self, const EnumClass auto ind, const Square sq) noexcept {
     [[assume(sq != Square::kNone)]];
     return self.table_[std::to_underlying(ind)][std::to_underlying(sq)];
   }
@@ -145,7 +145,7 @@ inline constexpr auto kCastlingRights = []() {
       case Square::A8: rights[sq] = 0x07; break;
       case Square::E8: rights[sq] = 0x03; break;
       case Square::H8: rights[sq] = 0x0B; break;
-      default: rights[sq] = 0xFF;
+      default: rights[sq] = 0x0F;
     }
   }
 
@@ -176,11 +176,6 @@ inline void PrintBitboard(const Bitboard b) {
     std::cout << "| " << rank << '\n';
   }
 }
-
-// inline std::string get_notation(const uint8_t move) {
-//   return std::string{static_cast<char>((move & 0x07) + 'a'),
-//                      static_cast<char>(((move >> 3) & 0x07) + '1')};
-// }
 
 inline constexpr Square GetLSB(Bitboard bb) {
   const uint8_t ind = std::countr_zero(bb);
