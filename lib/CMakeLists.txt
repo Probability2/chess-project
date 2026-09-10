@@ -1,10 +1,13 @@
-add_library(ChessLibrary 
-    History.cpp
+add_library(ChessLibrary
     Position.cpp
     FileManager.cpp
     MoveGenerator.cpp
     Move.cpp
     Perft.hpp
+    Evaluation.hpp
+    Evaluation.cpp
+    Search.hpp
+    Uci.hpp
 )
 
 # target_link_libraries(ChessLibrary 

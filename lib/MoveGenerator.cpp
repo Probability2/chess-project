@@ -84,7 +84,6 @@ void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& 
 
 template<ColorType Color>
 void GeneratePawnMoves(MoveList& list, const Position& pos, const Bitboard target_squares) {
-  constexpr PieceType king = (PieceBase::kKing & Color);
   constexpr PieceType pawn = (PieceBase::kPawn & Color);
   const Bitboard pawns = pos.get_piece_metric(pawn);
   const Bitboard pinned_pieces = pos.get_pinned_pieces();
@@ -172,7 +171,7 @@ Bitboard GetAttackerLines(const Position& pos, const Square from) {
   const Bitboard attackers = pos.get_king_attackers();
   Bitboard attacker_lines = 0;
   BitLooping(attackers, [&pos, &attacker_lines, from](const Square sq) {
-    if (is_sliding(pos.PieceOn(sq))) {
+    if (IsSliding(pos.PieceOn(sq))) {
       attacker_lines |= kLines[from, sq];
       attacker_lines ^= ToBB(sq);
     }
@@ -223,7 +222,10 @@ void GenerateLegalMoves(MoveList& list, const Position& pos) {
   while (ind < list.size()) {
     Move move = list[ind];
     Square from = move.get_from();
-    if ((!pos.IsPinned(from) && from != king_sq && !move.is_en_passant()) || IsLegal<Color>(pos, move)) {
+    const bool is_pinned = pos.IsPinned(from);
+    if (!move.is_en_passant() && (!is_pinned && from != king_sq) ||
+       (is_pinned && (ToBB(move.get_to()) & kLines[king_sq, from])) ||
+        IsLegal<Color>(pos, move)) {
       ind++;
       continue;
     }
@@ -274,8 +276,7 @@ bool IsLegal(const Position& pos, const Move& move) {
   const Bitboard bb_from = ToBB(from);
   const Square to = move.get_to();
   if (pos.PieceOn(from) == king) {
-    const Bitboard attackers = pos.GetSquareAttackers(to, bb_from, 0);
-    if (attackers != 0) {
+    if (pos.GetSquareAttackers(to, bb_from, 0) != 0) {
       return false;
     }
     if (move.is_castle()) [[unlikely]] {
@@ -284,29 +285,30 @@ bool IsLegal(const Position& pos, const Move& move) {
     }
     return true;
   }
-  if (pos.is_double_check()) [[unlikely]] {
-    return false;
-  }
-  const Bitboard pinned_pieces = pos.get_pinned_pieces();
-  const Square king_sq = GetLSB(pos.get_piece_metric(king));
-  const Bitboard bb_to = ToBB(to);
-  if (pos.is_single_check()) {
-    if (move.is_en_passant()) [[unlikely]] {
-      return IsLegalEP<Color>(pos, from, to, king_sq);
-    }
-    if (pinned_pieces & bb_from) {
-      return false;
-    }
-    const Square attacker_sq = GetLSB(pos.get_king_attackers());
-    return (bb_to & (kBetween[king_sq, attacker_sq] | ToBB(attacker_sq))) != 0;
-  }
-  if (move.is_en_passant()) [[unlikely]] {
-    return IsLegalEP<Color>(pos, from, to, king_sq);
-  }
-  if ((bb_from & pinned_pieces) == 0) {
-    return true;
-  }
-  return (bb_to & kLines[GetLSB(pos.get_piece_metric(king)), from]) != 0;
+  // if (pos.is_double_check()) [[unlikely]] {
+  //   return false;
+  // }
+  return IsLegalEP<Color>(pos, from, to, GetLSB(pos.get_piece_metric(king)));
+  // const Bitboard pinned_pieces = pos.get_pinned_pieces();
+  // const Square king_sq = GetLSB(pos.get_piece_metric(king));
+  // const Bitboard bb_to = ToBB(to);
+  // if (pos.is_single_check()) {
+  //   if (move.is_en_passant()) [[unlikely]] {
+  //     return IsLegalEP<Color>(pos, from, to, king_sq);
+  //   }
+  //   if (pinned_pieces & bb_from) {
+  //     return false;
+  //   }
+  //   const Square attacker_sq = GetLSB(pos.get_king_attackers());
+  //   return (bb_to & (kBetween[king_sq, attacker_sq] | ToBB(attacker_sq))) != 0;
+  // }
+  // if (move.is_en_passant()) [[unlikely]] {
+  //   return IsLegalEP<Color>(pos, from, to, king_sq);
+  // }
+  // if ((bb_from & pinned_pieces) == 0) {
+  //   return true;
+  // }
+  // return (bb_to & kLines[GetLSB(pos.get_piece_metric(king)), from]) != 0;
 }
 
 // explicit template instantiation

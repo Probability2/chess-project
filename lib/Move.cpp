@@ -59,11 +59,16 @@ bool Move::is_50_moves_eligible() const {
   return (flag == MoveFlag::kQuiet) || (flag == MoveFlag::kKingCastle) || (flag == MoveFlag::kQueenCastle);
 }
 
+Move::operator bool() const {
+  return move_val_ != 0;
+}
+
 std::size_t MoveList::size() const {
   return size_;
 }
 
 std::span<const Move> MoveList::AsSpan() const {
+  [[assume(size_ <= kMaxMoves)]];
   return std::span<const Move>{moves_}.first(size_);
 }
 
@@ -90,12 +95,11 @@ const Move& MoveList::back() const {
   return moves_[size_ - 1];
 }
 
-std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
+std::ostream& operator<<(std::ostream& os, const Move& move) {
   const uint8_t from_shift = std::to_underlying(move.get_from());
   const uint8_t to_shift = std::to_underlying(move.get_to());
-  os << static_cast<char>('a' + (from_shift & 7))
-     << static_cast<char>('1' + (from_shift >> 3 & 7)) << '-' << static_cast<char>('a' + (to_shift & 7))
-     << static_cast<char>('1' + (to_shift >> 3 & 7));
+  os << move.get_from() << '-' << static_cast<char>('a' + (to_shift & 7))
+  << static_cast<char>('1' + (to_shift >> 3 & 7));
   if (move.is_promotion()) {
     os << GetPieceCode(move.get_promoted_piece());
   }
@@ -103,12 +107,13 @@ std::ostream& operator<<(std::ostream& os, const chess::Move& move) {
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const chess::MoveList& list) {
+std::ostream& operator<<(std::ostream& os, const MoveList& list) {
   for (auto move: list.AsSpan()) {
     os << move << ", ";
   }
 
   return os;
 }
+
 
 }// namespace chess

@@ -16,13 +16,6 @@ std::size_t Perft(Position& pos, const std::size_t depth) {
   MoveList list;
   pos.GenerateMoves<MovesType::kLegal>(list);
   if (depth == 1) {
-    // for (const auto& move : list.AsSpan()) {
-    //   if (move.is_castle()) {
-    //       // std::cout << move << " last move\n";
-    //       nodes++;
-    //     }
-    //   }
-    // return nodes;
     return list.size();
   }
   for (const auto& move: list.AsSpan()) {
@@ -38,7 +31,7 @@ void PerftPrint(Position& pos, const std::size_t depth) {
     std::cout << " zeros\n";
     return;
   }
-  auto start_time = std::chrono::high_resolution_clock::now();
+  auto start_time = std::chrono::steady_clock::now();
   std::size_t nodes = 0;
   MoveList list;
   pos.GenerateMoves<MovesType::kLegal>(list);
@@ -49,15 +42,17 @@ void PerftPrint(Position& pos, const std::size_t depth) {
     nodes += num;
     pos.UnmakeMove(move);
   }
-  auto end_time = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+  auto end_time = std::chrono::steady_clock::now();
+  auto duration = end_time - start_time;
+  double seconds = std::chrono::duration<double>(duration).count();
+  // std::println("Depth: {}", depth);
   std::cout << "Depth: " << depth << '\n';
   std::cout << "Nodes: " << nodes << '\n';
-  std::cout << "Time: " << duration << '\n';
-  if (duration == 0) {
+  std::cout << "Time: " << seconds << "s\n";
+  if (seconds == 0) {
     std::cout << "Too fast to check NPS\n";
   } else {
-    std::cout << "NPS: " << (nodes * 1000) / duration << " nodes per second\n";
+    std::cout << "NPS: " << static_cast<int>(nodes / seconds) << " nodes per second\n";
   }
 }
 

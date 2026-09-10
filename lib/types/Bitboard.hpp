@@ -88,13 +88,18 @@ inline Square operator+(const Square sq, const Direction dir) {
   return sq + std::to_underlying(dir);
 }
 
+inline Square operator~(const Square sq) {
+  [[assume(sq != Square::kNone)]];
+  return static_cast<Square>(std::to_underlying(sq) ^ 0b111000);
+}
+
 // inline Bitboard operator<<(const Bitboard base, const Square sq) {
 //   return base << std::to_underlying(sq);
 // }
 
 template<typename T>
 struct LookupTable {
-  std::array<T, kBoardSize> table_{};
+  std::array<T, kBoardSize> table_;
 
   bool operator==(const LookupTable& other) const = default;
 
@@ -109,7 +114,7 @@ concept EnumClass = std::is_scoped_enum_v<T>;
 
 template<std::size_t N>
 struct MultiLookupTable {
-  std::array<std::array<Bitboard, kBoardSize>, N> table_{};
+  std::array<std::array<Bitboard, kBoardSize>, N> table_;
 
   bool operator==(const MultiLookupTable& other) const = default;
 

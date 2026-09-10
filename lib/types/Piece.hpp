@@ -19,8 +19,6 @@ inline constexpr std::size_t kPieceBaseCount = 6;
 
 inline constexpr std::size_t kPieceCount = 12;
 
-inline constexpr std::size_t kMaxMoves = 256;
-
 enum class ColorType: uint8_t {
   kWhite, kBlack
 };
@@ -60,6 +58,9 @@ inline constexpr std::array<std::string, kPieceCount + 1> kPieceImages = {".", "
 
 inline constexpr std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
                                                                     'p', 'n', 'b', 'r', 'q', 'k'};
+
+inline constexpr std::array<std::array<char, 4>, 2> kPromotedPieces = {{{'N', 'B', 'R', 'Q'},
+                                                                        {'n', 'b', 'r', 'q'}}};
   
 inline constexpr ColorType Color(PieceType piece) {
   return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;
@@ -97,13 +98,13 @@ constexpr PieceType GetPieceType(char p) {
   return PieceType::kNone;
 }
 
-inline constexpr PieceBase GetPieceType(PieceType piece) {
+inline constexpr PieceBase GetPieceBase(PieceType piece) {
   const auto& map = (Color(piece) == ColorType::kWhite) ? kPieceMap[0] : kPieceMap[1];
   return static_cast<PieceBase>(std::ranges::find(map, piece) - map.begin());
 }
 
-inline bool is_sliding(const PieceType piece) {
-  const PieceBase base = GetPieceType(piece);
+inline bool IsSliding(const PieceType piece) {
+  const PieceBase base = GetPieceBase(piece);
   return (base == PieceBase::kBishop || base == PieceBase::kRook || base == PieceBase::kQueen);
 }
 

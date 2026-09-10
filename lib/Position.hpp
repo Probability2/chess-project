@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "../core/utils.hpp"
 #include "types/Attacks.hpp"
 #include "types/Bitboard.hpp"
 #include "Move.hpp"
@@ -119,6 +118,7 @@ public:
 
   bool is_white_move() const noexcept;
   bool is_en_passant() const noexcept;
+  ColorType side_to_move() const noexcept;
   std::size_t get_no_capture_moves() const noexcept;
   std::size_t get_move_number() const noexcept;
   Bitboard get_all_pieces() const noexcept;
@@ -150,6 +150,10 @@ public:
   void UnmakeMove(const Move& move);
 
   bool IsPinned(const Square sq) const noexcept;
+
+  const auto& GetPiecesArray() const noexcept;
+
+  Bitboard get_kings() const;
 
 private:
   LookupTable<PieceType> board_{};

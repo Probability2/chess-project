@@ -3,7 +3,11 @@
 #include "types/Piece.hpp"
 #include "types/Bitboard.hpp"
 
+#include <iostream>
+
 namespace chess {
+
+inline constexpr std::size_t kMaxMoves = 256;
 
 enum class MovesType: uint8_t {
   kPseudo, kLegal, kCaptures, kChecks, kEvasions
@@ -45,6 +49,8 @@ public:
   bool is_king_castle() const;
   bool is_queen_castle() const;
   bool is_50_moves_eligible() const;
+
+  operator bool() const;
 
 private:
   uint16_t move_val_ = 0;

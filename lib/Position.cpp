@@ -24,6 +24,7 @@ bool StateStack::operator==(const StateStack& other) const {
 }
 
 void StateStack::push(const InternalInfo& info) {
+  [[assume(size_ != kMaxHalfMoves)]];
   stack_[size_++] = info;
 }
 
@@ -89,6 +90,10 @@ Square Position::get_en_passant() const noexcept {
   return info_.en_passant_;
 }
 
+ColorType Position::side_to_move() const noexcept {
+  return side_to_move_;
+}
+
 std::string Position::get_castling_notation() const noexcept {
   std::string notation;
   for (int i = chess::kMxCastles - 1; i >= 0; --i) {
@@ -109,6 +114,14 @@ InternalInfo Position::GetInfo() const {
 
 StateStack Position::GetStateStack() const {
   return state_stack_;
+}
+
+const auto& Position::GetPiecesArray() const noexcept {
+  return pieces_;
+}
+
+Bitboard Position::get_kings() const {
+  return pieces_[5] | pieces_[11];
 }
 
 template<MovesType Type>
@@ -178,12 +191,12 @@ Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied, 
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
   attackers |= (attacks::kAttacks<PieceBase::kPawn>[side_to_move_, sq] &
-                get_piece_metric(PieceBase::kPawn & !side_to_move_) & ~occupied);// pawn attacks
+                get_piece_metric(PieceBase::kPawn & !side_to_move_) & ~occupied);
   attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &
-                get_piece_metric(PieceBase::kKnight & !side_to_move_));// knight attacks
-  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kRook & !side_to_move_));// rook attacks
-  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kBishop & !side_to_move_));// bishop attacks
-  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));// queen attacks
+                get_piece_metric(PieceBase::kKnight & !side_to_move_));
+  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kRook & !side_to_move_));
+  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kBishop & !side_to_move_));
+  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
   attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
   attackers |= (attacks::kAttacks<PieceBase::kKing>[sq] & get_piece_metric(PieceBase::kKing & !side_to_move_));
 
@@ -197,6 +210,7 @@ bool Position::IsPinned(const Square sq) const noexcept {
 template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
 void Position::GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occupied,
                                                                const Bitboard pieces) noexcept {
+  [[assume(king_sq != Square::kNone)]];
   BitLooping(pieces & attacks::SlidingAttacks<Piece>(king_sq, 0), [this, occupied, king_sq](const Square sq) {
     Bitboard line = occupied & kBetween[king_sq, sq];
     if (std::popcount(line) == 1) {
@@ -208,15 +222,18 @@ void Position::GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occu
 void Position::CalculatePinnedPieces() noexcept {
   const Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
   const Bitboard all_pieces = get_all_pieces();
+  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? get_white_pieces() : get_black_pieces();
   info_.pinned_pieces_ = 0;
-  GetPinnedBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
-                               get_piece_metric(PieceBase::kRook & !side_to_move_));
-  GetPinnedBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
-                               get_piece_metric(PieceBase::kBishop & !side_to_move_));
-  GetPinnedBySlidingPiece<PieceBase::kRook>(king_sq, all_pieces,
-                               get_piece_metric(PieceBase::kQueen & !side_to_move_));
-  GetPinnedBySlidingPiece<PieceBase::kBishop>(king_sq, all_pieces,
-                               get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  const Bitboard pinned_candidates = attacks::SlidingAttacks<PieceBase::kQueen>(king_sq, all_pieces) & own_pieces;
+  const Bitboard bishop_rays = attacks::SlidingAttacks<PieceBase::kBishop>(king_sq, all_pieces ^ pinned_candidates);
+  const Bitboard rook_rays = attacks::SlidingAttacks<PieceBase::kRook>(king_sq, all_pieces ^ pinned_candidates);
+  Bitboard bishop_pinners = bishop_rays & (get_piece_metric(PieceBase::kBishop & !side_to_move_) |
+                                           get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  Bitboard rook_pinners = rook_rays & (get_piece_metric(PieceBase::kRook & !side_to_move_) |
+                                       get_piece_metric(PieceBase::kQueen & !side_to_move_));
+  BitLooping(bishop_pinners | rook_pinners, [this, own_pieces, king_sq](const Square sq) {
+    info_.pinned_pieces_ |= (kBetween[king_sq, sq] & own_pieces);
+  });
 }
 
 // inline void Position::ClearCastling(const uint8_t ind) noexcept {
@@ -264,6 +281,7 @@ inline void Position::UpdateMoveClocks(const Move& move) noexcept {
 void Position::MakeMove(const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
+  [[assume(from != Square::kNone && to != Square::kNone)]];
   const PieceType piece = board_[from];
   ClearSquare(from);
   if (move.is_castle()) [[unlikely]] {
@@ -287,8 +305,6 @@ void Position::MakeMove(const Move& move) {
   info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   PutPiece((move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece, to);
   side_to_move_ = !side_to_move_;
-  // CalculatePinnedPieces();
-  // info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0);
 }
 
 void Position::UnmakeMove(const Move& move) {
