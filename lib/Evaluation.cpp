@@ -23,10 +23,9 @@ int Evaluate(const Position& pos) {
   BitLooping(pos.get_all_pieces() ^ pos.get_kings(), [&](const Square sq){
     const PieceType piece = pos.PieceOn(sq);
     const std::size_t base = std::to_underlying(GetPieceBase(piece));
-    const ColorType color = Color(piece);
-    if (color == ColorType::kWhite) {
+    if (Color(piece) == ColorType::kWhite) {
       w_pieces_value += (internal::kPieceValues[base] + internal::kPieceSquareTable[base][sq]);
-    } else if (color == ColorType::kBlack) {
+    } else {
       b_pieces_value += (internal::kPieceValues[base] + internal::kPieceSquareTable[base][~sq]);
     }
     phase -= internal::kPhaseValues[base];
@@ -36,7 +35,10 @@ int Evaluate(const Position& pos) {
   king_mg_value -= internal::kKingMgValues[~GetLSB(pos.get_piece_metric(black_king))];
   king_eg_value += internal::kKingEgValues[GetLSB(pos.get_piece_metric(white_king))];
   king_eg_value -= internal::kKingEgValues[~GetLSB(pos.get_piece_metric(black_king))];
-  const int score = (pos.is_white_move()) ? w_pieces_value - b_pieces_value : b_pieces_value - w_pieces_value;
+  const int perspective = (pos.is_white_move()) ? 1 : -1;
+  king_mg_value *= perspective;
+  king_eg_value *= perspective;
+  const int score = (w_pieces_value - b_pieces_value) * perspective;
   return ((score + king_mg_value) * (256 - phase) +
           (score + king_eg_value) * phase) / 256;
 }

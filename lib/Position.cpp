@@ -96,9 +96,9 @@ ColorType Position::side_to_move() const noexcept {
 
 std::string Position::get_castling_notation() const noexcept {
   std::string notation;
-  for (int i = chess::kMxCastles - 1; i >= 0; --i) {
+  for (int i = 0; i < chess::kMxCastles; ++i) {
     if ((info_.castling_rights_ >> i) & 1) {
-      notation += chess::kCastleChars[chess::kMxCastles - i - 1];
+      notation += chess::kCastleChars[i];
     }
   }
   if (notation.empty()) {
@@ -356,6 +356,7 @@ template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list);
 template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list);
 template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list);
 template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list);
 
 }// namespace chess
 

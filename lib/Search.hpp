@@ -47,6 +47,9 @@ Move GetBestMove(Position& pos, const int depth) {
     return Move();
   }
   Move best_move = list[0];
+  if (list.size() == 1) {
+    return best_move;
+  }
   int alpha = -kInfinity;
   int beta = +kInfinity;
   for (const auto& move: list.AsSpan()) {

@@ -10,7 +10,7 @@ namespace chess {
 inline constexpr std::size_t kMaxMoves = 256;
 
 enum class MovesType: uint8_t {
-  kPseudo, kLegal, kCaptures, kChecks, kEvasions
+  kPseudo, kLegal, kCaptures, kChecks, kEvasions, kQuiets
 };
 
 enum class MoveFlag: uint8_t {

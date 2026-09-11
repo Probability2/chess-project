@@ -14,7 +14,6 @@
 
 #include <random>
 
-
 using namespace chess;
 
 constexpr int kEscapeCode = 0x1b;
@@ -40,46 +39,19 @@ int main(int argc, char** argv) {
 
   MoveList list;
   auto pos1 = kStartingPosition;
-  // auto pos2 = fen_manager::Get("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ").value();
-  // auto pos3 = (fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ")).value();
-  // auto pos4 = (fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")).value();
-  // auto pos5 = (fen_manager::Get("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ")).value();
-  // auto pos6 = (fen_manager::Get("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ")).value();
+  auto pos2 = fen_manager::Get("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ").value();
+  auto pos3 = (fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ")).value();
+  auto pos4 = (fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")).value();
+  auto pos5 = (fen_manager::Get("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ")).value();
+  auto pos6 = (fen_manager::Get("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ")).value();
 
-  auto pos = kStartingPosition;
-  ColorType engine_side = pos.side_to_move();
-  ColorType side_to_move = engine_side;
-  for (;;) {
-    std::cout << flipped(pos) << '\n';
-    MoveList list;
-    pos.GenerateMoves<MovesType::kLegal>(list);
-    if (list.empty()) {
-      if (pos.is_check()) {
-        std::cout << "Checkmate!\n";
-      } else {
-        std::cout << "Stalemate\n";
-      }
-      break;
-    }
-    chess::Move move;
-    if (side_to_move == engine_side) {
-      std::cout << GetBestMove(pos, 6) << " BEST!\n";
-      move = GetBestMove(pos, 6);
-      std::cout << "Engine's move is: " << move << '\n';
-    } else {
-      std::cout << "Your move: ";
-      while (!move) {
-        std::string str;
-        if (!std::getline(std::cin, str)) {
-          return EXIT_SUCCESS;
-        }
-        move = uci::UciToMove(str, pos);
-        std::cout << move << '\n';
-      }
-    }
-    pos.MakeMove(move);
-    side_to_move = !side_to_move;
-  }
+  auto pp = fen_manager::Get("1r2k1r1/pbppnp1p/1b3P2/8/Q7/B1PB1q2/P4PPP/3R2K1 w - - 0 1").value();
+  auto pp1 = fen_manager::Get("2q1k1nr/Q1Bn1ppp/4p3/5b2/2pP4/P3P3/3N1PPP/b3KB1R w Kk - 0 2").value();
+  auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
+  auto pp3 = fen_manager::Get("rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQ1RK1 b - - 4 6").value();
+
+  // PerftPrint(pos6, 6);
+  uci::BotsPlay(pp2, 11);
   
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {
