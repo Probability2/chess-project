@@ -34,7 +34,7 @@ inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
 
 template<>
 inline constexpr auto kAttacks<PieceBase::kKnight> = []() {
-  LookupTable<Bitboard> attacks{};
+  BoardLookup<Bitboard> attacks{};
   for (Square sq : Board) {
     Bitboard knight_coord = ToBB(sq);
     attacks[sq] = (knight_coord & kNotAFile & kNot78Rank) << 15; //e4->d6
@@ -52,7 +52,7 @@ inline constexpr auto kAttacks<PieceBase::kKnight> = []() {
 
 template<>
 inline constexpr auto kAttacks<PieceBase::kKing> = []() {
-  LookupTable<Bitboard> attacks{};
+  BoardLookup<Bitboard> attacks{};
   for (Square sq : Board) {
     const Bitboard king_sq = ToBB(sq);
     for (Direction dir: directions) {
@@ -89,7 +89,7 @@ inline constexpr Bitboard GetBishopSlides(const Square sq) {
 
 template<>
 inline constexpr auto kAttacks<PieceBase::kRook> = [](){
-  LookupTable<Bitboard> attacks{};
+  BoardLookup<Bitboard> attacks{};
   for (Square sq : Board) {
     attacks[sq] = internal::GetRookSlides(sq);
   }
@@ -99,7 +99,7 @@ inline constexpr auto kAttacks<PieceBase::kRook> = [](){
 
 template<>
 inline constexpr auto kAttacks<PieceBase::kBishop> = [](){
-  LookupTable<Bitboard> attacks{};
+  BoardLookup<Bitboard> attacks{};
   for (Square sq : Board) {
     attacks[sq] = internal::GetBishopSlides(sq);
   }
@@ -110,11 +110,11 @@ inline constexpr auto kAttacks<PieceBase::kBishop> = [](){
 namespace internal {
 
 template<PieceBase Piece>
-inline constexpr LookupTable<uint8_t> kShifts;// uknown piece
+inline constexpr BoardLookup<uint8_t> kShifts;// uknown piece
   
 template<>
 inline constexpr auto kShifts<PieceBase::kRook> = [](){
-  LookupTable<uint8_t> attacks{};
+  BoardLookup<uint8_t> attacks{};
   for (Square sq : Board) {
     attacks[sq] = static_cast<uint8_t>(kBoardSize - std::popcount(kAttacks<PieceBase::kRook>[sq]));
   }
@@ -124,7 +124,7 @@ inline constexpr auto kShifts<PieceBase::kRook> = [](){
   
 template<>
 inline constexpr auto kShifts<PieceBase::kBishop> = [](){
-  LookupTable<uint8_t> attacks{};
+  BoardLookup<uint8_t> attacks{};
   for (Square sq : Board) {
     attacks[sq] = static_cast<uint8_t>(kBoardSize - std::popcount(kAttacks<PieceBase::kBishop>[sq]));
   }
@@ -152,7 +152,7 @@ public:
 private:
   std::array<Bitboard, GetTotalConfigurations<Piece>()> attacks_{};
   static constexpr auto offsets_ = []() {
-    LookupTable<uint32_t> offsets{};
+    BoardLookup<uint32_t> offsets{};
     uint32_t curr_offset = 0;
     for (Square sq : Board) {
       offsets[sq] = curr_offset;
@@ -202,10 +202,10 @@ inline Bitboard GetAttackMask<PieceBase::kBishop>(const Square sq, const Bitboar
 }
 
 template<PieceBase Piece> requires SlidingPiece<Piece>
-inline constexpr LookupTable<Bitboard> kMagicBitboards;// unknown piece
+inline constexpr BoardLookup<Bitboard> kMagicBitboards;// unknown piece
 
 template<>
-inline constexpr LookupTable<Bitboard> kMagicBitboards<PieceBase::kRook> = {
+inline constexpr BoardLookup<Bitboard> kMagicBitboards<PieceBase::kRook> = {
   0xA080002150400089ULL, 0x5900235181004001ULL, 0xAD00290041600010ULL, 0x1080080086100080ULL, //A1-D1
   0x2A00082064500200ULL, 0x1500040026190048ULL, 0x1800E0016801500ULL,  0x100084C84210006ULL,  //E1-H1
   0x2C80218001C000ULL,   0x4068400AA0100042ULL, 0x4060022005480C0ULL,  0xA8150023004A9000ULL, //A2-D2
@@ -225,7 +225,7 @@ inline constexpr LookupTable<Bitboard> kMagicBitboards<PieceBase::kRook> = {
 };
 
 template<>
-inline constexpr LookupTable<Bitboard> kMagicBitboards<PieceBase::kBishop> = {
+inline constexpr BoardLookup<Bitboard> kMagicBitboards<PieceBase::kBishop> = {
   0xB084282248042101ULL, 0xC02104040894A19EULL, 0x2C8109400828200ULL, 0xD404040C84000109ULL,  //A1-D1
   0xC8A1104000005832ULL, 0x402080C251004C0ULL,  0x4129014720200231ULL, 0x280A008411961026ULL, //E1-H1
   0xC0020204031CULL,     0x403D284381E8100ULL,  0xC4500807D4088133ULL, 0xF800082046C90042ULL, //A2-D2

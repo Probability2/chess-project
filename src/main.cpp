@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
   std::mt19937_64 magic_generator(rd());
 
   MoveList list;
-  auto pos1 = kStartingPosition;
+  // auto pos1 = kStartingPosition;
   auto pos2 = fen_manager::Get("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ").value();
   auto pos3 = (fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ")).value();
   auto pos4 = (fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")).value();
@@ -48,10 +48,15 @@ int main(int argc, char** argv) {
   auto pp = fen_manager::Get("1r2k1r1/pbppnp1p/1b3P2/8/Q7/B1PB1q2/P4PPP/3R2K1 w - - 0 1").value();
   auto pp1 = fen_manager::Get("2q1k1nr/Q1Bn1ppp/4p3/5b2/2pP4/P3P3/3N1PPP/b3KB1R w Kk - 0 2").value();
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
-  auto pp3 = fen_manager::Get("rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/5NP1/PP2PPBP/RNBQ1RK1 b - - 4 6").value();
+  auto pp3 = fen_manager::Get("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").value();
 
-  // PerftPrint(pos6, 6);
-  uci::BotsPlay(pp2, 11);
+  // PerftPrint(kStartingPosition, 3);
+  
+  // for (int depth = 1; depth <= 9; ++depth) {
+  //   Search(pp3, depth, -kInfinity, kInfinity);
+  // }
+  // std::cout << kStartingPosition.GetWhiteScore() << '\n';
+  // uci::BotsPlay(fen_manager::Get("rnbqkbnr/pppp2pp/5p2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3").value(), 9);
   
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

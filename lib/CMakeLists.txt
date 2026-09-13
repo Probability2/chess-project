@@ -8,6 +8,8 @@ add_library(ChessLibrary
     Evaluation.cpp
     Search.hpp
     Uci.hpp
+    MovePicker.hpp
+    MovePicker.cpp
 )
 
 # target_link_libraries(ChessLibrary 

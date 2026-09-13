@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Evaluation.hpp"
+#include "MovePicker.hpp"
 #include "Position.hpp"
 
 #include <algorithm>
@@ -9,22 +10,19 @@ namespace chess {
 
 constexpr int kInfinity = 100000;
 
-int Search(Position& pos, const int depth, int alpha, int beta) { //negamax
-  if (depth == 0) {
-    //return QuiescenceSearch(alpha, beta); //till' there are no captures (+maybe checks)
-    return eval::Evaluate(pos);
+int QuiescenceSearch(Position& pos, int alpha, const int beta) {
+  int score = eval::Evaluate(pos);
+  if (score >= beta) {
+    return beta;
   }
-  MoveList list;
-  pos.GenerateMoves<MovesType::kLegal>(list);
-  if (list.empty()) {
-    if (pos.is_check()) {
-      return -kInfinity - depth;
-    }
-    return 0;
+  if (score > alpha) {
+    alpha = score;
   }
-  for (const auto& move: list.AsSpan()) {
+  MovePicker picker(pos, true);
+  while (picker.has_next()) {
+    Move move = picker.YieldMove();
     pos.MakeMove(move);
-    int score = -Search(pos, depth - 1, -beta, -alpha);
+    score = -QuiescenceSearch(pos, -beta, -alpha);
     pos.UnmakeMove(move);
     if (score >= beta) {
       return beta;
@@ -37,22 +35,44 @@ int Search(Position& pos, const int depth, int alpha, int beta) { //negamax
   return alpha;
 }
 
-Move GetBestMove(Position& pos, const int depth) {
+int Search(Position& pos, const int depth, int alpha, const int beta) { //negamax
+  if (depth == 0) {
+    return QuiescenceSearch(pos, alpha, beta); //till' there are no captures (+maybe checks)
+    // return eval::Evaluate(pos);
+  }
+  MovePicker picker(pos);
+  while (picker.has_next()) {
+    Move move = picker.YieldMove();
+    pos.MakeMove(move);
+    int score = -Search(pos, depth - 1, -beta, -alpha);
+    pos.UnmakeMove(move);
+    if (score >= beta) {
+      return beta;
+    }
+    if (score > alpha) {
+      alpha = score;
+    }
+  }
+  if (picker.empty()) {
+    if (pos.is_check()) {
+      return -kInfinity - depth;
+    }
+    return 0;
+  }
+
+  return alpha;
+}
+
+Move GetBestMove(Position pos, const int depth) {
   if (depth == 0) {
     return Move();
   }
-  MoveList list;
-  pos.GenerateMoves<MovesType::kLegal>(list);
-  if (list.empty()) {
-    return Move();
-  }
-  Move best_move = list[0];
-  if (list.size() == 1) {
-    return best_move;
-  }
+  MovePicker picker(pos);
+  Move best_move = Move();
   int alpha = -kInfinity;
   int beta = +kInfinity;
-  for (const auto& move: list.AsSpan()) {
+  while (picker.has_next()) {
+    Move move = picker.YieldMove();
     pos.MakeMove(move);
     int score = -Search(pos, depth - 1, -beta, -alpha);
     pos.UnmakeMove(move);
@@ -61,8 +81,11 @@ Move GetBestMove(Position& pos, const int depth) {
       best_move = move;
     }
   }
+  if (best_move || picker.empty()) {
+    return best_move;
+  }
 
-  return best_move;
+  return picker[0];
 }
 
 }

@@ -67,19 +67,24 @@ std::size_t Position::get_move_number() const noexcept {
 }
 
 Bitboard Position::get_all_pieces() const noexcept {
-  return all_pieces_[0] | all_pieces_[1];
+  return all_pieces_[ColorType::kWhite] | all_pieces_[ColorType::kBlack];
 }
 
 Bitboard Position::get_white_pieces() const noexcept {
-  return all_pieces_[0];
+  return all_pieces_[ColorType::kWhite];
 }
 
 Bitboard Position::get_black_pieces() const noexcept {
-  return all_pieces_[1];
+  return all_pieces_[ColorType::kBlack];
 }
 
-Bitboard Position::get_piece_metric(const PieceType piece) const {
-  return pieces_[std::to_underlying(piece) - 1];
+Bitboard Position::get_pieces(ColorType color) const noexcept {
+  return all_pieces_[color];
+}
+
+Bitboard Position::get_piece_metric(const PieceType piece) const noexcept {
+  [[assume(piece != PieceType::kNone)]];
+  return pieces_[piece];
 }
 
 uint8_t Position::get_castles() const noexcept {
@@ -96,7 +101,7 @@ ColorType Position::side_to_move() const noexcept {
 
 std::string Position::get_castling_notation() const noexcept {
   std::string notation;
-  for (int i = 0; i < chess::kMxCastles; ++i) {
+  for (std::size_t i = 0; i < chess::kMxCastles; ++i) {
     if ((info_.castling_rights_ >> i) & 1) {
       notation += chess::kCastleChars[i];
     }
@@ -116,19 +121,17 @@ StateStack Position::GetStateStack() const {
   return state_stack_;
 }
 
-const auto& Position::GetPiecesArray() const noexcept {
-  return pieces_;
-}
-
 Bitboard Position::get_kings() const {
-  return pieces_[5] | pieces_[11];
+  return pieces_[PieceType::kWhiteKing] | pieces_[PieceType::kBlackKing];
 }
 
 template<MovesType Type>
-void Position::GenerateMoves(MoveList& list) {
-  CalculatePinnedPieces();
-  info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0, 0);
-  
+void Position::GenerateMoves(MoveList& list) const {
+  if (!info_.is_calculated_) {
+    CalculatePinnedPieces();
+    info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0, 0);
+    info_.is_calculated_ = true;
+  }
   move_generator::GenerateMoves<Type>(*this, list);
 }
 
@@ -187,7 +190,7 @@ Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied, 
   [[assume(sq != Square::kNone)]];
   Bitboard attackers = 0;
   const Bitboard blockers = (get_all_pieces() | padding) & ~occupied;
-  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? all_pieces_[0] : all_pieces_[1];
+  const Bitboard own_pieces = get_pieces(side_to_move_);
   Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
   Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
   attackers |= (attacks::kAttacks<PieceBase::kPawn>[side_to_move_, sq] &
@@ -209,7 +212,7 @@ bool Position::IsPinned(const Square sq) const noexcept {
 
 template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
 void Position::GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occupied,
-                                                               const Bitboard pieces) noexcept {
+                                                             const Bitboard pieces) noexcept {
   [[assume(king_sq != Square::kNone)]];
   BitLooping(pieces & attacks::SlidingAttacks<Piece>(king_sq, 0), [this, occupied, king_sq](const Square sq) {
     Bitboard line = occupied & kBetween[king_sq, sq];
@@ -219,10 +222,10 @@ void Position::GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occu
   });
 }
 
-void Position::CalculatePinnedPieces() noexcept {
+void Position::CalculatePinnedPieces() const noexcept {
   const Square king_sq = GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_));
   const Bitboard all_pieces = get_all_pieces();
-  const Bitboard own_pieces = (side_to_move_ == ColorType::kWhite) ? get_white_pieces() : get_black_pieces();
+  const Bitboard own_pieces = get_pieces(side_to_move_);
   info_.pinned_pieces_ = 0;
   const Bitboard pinned_candidates = attacks::SlidingAttacks<PieceBase::kQueen>(king_sq, all_pieces) & own_pieces;
   const Bitboard bishop_rays = attacks::SlidingAttacks<PieceBase::kBishop>(king_sq, all_pieces ^ pinned_candidates);
@@ -236,31 +239,23 @@ void Position::CalculatePinnedPieces() noexcept {
   });
 }
 
-// inline void Position::ClearCastling(const uint8_t ind) noexcept {
-//   info_.castling_rights_ &= ~(1 << ind);
-// }
-
-// inline void Position::ClearCastling(const Square sq, const ColorType side) noexcept {
-//   const int ind = std::to_underlying(side);
-//   if (sq == kRookCastleSquares[0][ind]) {
-//     ClearCastling(2 * ind + 0);
-//   } else if (sq == kRookCastleSquares[1][ind]) {
-//     ClearCastling(2 * ind + 1);
-//   }
-// }
-
-inline void Position::DoRookCastle(const MoveFlag flag) noexcept {
-  const int color = std::to_underlying(side_to_move_);
-  const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
-  ClearSquare(kRookCastleSquares[castle_type][color]);
-  PutPiece(PieceBase::kRook & side_to_move_, kCastleInterSq[castle_type][color]);
+int Position::GetWhiteScore() const noexcept {
+  return info_.score_;
 }
 
 inline void Position::UndoRookCastle(const MoveFlag flag) noexcept {
-  const int color = std::to_underlying(side_to_move_);
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
-  ClearSquare(kCastleInterSq[castle_type][color]);
-  PutPiece(PieceBase::kRook & side_to_move_, kRookCastleSquares[castle_type][color]);
+  ClearSquare(kCastleInterSq[castle_type][side_to_move_]);
+  PutPiece(PieceBase::kRook & side_to_move_, kRookCastleSquares[castle_type][side_to_move_]);
+}
+
+inline void Position::DoRookCastle(const MoveFlag flag) noexcept {
+  const PieceType rook = PieceBase::kRook & side_to_move_;
+  const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
+  RemoveScore(rook, kRookCastleSquares[castle_type][side_to_move_]);
+  ClearSquare(kRookCastleSquares[castle_type][side_to_move_]);
+  PutPiece(rook, kCastleInterSq[castle_type][side_to_move_]);
+  AddScore(rook, kCastleInterSq[castle_type][side_to_move_]);
 }
 
 inline void Position::UpdateMoveClocks(const Move& move) noexcept {
@@ -272,38 +267,39 @@ inline void Position::UpdateMoveClocks(const Move& move) noexcept {
   }
 }
 
-// inline void Position::PutPiece(const PieceType piece, const Square sq) noexcept {
-//   [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
-//   board_[sq] = piece;
-//   AddSquareMask(piece, ToBB(sq));
-// }
-
 void Position::MakeMove(const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
   [[assume(from != Square::kNone && to != Square::kNone)]];
+  InternalInfo prev_info = info_;
   const PieceType piece = board_[from];
+  RemoveScore(piece, from);
   ClearSquare(from);
   if (move.is_castle()) [[unlikely]] {
     DoRookCastle(move.get_flag());
   } else if (move.is_en_passant()) [[unlikely]] {
-    const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
-    ClearSquare(to + shift);
+    const Square inter_sq = (side_to_move_ == ColorType::kWhite) ? to + Direction::kSouth : to + Direction::kNorth;
+    RemoveScore(PieceBase::kPawn & !side_to_move_, inter_sq);
+    ClearSquare(inter_sq);
   } else if (move.is_capture()) {
-    info_.captured_piece_ = board_[to];
+    prev_info.captured_piece_ = board_[to];
+    RemoveScore(board_[to], to);
     ClearSquare(to);
   }
-  state_stack_.push(info_);
+  state_stack_.push(prev_info);
   UpdateMoveClocks(move);
   info_.en_passant_ = Square::kNone;
   if (Bitboard bb_to = ToBB(to); move.is_double_pawn_push() &&
-     (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
-                                                             ShiftDir(bb_to, Direction::kWest)))) {
-    const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kNorth : Direction::kSouth;
-    info_.en_passant_ = from + shift;
+  (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
+  ShiftDir(bb_to, Direction::kWest)))) {
+    info_.en_passant_ = (side_to_move_ == ColorType::kWhite) ? from + Direction::kNorth
+                                                             : from + Direction::kSouth;
   }
   info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
-  PutPiece((move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece, to);
+  info_.is_calculated_ = false;
+  const PieceType new_piece = (move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece;
+  AddScore(new_piece, to);
+  PutPiece(new_piece, to);
   side_to_move_ = !side_to_move_;
 }
 
@@ -351,12 +347,12 @@ std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPositio
 }
 
 // explicit template instantiation
-template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list);
-template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list);
-template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list);
-template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list);
-template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list);
-template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list);
+template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list) const;
+template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list) const;
+template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list) const;
+template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list) const;
+template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list) const;
+template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list) const;
 
 }// namespace chess
 

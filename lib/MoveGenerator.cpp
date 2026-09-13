@@ -60,7 +60,7 @@ void GeneratePawnCaptures(MoveList& list, const Bitboard pawns, const Position& 
   constexpr Direction capture_right_shift = (Color == ColorType::kWhite) ? Direction::kNorthEast
                                                                          : Direction::kSouthWest;
   constexpr Bitboard last_rank_mask = (Color == ColorType::kWhite) ? kNot8Rank : kNot1Rank;
-  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
+  const Bitboard opponent_pieces = pos.get_pieces(!Color);
   Bitboard left_attacks = ShiftDir(pawns, capture_left_shift);
   Bitboard right_attacks = ShiftDir(pawns, capture_right_shift);
   GenerateStandardPawnMoves(list, opponent_pieces & left_attacks & last_rank_mask & target_squares,
@@ -93,8 +93,8 @@ void GeneratePawnMoves(MoveList& list, const Position& pos, const Bitboard targe
 template<ColorType Color, PieceBase Piece>
 void GenerateFixedAttackPieces(MoveList& list, const Position& pos, const Bitboard target_squares) {
   constexpr PieceType piece = (Piece & Color);
-  Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
-  Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
+  const Bitboard opponent_pieces = pos.get_pieces(!Color);
+  const Bitboard own_pieces = pos.get_pieces(Color);
   BitLooping(pos.get_piece_metric(piece), [opponent_pieces, own_pieces, target_squares, &list]
                                                                            (const Square from) {
     AddMoves(list, ~own_pieces & attacks::kAttacks<Piece>[from] & target_squares, from, opponent_pieces);
@@ -140,7 +140,7 @@ template<ColorType Color, PieceBase Base>
 void GenerateSlidingMoves(MoveList& list, const Position& pos, const Bitboard target_squares) {
   constexpr PieceType piece = Base & Color;
   const Bitboard all_pieces = pos.get_all_pieces();
-  const Bitboard own_pieces = (Color == ColorType::kWhite) ? pos.get_white_pieces() : pos.get_black_pieces();
+  const Bitboard own_pieces = pos.get_pieces(Color);
   const Bitboard opponent_pieces = all_pieces ^ own_pieces;
   BitLooping(pos.get_piece_metric(piece), [all_pieces, own_pieces, opponent_pieces, target_squares, &list]
                                                                                        (const Square from) {
@@ -224,11 +224,6 @@ void GenerateSpecialMoves(MoveList& list, const Position& pos, const Bitboard bb
   GenerateQueenMoves<Color>(list, pos, target_squares);
 }
 
-void SortOutCaptures(MoveList& list, const Position& pos) {
-  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), insertion sort
-
-}
-
 template<ColorType Color>
 void FilterOutLegalMoves(MoveList& list, const Position& pos, std::size_t ind) {
   constexpr PieceType king = (PieceBase::kKing & Color);
@@ -251,7 +246,7 @@ void FilterOutLegalMoves(MoveList& list, const Position& pos, std::size_t ind) {
 template<ColorType Color>
 void GenerateCaptures(MoveList& list, const Position& pos) {
   constexpr PieceType pawn = PieceBase::kPawn & Color;
-  const Bitboard opponent_pieces = (Color == ColorType::kWhite) ? pos.get_black_pieces() : pos.get_white_pieces();
+  const Bitboard opponent_pieces = pos.get_pieces(!Color);
   if (pos.is_check()) [[unlikely]] {
     GenerateSpecialMoves<MovesType::kCaptures, Color>(list, pos, opponent_pieces);
   } else [[likely]] {
@@ -268,6 +263,16 @@ void GenerateCaptures(MoveList& list, const Position& pos) {
 
 template<ColorType Color>
 void GenerateLegalMoves(MoveList& list, const Position& pos) {
+  if (pos.is_check()) [[unlikely]] {
+    GenerateSpecialMoves<MovesType::kEvasions, Color>(list, pos, kAllSquares);
+  }  else [[likely]] {
+    GeneratePseudoMoves<Color>(list, pos);
+  }
+  FilterOutLegalMoves<Color>(list, pos, 0);
+}
+
+template<ColorType Color>
+void GenerateQuiets(MoveList& list, const Position& pos) {
   constexpr PieceType pawn = PieceBase::kPawn & Color;
   GenerateCaptures<Color>(list, pos);
   std::size_t ind = list.size();
@@ -285,7 +290,7 @@ void GenerateLegalMoves(MoveList& list, const Position& pos) {
     GenerateKingMoves<MovesType::kQuiets, Color>(list, pos, empty_squares);
     // GeneratePseudoMoves<Color>(list, pos);
   }
-  FilterOutLegalMoves<Color>(list, pos, ind);
+  FilterOutLegalMoves<Color>(list, pos, 0);
 }
 
 }// unnamed namespace
@@ -298,6 +303,8 @@ void GenerateMoves(const Position& pos, MoveList& list) {
     GenerateSpecialMoves<MovesType::kEvasions, Color>(list, pos, kAllSquares);
   } else if constexpr (Type == MovesType::kCaptures) {
     GenerateCaptures<Color>(list, pos);
+  } else if constexpr (Type == MovesType::kQuiets) {
+    GenerateQuiets<Color>(list, pos);
   } else {
     GenerateLegalMoves<Color>(list, pos);
   }
@@ -325,7 +332,6 @@ bool IsLegalEP(const Position& pos, const Square from, const Square to, const Sq
 template<ColorType Color>
 bool IsLegal(const Position& pos, const Move& move) {
   constexpr PieceType king = PieceBase::kKing & Color;
-  constexpr uint8_t color_ind = std::to_underlying(Color);
   const Square from = move.get_from();
   const Bitboard bb_from = ToBB(from);
   const Square to = move.get_to();
@@ -335,7 +341,7 @@ bool IsLegal(const Position& pos, const Move& move) {
     }
     if (move.is_castle()) [[unlikely]] {
       const std::size_t ind = (move.is_king_castle()) ? 0 : 1;
-      return (!pos.is_check() && (pos.GetSquareAttackers(kCastleInterSq[ind][color_ind], bb_from, 0) == 0));
+      return (!pos.is_check() && (pos.GetSquareAttackers(kCastleInterSq[ind][Color], bb_from, 0) == 0));
     }
     return true;
   }

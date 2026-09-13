@@ -88,9 +88,17 @@ inline Square operator+(const Square sq, const Direction dir) {
   return sq + std::to_underlying(dir);
 }
 
-inline Square operator~(const Square sq) {
+inline constexpr Square operator~(const Square sq) {
   [[assume(sq != Square::kNone)]];
   return static_cast<Square>(std::to_underlying(sq) ^ 0b111000);
+}
+
+inline constexpr Square Persp(const Square sq, const ColorType color) {
+  [[assume(sq != Square::kNone)]];
+  if (color == ColorType::kWhite) {
+    return sq;
+  }
+  return ~sq;
 }
 
 // inline Bitboard operator<<(const Bitboard base, const Square sq) {
@@ -98,19 +106,24 @@ inline Square operator~(const Square sq) {
 // }
 
 template<typename T>
+concept EnumClass = std::is_scoped_enum_v<T>;
+
+template<typename T, std::size_t N, EnumClass Enum>
 struct LookupTable {
-  std::array<T, kBoardSize> table_;
+  std::array<T, N> table_;
 
   bool operator==(const LookupTable& other) const = default;
 
-  inline constexpr decltype(auto) operator[](this auto& self, const Square sq) noexcept {
-    [[assume(sq != Square::kNone)]];
+  inline constexpr decltype(auto) operator[](this auto& self, const Enum sq) noexcept {
+    if constexpr (requires{Enum::kNone;}) {
+      [[assume(sq != Enum::kNone)]];
+    }
     return self.table_[std::to_underlying(sq)];
   }
 };
 
 template<typename T>
-concept EnumClass = std::is_scoped_enum_v<T>;
+using BoardLookup = LookupTable<T, kBoardSize, Square>;
 
 template<std::size_t N>
 struct MultiLookupTable {
@@ -133,15 +146,15 @@ inline constexpr auto Board = []() {
   return squares;
 }();
 
-inline constexpr std::array<std::array<Square, 2>, 2> kCastleInterSq = {{{Square::F1, Square::F8},
-                                                                         {Square::D1, Square::D8}}};
+inline constexpr std::array<LookupTable<Square, 2, ColorType>, 2> kCastleInterSq = {{{Square::F1, Square::F8},
+                                                                                    {Square::D1, Square::D8}}};
 
-inline constexpr std::array<std::array<Square, 2>, 2> kRookCastleSquares = {{{Square::H1, Square::H8},
-                                                                             {Square::A1, Square::A8}}};
+inline constexpr std::array<LookupTable<Square, 2, ColorType>, 2> kRookCastleSquares = {{{Square::H1, Square::H8},
+                                                                                         {Square::A1, Square::A8}}};
 inline constexpr std::array<int, 2> kCastleShifts = {2, -2};
 
 inline constexpr auto kCastlingRights = []() {
-  LookupTable<uint8_t> rights;
+  BoardLookup<uint8_t> rights;
   for (Square sq : Board) {
     switch (sq) {
       case Square::A1: rights[sq] = 0x0D; break;

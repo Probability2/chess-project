@@ -19,14 +19,18 @@ std::size_t Perft(Position& pos, const std::size_t depth) {
     return list.size();
   }
   for (const auto& move: list.AsSpan()) {
+    Position copy = pos;
     pos.MakeMove(move);
     nodes += Perft(pos, depth - 1);
     pos.UnmakeMove(move);
+    if (pos != copy) {
+      std::cout << pos << '\n';
+    }
   }
   return nodes;
 }
 
-void PerftPrint(Position& pos, const std::size_t depth) {
+void PerftPrint(Position pos, const std::size_t depth) {
   if (depth == 0) {
     std::cout << " zeros\n";
     return;

@@ -2,6 +2,7 @@
 
 #include "types/Attacks.hpp"
 #include "types/Bitboard.hpp"
+#include "types/EvaluationTables.hpp"
 #include "Move.hpp"
 
 #include <bit>
@@ -28,6 +29,8 @@ struct InternalInfo {
   std::size_t no_capture_moves_ = 0;
   Bitboard pinned_pieces_ = 0;
   Bitboard king_attackers_ = 0;
+  int score_ = 0;
+  bool is_calculated_ = false;
 };
 
 class StateStack {
@@ -65,16 +68,7 @@ public:
       return;
     }
     PutPiece(piece, sq);
-  }
-
-  inline constexpr void ClearSquare(const Square sq) {
-    if (board_[sq] == PieceType::kNone) {
-      return;
-    }
-    const Bitboard mask = ToBB(sq);
-    PieceOccupied(board_[sq]) &= ~mask;
-    all_pieces_[std::to_underlying(Color(board_[sq]))] &= ~mask;
-    board_[sq] = PieceType::kNone;
+    AddScore(piece, sq);
   }
 
   inline constexpr PieceType PieceOn(const int x, const int y) const noexcept {
@@ -114,7 +108,7 @@ public:
   }
   
   template<MovesType Type>
-  void GenerateMoves(MoveList& list);
+  void GenerateMoves(MoveList& list) const;
 
   bool is_white_move() const noexcept;
   bool is_en_passant() const noexcept;
@@ -124,7 +118,8 @@ public:
   Bitboard get_all_pieces() const noexcept;
   Bitboard get_white_pieces() const noexcept;
   Bitboard get_black_pieces() const noexcept;
-  Bitboard get_piece_metric(const PieceType piece) const;
+  Bitboard get_pieces(ColorType color) const noexcept;
+  Bitboard get_piece_metric(const PieceType piece) const noexcept;
   uint8_t get_castles() const noexcept;
   Square get_en_passant() const noexcept;
   std::string get_castling_notation() const noexcept;
@@ -150,18 +145,17 @@ public:
   void UnmakeMove(const Move& move);
 
   bool IsPinned(const Square sq) const noexcept;
-
-  const auto& GetPiecesArray() const noexcept;
-
   Bitboard get_kings() const;
 
+  int GetWhiteScore() const noexcept;
+
 private:
-  LookupTable<PieceType> board_{};
-  std::array<Bitboard, kPieceCount> pieces_{};
-  std::array<Bitboard, 2> all_pieces_{};
+  BoardLookup<PieceType> board_{};
+  LookupTable<Bitboard, kPieceCount, PieceType> pieces_{};
+  LookupTable<Bitboard, 2, ColorType> all_pieces_{};
   ColorType side_to_move_;
   std::size_t halfmoves_ = 1;
-  InternalInfo info_{};
+  mutable InternalInfo info_{};
   StateStack state_stack_{};
 
   template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
@@ -169,12 +163,10 @@ private:
 
   constexpr Bitboard& PieceOccupied(const PieceType piece) {
     [[assume(piece != PieceType::kNone)]];
-    return pieces_[std::to_underlying(piece) - 1];
+    return pieces_[piece];
   }
   
-  void CalculatePinnedPieces() noexcept;
-  // inline void ClearCastling(const uint8_t ind) noexcept;
-  // inline void ClearCastling(const Square sq, const ColorType side) noexcept;
+  void CalculatePinnedPieces() const noexcept;
   inline void UpdateMoveClocks(const Move& move) noexcept;
   inline void DoRookCastle(const MoveFlag flag) noexcept;
   inline void UndoRookCastle(const MoveFlag flag) noexcept;
@@ -187,8 +179,29 @@ private:
 
   inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
     [[assume(piece != PieceType::kNone)]];
-    all_pieces_[std::to_underlying(Color(piece))] |= mask;
+    all_pieces_[Color(piece)] |= mask;
     PieceOccupied(piece) |= mask;
+  }
+
+  inline constexpr void AddScore(const PieceType piece, const Square sq) {
+    [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
+    info_.score_ += eval::kPieceSquareTable[piece][sq];
+  }
+
+  inline constexpr void RemoveScore(const PieceType piece, const Square sq) {
+    [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
+    info_.score_ -= eval::kPieceSquareTable[piece][sq];
+  }
+
+  inline constexpr void ClearSquare(const Square sq) {
+    if (board_[sq] == PieceType::kNone) {
+      return;
+    }
+    const Bitboard mask = ToBB(sq);
+    RemoveScore(board_[sq], sq);
+    PieceOccupied(board_[sq]) &= ~mask;
+    all_pieces_[Color(board_[sq])] &= ~mask;
+    board_[sq] = PieceType::kNone;
   }
 };
 
