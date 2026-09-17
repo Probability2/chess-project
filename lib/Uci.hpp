@@ -60,22 +60,41 @@ void BotsPlay(Position pos, const int depth) {
       }
       break;
     }
+    chess::Move move = GetBestMove(pos, depth);
+    std::cout << "Engine's move: " << move << '\n';
+    pos.MakeMove(move);
+  }
+}
+
+void PlayWithBot(Position pos, const int depth) {
+  ColorType engine_side = !pos.side_to_move();
+  ColorType side_to_move = pos.side_to_move();
+  for (;;) {
+    std::cout << pos << '\n';
+    MoveList list;
+    pos.GenerateMoves<MovesType::kLegal>(list);
+    if (list.empty()) {
+      if (pos.is_check()) {
+        std::cout << "Checkmate!\n";
+      } else {
+        std::cout << "Stalemate\n";
+      }
+      break;
+    }
     chess::Move move;
     if (side_to_move == engine_side) {
       move = GetBestMove(pos, depth);
       std::cout << "Engine's move is: " << move << '\n';
     } else {
-      move = GetBestMove(pos, depth);
-      std::cout << "Engine's move is: " << move << '\n';
-      // std::cout << "Your move: ";
-      // while (!move) {
-      //   std::string str;
-      //   if (!std::getline(std::cin, str)) {
-      //     return EXIT_SUCCESS;
-      //   }
-      //   move = uci::UciToMove(str, pos);
-      //   std::cout << move << '\n';
-      // }
+      std::cout << "Your move: ";
+      while (!move) {
+        std::string str;
+        if (!std::getline(std::cin, str)) {
+          return;
+        }
+        move = uci::UciToMove(str, pos);
+        std::cout << move << '\n';
+      }
     }
     pos.MakeMove(move);
     side_to_move = !side_to_move;

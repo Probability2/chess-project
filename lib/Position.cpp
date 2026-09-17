@@ -121,7 +121,27 @@ StateStack Position::GetStateStack() const {
   return state_stack_;
 }
 
-Bitboard Position::get_kings() const {
+Bitboard Position::get_pawns() const noexcept {
+  return pieces_[PieceType::kWhitePawn] | pieces_[PieceType::kBlackPawn];
+}
+
+Bitboard Position::get_knights() const noexcept {
+  return pieces_[PieceType::kWhiteKnight] | pieces_[PieceType::kBlackKnight];
+}
+
+Bitboard Position::get_bishops() const noexcept {
+  return pieces_[PieceType::kWhiteBishop] | pieces_[PieceType::kBlackBishop];
+}
+
+Bitboard Position::get_rooks() const noexcept {
+  return pieces_[PieceType::kWhiteRook] | pieces_[PieceType::kBlackRook];
+}
+
+Bitboard Position::get_queens() const noexcept {
+  return pieces_[PieceType::kWhiteQueen] | pieces_[PieceType::kBlackQueen];
+}
+
+Bitboard Position::get_kings() const noexcept {
   return pieces_[PieceType::kWhiteKing] | pieces_[PieceType::kBlackKing];
 }
 

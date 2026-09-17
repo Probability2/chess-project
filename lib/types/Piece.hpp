@@ -111,7 +111,7 @@ inline bool IsSliding(const PieceType piece) {
 }
 
 constexpr char GetPieceCode(PieceBase piece) {
-  return kPieceTable[7 + std::to_underlying(piece)].code;
+  return kPieceTable[6 + std::to_underlying(piece)].code;
 }
 
 constexpr char GetPieceCode(PieceType piece) {

@@ -10,6 +10,8 @@ namespace chess {
 
 constexpr int kInfinity = 100000;
 
+const int kMxChecksExtension = 10;
+
 int QuiescenceSearch(Position& pos, int alpha, const int beta) {
   int score = eval::Evaluate(pos);
   if (score >= beta) {
@@ -35,16 +37,18 @@ int QuiescenceSearch(Position& pos, int alpha, const int beta) {
   return alpha;
 }
 
-int Search(Position& pos, const int depth, int alpha, const int beta) { //negamax
-  if (depth == 0) {
+int Search(Position& pos, const int depth, int alpha, const int beta, int checks) { //negamax
+  if (depth == 0 && !pos.is_check()) {
     return QuiescenceSearch(pos, alpha, beta); //till' there are no captures (+maybe checks)
     // return eval::Evaluate(pos);
   }
+  checks = (pos.is_check()) ? checks + 1 : checks;
+  int extension = (pos.is_check() && checks < kMxChecksExtension) ? 0 : 1;
   MovePicker picker(pos);
   while (picker.has_next()) {
     Move move = picker.YieldMove();
     pos.MakeMove(move);
-    int score = -Search(pos, depth - 1, -beta, -alpha);
+    int score = -Search(pos, depth - extension, -beta, -alpha, checks);
     pos.UnmakeMove(move);
     if (score >= beta) {
       return beta;
@@ -74,7 +78,7 @@ Move GetBestMove(Position pos, const int depth) {
   while (picker.has_next()) {
     Move move = picker.YieldMove();
     pos.MakeMove(move);
-    int score = -Search(pos, depth - 1, -beta, -alpha);
+    int score = -Search(pos, depth - 1, -beta, -alpha, 0);
     pos.UnmakeMove(move);
     if (score > alpha) {
       alpha = score;

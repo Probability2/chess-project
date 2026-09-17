@@ -50,13 +50,7 @@ int main(int argc, char** argv) {
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
   auto pp3 = fen_manager::Get("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").value();
 
-  // PerftPrint(kStartingPosition, 3);
-  
-  // for (int depth = 1; depth <= 9; ++depth) {
-  //   Search(pp3, depth, -kInfinity, kInfinity);
-  // }
-  // std::cout << kStartingPosition.GetWhiteScore() << '\n';
-  // uci::BotsPlay(fen_manager::Get("rnbqkbnr/pppp2pp/5p2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3").value(), 9);
+  uci::BotsPlay(fen_manager::Get("r1bqk2r/pp3pp1/2pbpn1p/8/3P3Q/3B1N2/PPP2PPP/R1B1K2R b KQkq - 0 1").value(), 8);
   
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {

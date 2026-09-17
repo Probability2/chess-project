@@ -145,7 +145,13 @@ public:
   void UnmakeMove(const Move& move);
 
   bool IsPinned(const Square sq) const noexcept;
-  Bitboard get_kings() const;
+
+  Bitboard get_pawns() const noexcept;
+  Bitboard get_knights() const noexcept;
+  Bitboard get_bishops() const noexcept;
+  Bitboard get_rooks() const noexcept;
+  Bitboard get_queens() const noexcept;
+  Bitboard get_kings() const noexcept;
 
   int GetWhiteScore() const noexcept;
 
@@ -198,7 +204,6 @@ private:
       return;
     }
     const Bitboard mask = ToBB(sq);
-    RemoveScore(board_[sq], sq);
     PieceOccupied(board_[sq]) &= ~mask;
     all_pieces_[Color(board_[sq])] &= ~mask;
     board_[sq] = PieceType::kNone;
