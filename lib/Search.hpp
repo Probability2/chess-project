@@ -5,91 +5,48 @@
 #include "Position.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <ranges>
 
 namespace chess {
 
+using Ms = std::chrono::milliseconds;
+using TimePoint = std::chrono::steady_clock::time_point;
+
 constexpr int kInfinity = 100000;
 
-const int kMxChecksExtension = 10;
+constexpr int kMxChecksExtension = 25;
 
-int QuiescenceSearch(Position& pos, int alpha, const int beta) {
-  int score = eval::Evaluate(pos);
-  if (score >= beta) {
-    return beta;
-  }
-  if (score > alpha) {
-    alpha = score;
-  }
-  MovePicker picker(pos, true);
-  while (picker.has_next()) {
-    Move move = picker.YieldMove();
-    pos.MakeMove(move);
-    score = -QuiescenceSearch(pos, -beta, -alpha);
-    pos.UnmakeMove(move);
-    if (score >= beta) {
-      return beta;
-    }
-    if (score > alpha) {
-      alpha = score;
-    }
-  }
+struct NodeInfo {
+  int alpha_;
+  int beta_;
+  std::size_t depth_;
+  std::size_t checks_;
+};
 
-  return alpha;
-}
+class Searcher {
+public:
+  Searcher(Position pos);
+  Move GetBestMove(const std::size_t depth);
+  Move IterativeBestMove(const Ms move_time);
+  void MakeMove(const Move move);
+  void UnmakeMove(const Move move);
+  Position& get_position();
 
-int Search(Position& pos, const int depth, int alpha, const int beta, int checks) { //negamax
-  if (depth == 0 && !pos.is_check()) {
-    return QuiescenceSearch(pos, alpha, beta); //till' there are no captures (+maybe checks)
-    // return eval::Evaluate(pos);
-  }
-  checks = (pos.is_check()) ? checks + 1 : checks;
-  int extension = (pos.is_check() && checks < kMxChecksExtension) ? 0 : 1;
-  MovePicker picker(pos);
-  while (picker.has_next()) {
-    Move move = picker.YieldMove();
-    pos.MakeMove(move);
-    int score = -Search(pos, depth - extension, -beta, -alpha, checks);
-    pos.UnmakeMove(move);
-    if (score >= beta) {
-      return beta;
-    }
-    if (score > alpha) {
-      alpha = score;
-    }
-  }
-  if (picker.empty()) {
-    if (pos.is_check()) {
-      return -kInfinity - depth;
-    }
-    return 0;
-  }
+private:
+  Position pos_;
+  bool is_time_out_ = false;
+  // std::size_t checks = 0;
 
-  return alpha;
-}
+  std::array<Move, (kMaxDepth * (kMaxDepth + 1)) / 2> pv_moves_;
 
-Move GetBestMove(Position pos, const int depth) {
-  if (depth == 0) {
-    return Move();
-  }
-  MovePicker picker(pos);
-  Move best_move = Move();
-  int alpha = -kInfinity;
-  int beta = +kInfinity;
-  while (picker.has_next()) {
-    Move move = picker.YieldMove();
-    pos.MakeMove(move);
-    int score = -Search(pos, depth - 1, -beta, -alpha, 0);
-    pos.UnmakeMove(move);
-    if (score > alpha) {
-      alpha = score;
-      best_move = move;
-    }
-  }
-  if (best_move || picker.empty()) {
-    return best_move;
-  }
+  int IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time, const int ply, const int pv_index,
+                                                                                              bool is_main_line);
+  inline bool IsTimeOut(const TimePoint start_time, const Ms duration);
+  int QuiescenceSearch(int alpha, const int beta);
+  int Search(NodeInfo info, const int ply);
 
-  return picker[0];
-}
+  // void ClearPvArray();
+};
 
 }

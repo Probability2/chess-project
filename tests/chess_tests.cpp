@@ -18,7 +18,7 @@ std::string to_notation(const PieceType piece, const Move& move) {
   notation += to_string(move.get_from());
   notation += to_string(move.get_to());
   if (move.is_promotion()) {
-    notation += GetPieceCode(move.get_promoted_piece());
+    notation += GetPieceCode(move.get_promoted_base());
   }
 
   return notation;

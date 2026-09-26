@@ -22,7 +22,7 @@ MoveFlag Move::get_flag() const {
   return static_cast<MoveFlag>(move_val_ >> 12);
 }
 
-PieceBase Move::get_promoted_piece() const {
+PieceBase Move::get_promoted_base() const {
   return static_cast<PieceBase>(((move_val_ & 0x3000) >> 12) + 1);
 }
 
@@ -101,7 +101,7 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
   os << move.get_from() << '-' << static_cast<char>('a' + (to_shift & 7))
   << static_cast<char>('1' + (to_shift >> 3 & 7));
   if (move.is_promotion()) {
-    os << GetPieceCode(move.get_promoted_piece());
+    os << GetPieceCode(move.get_promoted_base());
   }
   
   return os;

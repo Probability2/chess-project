@@ -8,11 +8,21 @@
 
 namespace chess {
 
+inline constexpr int kMaxDepth = 64;
+
+enum class PickerStage: uint8_t {
+  kPrincipalVariation,
+  kCaptures,
+  kQuiets,
+  kNone
+};
+
 class MovePicker {
 public:
   MovePicker(const Position& pos);
   MovePicker(const Position& pos, const bool only_captures);
-  bool has_next();
+  MovePicker(const Position& pos, const Move pv_move);
+  // bool has_next() const;
   Move YieldMove();
   std::size_t size() const;
   bool empty() const;
@@ -28,6 +38,9 @@ private:
   bool only_captures_ = false;
   bool is_captures_ = false;
   bool is_quiets_ = false;
+
+  std::optional<Move> pv_move_;
+  PickerStage stage_ = PickerStage::kNone;
 
   void SortOutCapture();
   int GetDiff(const Move& move);

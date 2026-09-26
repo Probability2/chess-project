@@ -113,6 +113,10 @@ std::string Position::get_castling_notation() const noexcept {
   return notation;
 }
 
+int Position::get_score() const noexcept {
+  return info_.score_;
+}
+
 InternalInfo Position::GetInfo() const {
   return info_;
 }
@@ -259,10 +263,6 @@ void Position::CalculatePinnedPieces() const noexcept {
   });
 }
 
-int Position::GetWhiteScore() const noexcept {
-  return info_.score_;
-}
-
 inline void Position::UndoRookCastle(const MoveFlag flag) noexcept {
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   ClearSquare(kCastleInterSq[castle_type][side_to_move_]);
@@ -291,7 +291,8 @@ void Position::MakeMove(const Move& move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
   [[assume(from != Square::kNone && to != Square::kNone)]];
-  InternalInfo prev_info = info_;
+  // InternalInfo prev_info = info_;
+  state_stack_.push(info_);
   const PieceType piece = board_[from];
   RemoveScore(piece, from);
   ClearSquare(from);
@@ -302,22 +303,22 @@ void Position::MakeMove(const Move& move) {
     RemoveScore(PieceBase::kPawn & !side_to_move_, inter_sq);
     ClearSquare(inter_sq);
   } else if (move.is_capture()) {
-    prev_info.captured_piece_ = board_[to];
+    info_.captured_piece_ = board_[to];
     RemoveScore(board_[to], to);
     ClearSquare(to);
   }
-  state_stack_.push(prev_info);
+  // state_stack_.push(prev_info);
   UpdateMoveClocks(move);
   info_.en_passant_ = Square::kNone;
   if (Bitboard bb_to = ToBB(to); move.is_double_pawn_push() &&
-  (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
-  ShiftDir(bb_to, Direction::kWest)))) {
+     (get_piece_metric(PieceBase::kPawn & !side_to_move_) & (ShiftDir(bb_to, Direction::kEast) |
+                                                            ShiftDir(bb_to, Direction::kWest)))) {
     info_.en_passant_ = (side_to_move_ == ColorType::kWhite) ? from + Direction::kNorth
                                                              : from + Direction::kSouth;
   }
   info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   info_.is_calculated_ = false;
-  const PieceType new_piece = (move.is_promotion()) ? (move.get_promoted_piece() & side_to_move_) : piece;
+  const PieceType new_piece = (move.is_promotion()) ? (move.get_promoted_base() & side_to_move_) : piece;
   AddScore(new_piece, to);
   PutPiece(new_piece, to);
   side_to_move_ = !side_to_move_;
@@ -327,6 +328,7 @@ void Position::UnmakeMove(const Move& move) {
   [[assume(halfmoves_ != 0)]];
   side_to_move_ = !side_to_move_;
   halfmoves_--;
+  PieceType captured_piece = info_.captured_piece_;
   info_ = state_stack_.top();
   state_stack_.pop();
   const Square to = move.get_to();
@@ -338,7 +340,7 @@ void Position::UnmakeMove(const Move& move) {
     const Direction shift = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
     PutPiece(PieceBase::kPawn & !side_to_move_, to + shift);
   } else if (move.is_capture()) {
-    PutPiece(info_.captured_piece_, to);
+    PutPiece(captured_piece, to);
   }
 }
 

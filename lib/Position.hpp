@@ -123,6 +123,7 @@ public:
   uint8_t get_castles() const noexcept;
   Square get_en_passant() const noexcept;
   std::string get_castling_notation() const noexcept;
+  int get_score() const noexcept;
   InternalInfo GetInfo() const;
   StateStack GetStateStack() const;
 
@@ -153,7 +154,13 @@ public:
   Bitboard get_queens() const noexcept;
   Bitboard get_kings() const noexcept;
 
-  int GetWhiteScore() const noexcept;
+  bool is_calculated() const {
+    return info_.is_calculated_;
+  }
+
+  PieceType get_captured_piece() const {
+    return info_.captured_piece_;
+  }
 
 private:
   BoardLookup<PieceType> board_{};

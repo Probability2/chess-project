@@ -11,18 +11,14 @@ MovePicker::MovePicker(const Position& pos, const bool only_captures)
 , only_captures_(only_captures) {
 }
 
-bool MovePicker::has_next() {
-  if (ind_ == list_.size() && !is_captures_) {
-    pos_.GenerateMoves<MovesType::kCaptures>(list_);
-    is_captures_ = true;
-  }
-  if (ind_ == list_.size() && !is_quiets_ && !only_captures_) {
-    pos_.GenerateMoves<MovesType::kQuiets>(list_);
-    is_quiets_ = true;
-  }
-
-  return ind_ < list_.size();
+MovePicker::MovePicker(const Position& pos, const Move pv_move)
+: pos_(pos)
+, pv_move_(pv_move) {
 }
+
+// bool MovePicker::has_next() const {
+//   return ind_ < list_.size() || (stage_ == PickerStage::kNone && pv_move_.has_value());
+// }
 
 int MovePicker::GetDiff(const Move& move) {
   return eval::kPieceValues[GetPieceBase(pos_.PieceOn(move.get_to()))] -
@@ -30,10 +26,31 @@ int MovePicker::GetDiff(const Move& move) {
 }
 
 Move MovePicker::YieldMove() {
-  [[assume(ind_ < list_.size())]];
-  if (!is_quiets_) {
+  if (stage_ == PickerStage::kNone) {
+    stage_ = PickerStage::kPrincipalVariation;
+    if (pv_move_.has_value() && (pv_move_->is_capture() || !only_captures_)) {
+      return pv_move_.value();
+    }
+  }
+  if (ind_ == 0 && stage_ == PickerStage::kPrincipalVariation) {
+    pos_.GenerateMoves<MovesType::kCaptures>(list_);
+    stage_ = PickerStage::kCaptures;
+  }
+  if (ind_ == list_.size() && stage_ == PickerStage::kCaptures && !only_captures_) {
+    pos_.GenerateMoves<MovesType::kQuiets>(list_);
+    stage_ = PickerStage::kQuiets;
+  }
+  if (ind_ >= list_.size()) {
+    return Move();
+  }
+  if (stage_ == PickerStage::kCaptures) {
     SortOutCapture();
-  }  
+  }
+  if (pv_move_.has_value() && list_[ind_] == pv_move_.value()) {
+    ind_++;
+    return YieldMove();
+  }
+  
   return list_[ind_++];
 }
 
@@ -58,7 +75,7 @@ std::size_t MovePicker::size() const {
 }
 
 bool MovePicker::empty() const {
-  return ind_ == 0;
+  return list_.empty();
 }
 
 }// namespace chess

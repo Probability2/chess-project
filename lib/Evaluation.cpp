@@ -12,7 +12,7 @@ int Evaluate(const Position& pos) {
   phase -= std::popcount(pos.get_rooks()) * internal::kPhaseValues[PieceBase::kRook];
   phase -= std::popcount(pos.get_queens()) * internal::kPhaseValues[PieceBase::kQueen];
   const int perspective = (pos.is_white_move()) ? 1 : -1;
-  const int score = pos.GetWhiteScore();
+  const int score = pos.get_score();
   const int king_mg_value = kKingMgValues[GetLSB(pos.get_piece_metric(white_king))] -
                             kKingMgValues[~GetLSB(pos.get_piece_metric(black_king))];
   const int king_eg_value = kKingEgValues[GetLSB(pos.get_piece_metric(white_king))] -

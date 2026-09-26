@@ -39,7 +39,7 @@ public:
   bool operator==(const Move& other) const = default;
   Square get_from() const;
   Square get_to() const;
-  PieceBase get_promoted_piece() const;
+  PieceBase get_promoted_base() const;
   MoveFlag get_flag() const;
   bool is_capture() const;;
   bool is_double_pawn_push() const;
@@ -55,6 +55,8 @@ public:
 private:
   uint16_t move_val_ = 0;
 };
+
+inline constexpr auto kNullMove = Move();
 
 class MoveList {
 public:

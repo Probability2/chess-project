@@ -274,7 +274,7 @@ void GenerateLegalMoves(MoveList& list, const Position& pos) {
 template<ColorType Color>
 void GenerateQuiets(MoveList& list, const Position& pos) {
   constexpr PieceType pawn = PieceBase::kPawn & Color;
-  GenerateCaptures<Color>(list, pos);
+  // GenerateCaptures<Color>(list, pos);
   std::size_t ind = list.size();
   const Bitboard empty_squares = ~pos.get_all_pieces();
   if (pos.is_check()) [[unlikely]] {

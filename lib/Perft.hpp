@@ -8,24 +8,17 @@
 
 namespace chess {
 
-std::size_t Perft(Position& pos, const std::size_t depth) {
+std::size_t Perft(Position pos, const std::size_t depth) {
   if (depth == 0) {
     return 1ULL;
   }
   std::size_t nodes = 0;
   MoveList list;
   pos.GenerateMoves<MovesType::kLegal>(list);
-  if (depth == 1) {
-    return list.size();
-  }
   for (const auto& move: list.AsSpan()) {
-    Position copy = pos;
     pos.MakeMove(move);
     nodes += Perft(pos, depth - 1);
     pos.UnmakeMove(move);
-    if (pos != copy) {
-      std::cout << pos << '\n';
-    }
   }
   return nodes;
 }

@@ -11,7 +11,9 @@
 
 namespace chess::uci {
 
-Move UciToMove(std::string_view str, Position& pos) {
+namespace internal {
+
+Move UciToMove(std::string_view str, const Position& pos) {
   if (str.length() < 4) {
     return Move();// Incorrect input!!
   }
@@ -28,16 +30,18 @@ Move UciToMove(std::string_view str, Position& pos) {
   PieceType promoted = PieceType::kNone;
   ColorType side = pos.side_to_move();
   auto& arr = kPromotedPieces[std::to_underlying(side)];
-  auto it = std::ranges::find(arr, str[4]);
-  if (str.length() > 4 && it != arr.end()) {
+  if (str.length() > 4 && std::ranges::find(arr, str[4]) != arr.end()) {
     promoted = static_cast<PieceType>(std::to_underlying(PieceBase::kKnight & side) +
-                                      std::ranges::distance(arr.begin(), it));
+                                      std::ranges::distance(arr.begin(), std::ranges::find(arr, str[4])));
+    std::cout << std::to_underlying(PieceBase::kKnight & side) +
+                                      std::ranges::distance(arr.begin(), std::ranges::find(arr, str[4])) << '\n';
+    std::cout << static_cast<int>(std::to_underlying(promoted)) << " promoted\n";
   }
   MoveList list;
   pos.GenerateMoves<MovesType::kLegal>(list);
   for (const auto& move: list.AsSpan()) {
     if (move.get_from() == from && move.get_to() == to &&
-       (promoted == PieceType::kNone || promoted == pos.PieceOn(to))) {
+       (promoted == PieceType::kNone || GetPieceBase(promoted) == move.get_promoted_base())) {
       return move;
     }
   }
@@ -45,36 +49,44 @@ Move UciToMove(std::string_view str, Position& pos) {
   return Move(); // The move ain't legal
 }
 
+}// namespace internal
+
 void BotsPlay(Position pos, const int depth) {
-  ColorType engine_side = !pos.side_to_move();
-  ColorType side_to_move = !engine_side;
+  Searcher searcher(pos);
   for (;;) {
-    std::cout << pos << '\n';
+    Position& spos = searcher.get_position();
+    std::cout << spos << '\n';
     MoveList list;
-    pos.GenerateMoves<MovesType::kLegal>(list);
+    spos.GenerateMoves<MovesType::kLegal>(list);
     if (list.empty()) {
-      if (pos.is_check()) {
+      if (spos.is_check()) {
         std::cout << "Checkmate!\n";
       } else {
         std::cout << "Stalemate\n";
       }
       break;
     }
-    chess::Move move = GetBestMove(pos, depth);
+    chess::Move move = searcher.GetBestMove(depth);
     std::cout << "Engine's move: " << move << '\n';
-    pos.MakeMove(move);
+    searcher.MakeMove(move);
   }
 }
 
 void PlayWithBot(Position pos, const int depth) {
+  Searcher searcher(pos);
   ColorType engine_side = !pos.side_to_move();
   ColorType side_to_move = pos.side_to_move();
   for (;;) {
-    std::cout << pos << '\n';
+    Position& spos = searcher.get_position();
+    if (engine_side == ColorType::kWhite) {
+      std::cout << flipped(spos) << '\n';
+    } else {
+      std::cout << spos << '\n';
+    }
     MoveList list;
-    pos.GenerateMoves<MovesType::kLegal>(list);
+    spos.GenerateMoves<MovesType::kLegal>(list);
     if (list.empty()) {
-      if (pos.is_check()) {
+      if (spos.is_check()) {
         std::cout << "Checkmate!\n";
       } else {
         std::cout << "Stalemate\n";
@@ -83,7 +95,7 @@ void PlayWithBot(Position pos, const int depth) {
     }
     chess::Move move;
     if (side_to_move == engine_side) {
-      move = GetBestMove(pos, depth);
+      move = searcher.GetBestMove(depth);
       std::cout << "Engine's move is: " << move << '\n';
     } else {
       std::cout << "Your move: ";
@@ -92,12 +104,74 @@ void PlayWithBot(Position pos, const int depth) {
         if (!std::getline(std::cin, str)) {
           return;
         }
-        move = uci::UciToMove(str, pos);
+        move = internal::UciToMove(str, spos);
         std::cout << move << '\n';
       }
     }
-    pos.MakeMove(move);
+    searcher.MakeMove(move);
     side_to_move = !side_to_move;
+  }
+}
+
+void PlayWithIterativeBot(Position pos, const Ms time) {
+  Searcher searcher(pos);
+  ColorType engine_side = !pos.side_to_move();
+  ColorType side_to_move = pos.side_to_move();
+  for (;;) {
+    Position& spos = searcher.get_position();
+    if (engine_side == ColorType::kWhite) {
+      std::cout << flipped(spos) << '\n';
+    } else {
+      std::cout << spos << '\n';
+    }
+    MoveList list;
+    spos.GenerateMoves<MovesType::kLegal>(list);
+    if (list.empty()) {
+      if (spos.is_check()) {
+        std::cout << "Checkmate!\n";
+      } else {
+        std::cout << "Stalemate\n";
+      }
+      break;
+    }
+    chess::Move move;
+    if (side_to_move == engine_side) {
+      move = searcher.IterativeBestMove(time);
+      std::cout << "Engine's move is: " << move << '\n';
+    } else {
+      std::cout << "Your move: ";
+      while (!move) {
+        std::string str;
+        if (!std::getline(std::cin, str)) {
+          return;
+        }
+        move = internal::UciToMove(str, spos);
+        std::cout << move << '\n';
+      }
+    }
+    searcher.MakeMove(move);
+    side_to_move = !side_to_move;
+  }
+}
+
+void BotsIterativePlay(Position pos, const Ms time) {
+  Searcher searcher(pos);
+  for (;;) {
+    Position& spos = searcher.get_position();
+    std::cout << spos << '\n';
+    MoveList list;
+    spos.GenerateMoves<MovesType::kLegal>(list);
+    if (list.empty()) {
+      if (spos.is_check()) {
+        std::cout << "Checkmate!\n";
+      } else {
+        std::cout << "Stalemate\n";
+      }
+      break;
+    }
+    chess::Move move = searcher.IterativeBestMove(time);
+    std::cout << "Engine's move: " << move << '\n';
+    searcher.MakeMove(move);
   }
 }
 

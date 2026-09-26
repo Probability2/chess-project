@@ -5,6 +5,7 @@
 #include "lib/Perft.hpp"
 #include "lib/Search.hpp"
 #include "lib/FileManager.hpp"
+#include "lib/Move.hpp"
 #include "lib/MoveGenerator.hpp"
 #include "lib/Uci.hpp"
 #include "parser/ArgParser.hpp"
@@ -12,9 +13,11 @@
 
 #include <conio.h>
 
+#include <chrono>
 #include <random>
 
 using namespace chess;
+using namespace std::chrono_literals;
 
 constexpr int kEscapeCode = 0x1b;
 
@@ -37,20 +40,28 @@ int main(int argc, char** argv) {
   std::random_device rd;
   std::mt19937_64 magic_generator(rd());
 
-  MoveList list;
   // auto pos1 = kStartingPosition;
   auto pos2 = fen_manager::Get("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ").value();
-  auto pos3 = (fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ")).value();
-  auto pos4 = (fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1")).value();
-  auto pos5 = (fen_manager::Get("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ")).value();
-  auto pos6 = (fen_manager::Get("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ")).value();
+  auto pos3 = fen_manager::Get("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ").value();
+  auto pos4 = fen_manager::Get("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1").value();
+  auto pos5 = fen_manager::Get("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ").value();
+  auto pos6 = fen_manager::Get("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ").value();
 
   auto pp = fen_manager::Get("1r2k1r1/pbppnp1p/1b3P2/8/Q7/B1PB1q2/P4PPP/3R2K1 w - - 0 1").value();
   auto pp1 = fen_manager::Get("2q1k1nr/Q1Bn1ppp/4p3/5b2/2pP4/P3P3/3N1PPP/b3KB1R w Kk - 0 2").value();
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
-  auto pp3 = fen_manager::Get("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").value();
+  auto pp3 = fen_manager::Get("1rb3r1/pppp2kp/4p3/2P1PRBP/3P4/2P4R/P1Q5/6K1 w - - 5 6").value();
 
-  uci::BotsPlay(fen_manager::Get("r1bqk2r/pp3pp1/2pbpn1p/8/3P3Q/3B1N2/PPP2PPP/R1B1K2R b KQkq - 0 1").value(), 8);
+  Searcher searcher(kStartingPosition);
+  uci::BotsIterativePlay(fen_manager::Get("r4k2/5pr1/3R3p/qp2pQ2/4P3/P1n5/1PB4P/K4R2 b - - 1 27").value(), 10000ms);
+  // searcher.IterativeBestMove(60000ms);
+  // PerftPrint(pos2, 6);
+  // MovePicker picker(pp3, true);
+  // while (auto move = picker.YieldMove()) {
+  //   std::cout << move << '\n';
+  // }
+  
+  // PerftPrint(pos5, 5);
   
   // Bitboard magic = 0;
   // for (int rank = 0; rank < 8; ++rank) {
