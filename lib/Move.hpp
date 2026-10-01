@@ -37,6 +37,7 @@ public:
   Move(const Square from, const Square to);
   Move(const Square from, const Square to, const MoveFlag flag);
   bool operator==(const Move& other) const = default;
+  bool operator==(std::string_view str) const;
   Square get_from() const;
   Square get_to() const;
   PieceBase get_promoted_base() const;

@@ -17,6 +17,8 @@ constexpr int kInfinity = 100000;
 
 constexpr int kMxChecksExtension = 25;
 
+constexpr int kCheckTimePeriod = 2000;
+
 struct NodeInfo {
   int alpha_;
   int beta_;
@@ -36,14 +38,15 @@ public:
 private:
   Position pos_;
   bool is_time_out_ = false;
+  std::size_t nodes_ = 0;
   // std::size_t checks = 0;
 
   std::array<Move, (kMaxDepth * (kMaxDepth + 1)) / 2> pv_moves_;
 
   int IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time, const int ply, const int pv_index,
-                                                                                              bool is_main_line);
+                                                                               const bool is_main_line);
   inline bool IsTimeOut(const TimePoint start_time, const Ms duration);
-  int QuiescenceSearch(int alpha, const int beta);
+  int QuiescenceSearch(NodeInfo info);
   int Search(NodeInfo info, const int ply);
 
   // void ClearPvArray();

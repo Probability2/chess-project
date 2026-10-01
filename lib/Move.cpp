@@ -10,6 +10,33 @@ Move::Move(const Square from, const Square to, const MoveFlag flag) : Move(from,
   move_val_ |= (std::to_underlying(flag) << 12);
 }
 
+bool Move::operator==(std::string_view str) const {
+  if (str.length() < 4) {
+    return false;// Incorrect input!!
+  }
+  int file_from = str[0] - 'a';
+  int rank_from = str[1] - '1';
+  int file_to = str[2] - 'a';
+  int rank_to = str[3] - '1';
+  if (file_from < 0 || file_from > 8 || rank_from < 0 || rank_from > 8 ||
+      file_to < 0 || file_to > 8 || rank_to < 0 || rank_to > 8) {
+    return false;// Incorrect input!!
+  }
+  Square from = coord(rank_from, file_from);
+  Square to = coord(rank_to, file_to);
+  std::optional<PieceBase> promoted;
+  if (str.length() > 4 && std::ranges::find(kPromotedPieces, str[4]) != kPromotedPieces.end()) {
+    promoted = static_cast<PieceBase>(1 +
+               std::ranges::distance(kPromotedPieces.begin(), std::ranges::find(kPromotedPieces, str[4])));
+  }
+  if (get_from() == from && get_to() == to &&
+     (!promoted || *promoted == get_promoted_base())) {
+    return true;
+  }
+
+  return false;
+}
+
 Square Move::get_from() const {
   return static_cast<Square>(move_val_ & 0x3F);
 }
@@ -98,8 +125,7 @@ const Move& MoveList::back() const {
 std::ostream& operator<<(std::ostream& os, const Move& move) {
   const uint8_t from_shift = std::to_underlying(move.get_from());
   const uint8_t to_shift = std::to_underlying(move.get_to());
-  os << move.get_from() << '-' << static_cast<char>('a' + (to_shift & 7))
-  << static_cast<char>('1' + (to_shift >> 3 & 7));
+  os << move.get_from() << static_cast<char>('a' + (to_shift & 7)) << static_cast<char>('1' + (to_shift >> 3 & 7));
   if (move.is_promotion()) {
     os << GetPieceCode(move.get_promoted_base());
   }

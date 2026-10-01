@@ -20,6 +20,8 @@ inline constexpr std::array<char, kMxCastles> kCastleChars = {'K', 'Q', 'k', 'q'
 
 constexpr int kMaxHalfMoves = 512;
 
+inline constexpr int kSeeThreshold = -20;
+
 struct InternalInfo {
   bool operator==(const InternalInfo& other) const = default;
 
@@ -31,6 +33,7 @@ struct InternalInfo {
   Bitboard king_attackers_ = 0;
   int score_ = 0;
   bool is_calculated_ = false;
+  int phase_ = eval::kTotalPhase;
 };
 
 class StateStack {
@@ -154,13 +157,10 @@ public:
   Bitboard get_queens() const noexcept;
   Bitboard get_kings() const noexcept;
 
-  bool is_calculated() const {
-    return info_.is_calculated_;
-  }
+  bool IsCaptureGood(const Move& move) const;
+  PieceType captured_piece() const;
 
-  PieceType get_captured_piece() const {
-    return info_.captured_piece_;
-  }
+  int get_phase() const;
 
 private:
   BoardLookup<PieceType> board_{};
@@ -189,6 +189,17 @@ private:
     board_[sq] = piece;
     AddSquareMask(piece, ToBB(sq));
   }
+  
+  inline constexpr void ClearSquare(const Square sq) {
+    [[assume(sq != Square::kNone)]];
+    if (board_[sq] == PieceType::kNone) {
+      return;
+    }
+    const Bitboard mask = ToBB(sq);
+    PieceOccupied(board_[sq]) &= ~mask;
+    all_pieces_[Color(board_[sq])] &= ~mask;
+    board_[sq] = PieceType::kNone;
+  }
 
   inline constexpr void AddSquareMask(const PieceType piece, const Bitboard mask) {
     [[assume(piece != PieceType::kNone)]];
@@ -199,22 +210,18 @@ private:
   inline constexpr void AddScore(const PieceType piece, const Square sq) {
     [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
     info_.score_ += eval::kPieceSquareTable[piece][sq];
+    info_.phase_ -= eval::kPhaseValues[GetPieceBase(piece)];
   }
 
   inline constexpr void RemoveScore(const PieceType piece, const Square sq) {
     [[assume(piece != PieceType::kNone && sq != Square::kNone)]];
     info_.score_ -= eval::kPieceSquareTable[piece][sq];
+    info_.phase_ += eval::kPhaseValues[GetPieceBase(piece)];
   }
 
-  inline constexpr void ClearSquare(const Square sq) {
-    if (board_[sq] == PieceType::kNone) {
-      return;
-    }
-    const Bitboard mask = ToBB(sq);
-    PieceOccupied(board_[sq]) &= ~mask;
-    all_pieces_[Color(board_[sq])] &= ~mask;
-    board_[sq] = PieceType::kNone;
-  }
+  int SEE(const Square sq, const Bitboard occupied, const PieceType captured_piece, const ColorType side) const;
+  Square GetSmallestAttacker(const Square sq, const Bitboard occupied, const ColorType side) const;
+  Bitboard GetSquareAttackers(const Square sq, const Bitboard occupied, const ColorType side_to_move) const;
 };
 
 namespace internal {

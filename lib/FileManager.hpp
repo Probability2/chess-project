@@ -49,10 +49,10 @@ constexpr std::expected<void, std::string_view> ReadPlacement(std::string_view d
                                                               Position& pos, std::size_t& i) {
   uint8_t col = 0;
   while (i < data.size() && data[i] != kFenDelimeter && data[i] != kSpaceDelimiter && col <= 8) {
-    if (data[i] > '0' && data[i] < '9') {
+    if (data[i] > '0' && data[i] < '9' && col + (data[i] - '0') <= 8) {
       pos.SetSquares(PieceType::kNone, coord, col, data[i] - '0');
       col += (data[i] - '0');
-    } else if (std::ranges::contains(kPieceSymbols, data[i])) {
+    } else if (std::ranges::contains(kPieceSymbols, data[i]) && col <= 7) {
       pos.SetSquare(GetPieceType(data[i]), coord, col);
       col++;
     } else {

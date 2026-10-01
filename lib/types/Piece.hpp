@@ -33,6 +33,11 @@ enum class PieceType: uint8_t {
   kNone
 };
 
+inline constexpr std::array<PieceBase, 6> kPieceBases = {{
+  PieceBase::kPawn, PieceBase::kKnight, PieceBase::kBishop,
+  PieceBase::kRook, PieceBase::kQueen, PieceBase::kKing
+}};
+
 constexpr char kEmptySquare = '.';
 
 inline constexpr std::array<std::array<PieceType, kPieceBaseCount>, 2> kPieceMap = {{
@@ -59,8 +64,7 @@ inline constexpr std::array<std::string, kPieceCount + 1> kPieceImages = {".", "
 inline constexpr std::array<char, kPieceCount + 1> kPieceSymbols = {'.', 'P', 'N', 'B', 'R', 'Q', 'K',
                                                                     'p', 'n', 'b', 'r', 'q', 'k'};
 
-inline constexpr std::array<std::array<char, 4>, 2> kPromotedPieces = {{{'N', 'B', 'R', 'Q'},
-                                                                        {'n', 'b', 'r', 'q'}}};
+inline constexpr std::array<char, 4> kPromotedPieces = {{'n', 'b', 'r', 'q'}};
   
 inline constexpr ColorType Color(PieceType piece) {
   return piece <= PieceType::kWhiteKing ? ColorType::kWhite : ColorType::kBlack;

@@ -7,7 +7,7 @@
 
 namespace chess::eval {
 
-inline constexpr LookupTable<int, 5, PieceBase> kPieceValues = {100, 310, 330, 500, 900};
+inline constexpr LookupTable<int, 6, PieceBase> kPieceValues = {100, 310, 330, 500, 900, 0};
 
 inline constexpr auto kPieceSquareTable = []() {
   LookupTable<BoardLookup<int>, kPieceCount, PieceType> PSQT{};
@@ -95,5 +95,40 @@ inline constexpr BoardLookup<int> kKingEgValues = {{
   -30, -30,  0,   0,   0,   0,   -30, -30,
   -50, -30, -30, -30, -30,  -30, -30, -50
 }};
+
+inline constexpr auto kMVP_LVA = []() {
+  LookupTable<LookupTable<int, 8, PieceBase>, 8, PieceBase> table{};
+  for (PieceBase agressor : kPieceBases) {
+    for (PieceBase victim : kPieceBases) {
+      table[victim][agressor] = kPieceValues[victim] - kPieceValues[agressor];
+    }
+  }
+
+  return table;
+}();
+
+inline constexpr auto kMVP_LVA2 = []() {
+  std::array<int, kBoardSize> table{};
+  for (int i = 0; i < 6; ++i) {
+    for (int j = 0; j < 6; ++j) {
+      table[(i << 3) + j] = kPieceValues[static_cast<PieceBase>(i)] - kPieceValues[static_cast<PieceBase>(j)];
+    }
+  }
+
+  return table;
+}();
+
+inline constexpr LookupTable<int, 6, PieceBase> kPhaseValues = {0, 1, 1, 2, 4, 0};
+
+inline constexpr int kTotalPhase = kPhaseValues[PieceBase::kPawn] * 16 +
+                                   kPhaseValues[PieceBase::kKnight] * 4 +
+                                   kPhaseValues[PieceBase::kBishop] * 4 + 
+                                   kPhaseValues[PieceBase::kRook] * 4 +
+                                   kPhaseValues[PieceBase::kQueen] * 2;// 24
+
+inline int value(const PieceType piece) noexcept {
+  return kPieceValues[GetPieceBase(piece)];
+}
+
 
 }// namespace chess::eval
