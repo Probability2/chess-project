@@ -51,9 +51,26 @@ int main(int argc, char** argv) {
   auto pp1 = fen_manager::Get("2q1k1nr/Q1Bn1ppp/4p3/5b2/2pP4/P3P3/3N1PPP/b3KB1R w Kk - 0 2").value();
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
   auto pp3 = fen_manager::Get("8/p2knpp1/1p5p/2p1PP1P/4N3/1PP2K2/P7/8 w - - 0 0").value();// carlsen nakamura
- 
-  auto pos = fen_manager::Get("rnb1k2r/ppp2pp1/4pq1p/3p4/1bPP4/2N2N2/PP2PPPP/R2QKB1R w KQkq - 0 7").value();
-  uci::PlayWithIterativeBot(pos, 17000ms);
+  
+  auto pos = fen_manager::Get("r4r1k/p1pb4/1p1p3p/3Pq2P/2P1pp2/3BB3/PPQN1P1P/6RK w - - 2 31").value();
+
+  // Perftt(pos, 6);
+
+  // MovePicker picker1(pos);
+  // MovePicker picker2(pos);
+
+  Searcher searcher(fen_manager::Get("r4r1k/p1pb4/1p1p3p/3Pq2P/2P2p2/3pBN2/PPQ2P1P/6RK w - - 0 32").value());
+  // Perftt(pos, 4);
+  uci::BotsIterativePlay(fen_manager::Get("r2r2k1/1ppb1pb1/3p2pp/p1nPp3/2P5/1Pn5/P2NBPPP/R3QRK1 w - - 0 15").value(), 30000ms);
+  // std::cout << searcher.IterativeBestMove(60000ms) << '\n';
+  // uci::BotsIterativePlay(fen_manager::Get("r4r1k/p1pb4/1p1p3p/3Pq2P/2P1pp2/3BB3/PPQN1P1P/6RK w - - 2 31").value(), 15000ms);
+
+
+  // for (const auto move : list.AsSpan()) {
+    // std::cout << std::boolalpha << move << ' ' << pos.IsGoodCapture(move) << '\n';
+  // }
+
+  // auto pos = fen_manager::Get("8/8/4kpp1/3p1b2/p6P/2B5/6P1/6K1 b - - 0 1").value();
   // Searcher searcher(pos);
   // std::cout << searcher.IterativeBestMove(16000ms);
 

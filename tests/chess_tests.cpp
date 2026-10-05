@@ -29,7 +29,7 @@ TEST(PseudoPawnMoves, Position_1) {
   std::unordered_set<std::string> expected_moves = {"a4a5", "b4b5", "c2c3", "c2c4", "c2d3", "e2d3", "e2e3",
                                                          "e2e4", "e2f3", "g2f3", "g2g3", "g2g4", "h5h6"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_pawn(move.get_from())) {
@@ -44,7 +44,7 @@ TEST(PseudoPawnMoves, Position_2) {
   std::unordered_set<std::string> expected_moves = {"c4c5", "d2d3", "d2d4", "e4e5",
                                                     "g2g3", "g2g4", "h2h3", "h2h4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_pawn(move.get_from())) {
@@ -60,7 +60,7 @@ TEST(PseudoPawnMoves, Position_3) {
                                                     "c5b6", "c5c6", "c5d6", "e5d6", "e5e6", "f2f4",
                                                     "f2f3", "g2g3", "g2g4", "h2h3", "h2h4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_pawn(move.get_from())) {
@@ -74,7 +74,7 @@ TEST(PseudoPawnMoves, DoublePush) {
   auto pos = fen_manager::Get("3k4/4n3/2b1p3/5p2/5B2/4N3/4PPP1/4K3 w - - 0 1");
   std::unordered_set<std::string> expected_moves = {"f2f3", "g2g3", "g2g4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_pawn(move.get_from())) {
@@ -88,7 +88,7 @@ TEST(PseudoKnightMoves, Position_1) {
   auto pos = fen_manager::Get("rn1qkbnr/p1Pp1ppp/b3P1P1/4p3/3Pp3/5P2/Ppp5/RNBQKBNR b KQkq d3 0 1");
   std::unordered_set<std::string> expected_moves = {"ng8f6", "ng8e7", "ng8h6", "nb8c6"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (auto& move: moves.AsSpan()) {
     if (pos->is_knight(move.get_from())) {
@@ -105,7 +105,7 @@ TEST(PseudoKnightMoves, Position_2) {
                                                     "Nd5b6", "Nf4e6", "Nf4g6", "Nf4h3", "Nf4h5",
                                                     "Nh8g6", "Nh8f7", "Nd3c5", "Nd3e5"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_knight(move.get_from())) {
@@ -119,7 +119,7 @@ TEST(PseudoKingMoves, Position_1) {
   auto pos = fen_manager::Get("rnbqkbnr/pppppppp/8/8/6P1/1PBP1P1N/P2QP1BP/RN2K2R w KQkq - 0 1");
   std::unordered_set<std::string> expected_moves = {"Ke1d1", "Ke1f1", "Ke1f2", "Ke1g1"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_king(move.get_from())) {
@@ -133,7 +133,7 @@ TEST(PseudoKingMoves, Position_2) {
   auto pos = fen_manager::Get("rnbqkbnr/pppppppp/8/8/6P1/NPBPPP1N/P1Q3BP/R3K2R w KQkq - 0 1");
   std::unordered_set<std::string> expected_moves = {"Ke1d1", "Ke1f1", "Ke1d2", "Ke1e2", "Ke1f2", "Ke1g1", "Ke1c1"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_king(move.get_from())) {
@@ -150,7 +150,7 @@ TEST(PseudoRookMoves, Position_1) {
                                                     "Rd4c4", "Rd4b4", "Rd4a4", "Rd4e4", "Rd4f4",
                                                     "Rd4g4", "Rh4g4", "Rh4f4", "Rh4e4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_rook(move.get_from())) {
@@ -166,7 +166,7 @@ TEST(PseudoBishopMoves, Position_1) {
                                                     "Bg5f6", "Bg5h6", "Bg5h4", "Bg5f4", "Bg5e3",
                                                     "Bg5d2", "Bg5c1"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_bishop(move.get_from())) {
@@ -181,7 +181,7 @@ TEST(PseudoQueenMoves, Position_1) {
   std::unordered_set<std::string> expected_moves = {"qc5a5", "qc5b5", "qc5c6", "qc5c4",
                                                     "qc5d4", "qc5d5", "qc5e5", "qc5f5"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_queen(move.get_from())) {
@@ -198,7 +198,7 @@ TEST(PseudoQueenMoves, Position_2) {
                                                     "Qd4d6", "Qd4e5", "Qd4b4", "Qd4f6",
                                                     "Qd4g7", "Qd4h8"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kPseudo>(moves);
+  move_generator::GenerateMoves<MovesType::kPseudo>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     if (pos->is_queen(move.get_from())) {
@@ -212,7 +212,7 @@ TEST(LegalMoves, Position_1) {
   auto pos = fen_manager::Get("4rk2/3r3b/8/3B2b1/1b3P2/2Q5/rR1K1Nr1/8 w - - 0 1");
   std::unordered_set<std::string> expected_moves = {"Kd2d1", "Kd2c1", "Qc3b4", "Rb2c2", "Rb2a2", "f4g5"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -228,7 +228,7 @@ TEST(LegalMoves, Position_2) {
                                                     "Qd3f1", "Qd3d2", "Qd3d1", "Qd3d4", "Qd3d5", "Qd3c4",
                                                     "Qd3b5", "Qd3a6", "Nb3a5", "Nb3c5", "Nb3d4", "Nb3c1", "Nb3d2"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -240,7 +240,7 @@ TEST(LegalMoves, DoubleCheck) {
   auto pos = fen_manager::Get("q6k/8/4K2N/6N1/2B2n2/b5P1/5Q2/4r3 w - - 0 1");
   std::unordered_set<std::string> expected_moves = {"Ke6d7", "Ke6f7", "Ke6f6", "Ke6f5"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -253,7 +253,7 @@ TEST(LegalMoves, SingleCheck_1) {
   std::unordered_set<std::string> expected_moves = {"Ke6d7", "Ke6f6", "Ke6f7", "Bc4e2", "Qf2e1", "Qf2e2", "Qf2e3",
                                                     "Ng5e4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -266,7 +266,7 @@ TEST(LegalMoves, SingleCheck_2) {
   std::unordered_set<std::string> expected_moves = {"Ke6d7", "Ke6f6", "Ke6f7", "Qf2e1", "Qf2e2", "Qf2e3",
                                                     "Ng5e4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -278,7 +278,7 @@ TEST(LegalMoves, SingleCheck_3) {
   auto pos = fen_manager::Get("3k4/8/8/4Q3/8/8/8/rK6 w - - 0 1");
   std::unordered_set<std::string> expected_moves = {"Kb1a1", "Kb1b2", "Kb1c2", "Qe5a1"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -290,7 +290,7 @@ TEST(LegalMoves, Castle_1) {
   auto pos = fen_manager::Get("rnbqk1r1/pppppp1p/5p2/5P2/2BNP2b/8/PPPP2PP/RNBQK2R w KQq - 0 1");
   std::unordered_set<std::string> expected_moves = {"g2g3", "Ke1e2", "Ke1f1"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves<MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -306,7 +306,7 @@ TEST(LegalMoves, Castle_2) {
                                                     "Bc4e6", "Bc4f7", "Bc4d3", "Bc4e2", "Bc4f1", "Rh1g1", "Rh1f1",
                                                     "Ke1e2", "Qd1e2", "Qd1f3", "Qd1g4", "Qd1h5", "Nb1c3", "Nb1a3"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves< MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -323,7 +323,7 @@ TEST(LegalMoves, Castle_3) {
     "Ke1e2", "Qd1e2", "Qd1f3", "Qd1g4", "Qd1h5", "Nb1c3", "Nb1a3",
     "Ke1g1", "Ke1f1", "Ke1f2"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves< MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -336,7 +336,7 @@ TEST(LegalMoves, Castle_4) {
   std::unordered_set<std::string> expected_moves = {"a3a4", "d2d3", "d2d4", "e2e3", "g2g3", "g2g4", "Rh1h2",
                                                     "Rh1g1", "Ke1f2", "Ke1d1", "Ra1a2"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves< MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -350,7 +350,7 @@ TEST(LegalMoves, PawnEvasions_1) {
                                                     "f2f1b", "f2f1r", "f2f1q", "f2g1n", "f2g1b", "f2g1r",
                                                     "f2g1q", "h2g1n", "h2g1b", "h2g1r", "h2g1q"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves< MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));
@@ -364,7 +364,7 @@ TEST(LegalMoves, EnPassant_1) {
                                                     "Re1a1", "Re1f1", "Re1g1", "Re1h1", "Ka5a6", "Ka5b6", "Ka5b5",
                                                     "Ka5b4", "Ka5a4"};
   MoveList moves;
-  pos->GenerateMoves<MovesType::kLegal>(moves);
+  move_generator::GenerateMoves< MovesType::kLegal>(*pos, moves);
   std::unordered_set<std::string> actual_moves;
   for (const auto& move: moves.AsSpan()) {
     actual_moves.insert(to_notation(pos->PieceOn(move.get_from()), move));

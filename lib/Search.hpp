@@ -17,7 +17,7 @@ constexpr int kInfinity = 100000;
 
 constexpr int kMxChecksExtension = 25;
 
-constexpr int kCheckTimePeriod = 2000;
+constexpr int kCheckTimePeriod = 2047;
 
 struct NodeInfo {
   int alpha_;
@@ -39,7 +39,6 @@ private:
   Position pos_;
   bool is_time_out_ = false;
   std::size_t nodes_ = 0;
-  // std::size_t checks = 0;
 
   std::array<Move, (kMaxDepth * (kMaxDepth + 1)) / 2> pv_moves_;
 

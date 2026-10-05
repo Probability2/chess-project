@@ -1,5 +1,4 @@
 #include "Position.hpp"
-#include "MoveGenerator.hpp"
 
 namespace chess {
 
@@ -149,15 +148,19 @@ Bitboard Position::get_kings() const noexcept {
   return pieces_[PieceType::kWhiteKing] | pieces_[PieceType::kBlackKing];
 }
 
-template<MovesType Type>
-void Position::GenerateMoves(MoveList& list) const {
+void Position::CalculateInfo() const {
   if (!info_.is_calculated_) {
     CalculatePinnedPieces();
     info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0, 0);
     info_.is_calculated_ = true;
   }
-  move_generator::GenerateMoves<Type>(*this, list);
 }
+
+// template<IsMove T, MovesType Type>
+// void Position::GenerateMoves(MoveList<T>& list) const {
+//   CalculateInfo();
+//   move_generator::GenerateMoves<Type>(*this, list);
+// }
 
 bool Position::is_single_check() const noexcept {
   info_.king_attackers_ = get_king_attackers();
@@ -206,34 +209,17 @@ FlippedPosition::FlippedPosition(const Position& pos)
 }// namespace chess::internal
 
 Bitboard Position::get_pinned_pieces() const {
+  CalculateInfo();
   return info_.pinned_pieces_;
 }
 
 Bitboard Position::get_king_attackers() const {
-  if (!info_.is_calculated_) {
-    info_.king_attackers_ = GetSquareAttackers(GetLSB(get_piece_metric(PieceBase::kKing & side_to_move_)), 0, 0);
-  }
+  CalculateInfo();
   return info_.king_attackers_;
 }
 
 Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied, const Bitboard padding) const {
-  [[assume(sq != Square::kNone)]];
-  Bitboard attackers = 0;
-  const Bitboard blockers = (get_all_pieces() | padding) & ~occupied;
-  const Bitboard own_pieces = get_pieces(side_to_move_);
-  Bitboard king_rook_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kRook>(sq, blockers);
-  Bitboard king_bishop_attacks = ~own_pieces & attacks::SlidingAttacks<PieceBase::kBishop>(sq, blockers);
-  attackers |= (attacks::kAttacks<PieceBase::kPawn>[side_to_move_, sq] &
-                get_piece_metric(PieceBase::kPawn & !side_to_move_) & ~occupied);
-  attackers |= (attacks::kAttacks<PieceBase::kKnight>[sq] &
-                get_piece_metric(PieceBase::kKnight & !side_to_move_));
-  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kRook & !side_to_move_));
-  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kBishop & !side_to_move_));
-  attackers |= (king_rook_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
-  attackers |= (king_bishop_attacks & get_piece_metric(PieceBase::kQueen & !side_to_move_));
-  attackers |= (attacks::kAttacks<PieceBase::kKing>[sq] & get_piece_metric(PieceBase::kKing & !side_to_move_));
-
-  return attackers;
+  return GetSquareAttackers(sq, occupied | padding, !side_to_move_);
 }
 
 Bitboard Position::GetSquareAttackers(const Square sq, const Bitboard occupied, const ColorType side) const {
@@ -375,20 +361,6 @@ PieceType Position::captured_piece() const {
   return info_.captured_piece_;
 }
 
-Square Position::GetSmallestAttacker(const Square sq, const Bitboard occupied, const ColorType side) const {
-  Bitboard attackers = GetSquareAttackers(sq, occupied, side);
-  if (!attackers) {
-    return Square::kNone;
-  }
-  for (PieceBase base: kPieceBases) {
-    const Bitboard piece_attackers = get_piece_metric(base & side) & attackers;
-    if (piece_attackers) {
-      return GetLSB(piece_attackers);
-    }
-  }
-  std::unreachable();
-}
-
 int Position::SEE(const Square sq, const Bitboard occupied,
                   const PieceType captured_piece, const ColorType side) const {
   int value = 0;
@@ -401,10 +373,62 @@ int Position::SEE(const Square sq, const Bitboard occupied,
   return value;
 }
 
-bool Position::IsCaptureGood(const Move& capture) const {
-  PieceType captured_piece = this->captured_piece();
-  return eval::value(captured_piece) -
-         SEE(capture.get_to(), kAllSquares, captured_piece, !side_to_move_) >= kSeeThreshold;  
+Square Position::GetSmallestAttacker(const Square sq, const Bitboard occupied, const ColorType side) const {
+  Bitboard attackers = GetSquareAttackers(sq, occupied, side);
+  // PrintBitboard(attackers);
+  // std::cout << '\n';
+  if (!(attackers & ~occupied & get_pieces(side))) {
+    return Square::kNone;
+  }
+  for (PieceBase base: kPieceBases) {
+    const Bitboard piece_attackers = get_piece_metric(base & side) & attackers & ~occupied;
+    if (piece_attackers) {
+      return GetLSB(piece_attackers);
+    }
+  }
+  std::unreachable();
+}
+
+bool Position::IsGoodCapture(const Move& capture) const {
+  // std::cout << capture << " CAPTURE\n";
+  if (capture.is_promotion()) [[unlikely]] {
+    return true;
+  }
+  // std::cout << capture << " CAPTURE\n";
+  Square from = capture.get_from();
+  Square to = capture.get_to();
+  int see = capture.is_en_passant() ? eval::value(PieceBase::kPawn) : eval::value(PieceOn(to));
+  ColorType side = !side_to_move_;
+  PieceType captured_piece = PieceOn(from);
+  Bitboard occupied = ToBB(from);
+  int i = 0;
+  for (;;) {
+    // std::cout << "OCCUPIED!\n";
+    // PrintBitboard(~occupied);
+    // std::cout << '\n';
+    Square sq_attacker = GetSmallestAttacker(to, occupied, side);
+    // std::cout << sq_attacker << " sq\n";
+    ++i;
+    if (sq_attacker == Square::kNone) {
+      break;
+    }
+    if (side == side_to_move_) {
+      see += eval::value(captured_piece);
+    } else {
+      see -= eval::value(captured_piece);
+      if (see >= kSeeThreshold) {// we can stop capturing
+        // std::cout << "Better\n";
+        return true;
+      }
+    }
+    occupied |= ToBB(sq_attacker);
+    captured_piece = PieceOn(sq_attacker);
+    // std::cout << GetPieceIcon(captured_piece) << " cp\n";
+    side = !side;
+  }
+  // std::cout << "yeppp\n";
+
+  return see >= kSeeThreshold;
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
@@ -431,13 +455,13 @@ std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPositio
   return os;
 }
 
-// explicit template instantiation
-template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list) const;
-template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list) const;
-template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list) const;
-template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list) const;
-template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list) const;
-template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list) const;
+// // explicit template instantiation
+// template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list) const;
+// template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list) const;
+// template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list) const;
+// template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list) const;
+// template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list) const;
+// template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list) const;
 
 }// namespace chess
 

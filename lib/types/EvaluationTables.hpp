@@ -130,5 +130,9 @@ inline int value(const PieceType piece) noexcept {
   return kPieceValues[GetPieceBase(piece)];
 }
 
+inline int value(const PieceBase base) noexcept {
+  return kPieceValues[base];
+}
+
 
 }// namespace chess::eval

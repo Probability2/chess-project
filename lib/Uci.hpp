@@ -15,7 +15,7 @@ namespace internal {
 
 Move UciToMove(std::string_view str, const Position& pos) {
   MoveList list;
-  pos.GenerateMoves<MovesType::kLegal>(list);
+  move_generator::GenerateMoves<MovesType::kLegal>(pos, list);
   for (const auto& move: list.AsSpan()) {
     if (move == str) {
       return move;
@@ -33,7 +33,7 @@ void BotsPlay(Position pos, const int depth) {
     Position& spos = searcher.get_position();
     std::cout << spos << '\n';
     MoveList list;
-    spos.GenerateMoves<MovesType::kLegal>(list);
+    move_generator::GenerateMoves<MovesType::kLegal>(spos, list);
     if (list.empty()) {
       if (spos.is_check()) {
         std::cout << "Checkmate!\n";
@@ -60,7 +60,7 @@ void PlayWithBot(Position pos, const int depth) {
       std::cout << spos << '\n';
     }
     MoveList list;
-    spos.GenerateMoves<MovesType::kLegal>(list);
+    move_generator::GenerateMoves<MovesType::kLegal>(spos, list);
     if (list.empty()) {
       if (spos.is_check()) {
         std::cout << "Checkmate!\n";
@@ -91,17 +91,17 @@ void PlayWithBot(Position pos, const int depth) {
 
 void PlayWithIterativeBot(Position pos, const Ms time) {
   Searcher searcher(pos);
-  ColorType engine_side = !pos.side_to_move();
+  ColorType engine_side = pos.side_to_move();
   ColorType side_to_move = pos.side_to_move();
   for (;;) {
     Position& spos = searcher.get_position();
     if (engine_side == ColorType::kWhite) {
-      std::cout << flipped(spos) << '\n';
+      std::cout << spos << '\n';
     } else {
       std::cout << spos << '\n';
     }
     MoveList list;
-    spos.GenerateMoves<MovesType::kLegal>(list);
+    move_generator::GenerateMoves<MovesType::kLegal>(spos, list);
     if (list.empty()) {
       if (spos.is_check()) {
         std::cout << "Checkmate!\n";
@@ -136,7 +136,7 @@ void BotsIterativePlay(Position pos, const Ms time) {
     Position& spos = searcher.get_position();
     std::cout << spos << '\n';
     MoveList list;
-    spos.GenerateMoves<MovesType::kLegal>(list);
+    move_generator::GenerateMoves<MovesType::kLegal>(spos, list);
     if (list.empty()) {
       if (spos.is_check()) {
         std::cout << "Checkmate!\n";
@@ -145,7 +145,7 @@ void BotsIterativePlay(Position pos, const Ms time) {
       }
       break;
     }
-    chess::Move move = searcher.IterativeBestMove(time);
+    auto move = searcher.IterativeBestMove(time);
     std::cout << "Engine's move: " << move << '\n';
     searcher.MakeMove(move);
   }

@@ -16,12 +16,8 @@ MovePicker::MovePicker(const Position& pos, const Move pv_move)
 , pv_move_(pv_move) {
 }
 
-// bool MovePicker::has_next() const {
-//   return ind_ < list_.size() || (stage_ == PickerStage::kNone && pv_move_.has_value());
-// }
-
-int MovePicker::GetDiff(const Move& move) {
-  if (move.is_en_passant()) {
+int MovePicker::CalculateScore(const Move move) {
+  if (move.is_en_passant()) [[unlikely]] {
     return 0;
   }
   // return eval::kPieceValues[GetPieceBase(pos_.PieceOn(move.get_to()))] -
@@ -31,61 +27,83 @@ int MovePicker::GetDiff(const Move& move) {
                           // std::to_underlying(GetPieceBase(pos_.PieceOn(move.get_from())))];
 }
 
-void MovePicker::SkipPvMove() {
-  // if (pv_move_.has_value() && list_[ind_] == pv_move_.value()) {
-  //   ind_++;
-  //   return YieldMove2();
-  // }
+void MovePicker::ScoreMoves() {
+  for (auto& move: captures_.AsSpan()) {
+    move.score_ = CalculateScore(move);
+  }
 }
 
 Move MovePicker::YieldMove2() {
   switch (stage2_) {
   case PickerStage::kPrincipalVariation:
-    stage2_++;
+    ++stage2_;
     if (pv_move_.has_value() && (pv_move_->is_capture() || !only_captures_)) {
-      return pv_move_.value();
+      return *pv_move_;
     }
+    [[fallthrough]];
+  case PickerStage::kGenCaptures:
+    move_generator::GenerateMoves<MovesType::kCaptures>(pos_, captures_);
+    captures_.RemovePvMove(pv_move_);
+    ScoreMoves();
+    right_ = captures_.size() - 1;
+    ++stage2_;
     [[fallthrough]];
   case PickerStage::kGoodCaptures:
-    if (ind_ == 0) {
-      pos_.GenerateMoves<MovesType::kCaptures>(captures_list_);
+    if (left_ <= right_) {
+      if (Move capture = SortOutCapture2()) {
+        return capture;
+      }
     }
-    if (ind_ != captures_list_.size()) {
-      SortOutCapture2([](int score) { return score < kSeeThreshold; });
-    }
-    if (pv_move_.has_value() && list_[ind_] == pv_move_.value()) {
-      ind_++;
+    left_ = 0;
+    ++stage2_;
+    [[fallthrough]];
+  case PickerStage::kGenQuiets:
+    if (only_captures_) {
+      stage2_ = PickerStage::kBadCaptures;
       return YieldMove2();
     }
-    if (is_good_) {
-      return captures_list_[ind_++];
-    }
-    ind_last_capture_ = ind_;
-    ind_ = 0;
-    stage2_++;
+    move_generator::GenerateMoves<MovesType::kQuiets>(pos_, quiets_);
+    quiets_.RemovePvMove(pv_move_);
+    ++stage2_;
     [[fallthrough]];
   case PickerStage::kQuiets:
-    if (ind_ == 0) {
-      pos_.GenerateMoves<MovesType::kQuiets>(quiets_list_);
+    if (ind2_ < quiets_.size()) {
+      return quiets_[ind2_++];
     }
-    if (pv_move_.has_value() && list_[ind_] == pv_move_.value()) {
-      ind_++;
-      return YieldMove2();
-    }
-    if (!quiets_list_.empty()) {
-      return quiets_list_[ind_++];
-    }
-    stage2_++;
+    ++stage2_;
     [[fallthrough]];
   case PickerStage::kBadCaptures:
-    ind_ = ind_last_capture_;
-    if (ind_ == captures_list_.size()) {
-      return Move();
+    if (left_ < bad_captures_.size()) {
+      return bad_captures_[left_++];
     }
-    SortOutCapture2([](int score) { return score < kSeeThreshold; });
-    return captures_list_[ind_++];
+    return kNullMove;
   }
   std::unreachable();
+}
+
+Move MovePicker::SortOutCapture2() {
+  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
+  while (left_ <= right_) {
+    // std::cout << left_ << ' ' << right_ << '\n';
+    int mx_diff = captures_[left_].score_;
+    int mx_ind = left_;
+    for (int i = left_ + 1; i <= right_; ++i) {
+      int curr_diff = captures_[i].score_;
+      if (curr_diff > mx_diff) {
+        mx_diff = curr_diff;
+        mx_ind = i;
+      }
+    }
+    // std::cout << std::boolalpha << captures_[mx_ind] << " omg what's happening " << pos_.IsGoodCapture(captures_[mx_ind]) << '\n';
+    if (pos_.IsGoodCapture(captures_[mx_ind])) {
+      std::swap(captures_[left_], captures_[mx_ind]);
+      // std::cout << "yepp\n";
+      return captures_[left_++];
+    }
+    bad_captures_.push(captures_[mx_ind]);
+    std::swap(captures_[right_--], captures_[mx_ind]);
+  }
+  return kNullMove;
 }
 
 Move MovePicker::YieldMove() {
@@ -96,12 +114,14 @@ Move MovePicker::YieldMove() {
     }
   }
   if (ind_ == 0 && stage_ == PickerStage::kPrincipalVariation) {
-    pos_.GenerateMoves<MovesType::kCaptures>(list_);
+    move_generator::GenerateMoves<MovesType::kCaptures>(pos_, list_);
     stage_ = PickerStage::kGoodCaptures;
+    // list_.RemovePvMove(pv_move_);
   }
   if (ind_ == list_.size() && stage_ == PickerStage::kGoodCaptures && !only_captures_) {
-    pos_.GenerateMoves<MovesType::kQuiets>(list_);
+    move_generator::GenerateMoves<MovesType::kQuiets>(pos_, list_);
     stage_ = PickerStage::kQuiets;
+    // list_.RemovePvMove(pv_move_);
   }
   if (ind_ >= list_.size()) {
     return kNullMove;
@@ -120,13 +140,13 @@ Move MovePicker::YieldMove() {
 }
 
 void MovePicker::SortOutCapture() {
-  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), insertion sort
+  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
   std::size_t sz = list_.size();
   [[assume(ind_ <= sz)]];
-  int mx_diff = GetDiff(list_[ind_]);
+  int mx_diff = CalculateScore(list_[ind_]);
   std::size_t mx_ind = ind_;
   for (std::size_t i = ind_ + 1; i < sz; ++i) {
-    int curr_diff = GetDiff(list_[i]);
+    int curr_diff = CalculateScore(list_[i]);
     if (curr_diff > mx_diff) {
       mx_diff = curr_diff;
       mx_ind = i;
@@ -135,33 +155,16 @@ void MovePicker::SortOutCapture() {
   std::swap(list_[ind_], list_[mx_ind]);
 }
 
-// template<typename F>
-// void MovePicker::SortOutCapture2(F fun) {
-//   //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), insertion sort
-//   std::size_t sz = list_.size();
-//   [[assume(ind_ <= sz)]];
-//   int mx_diff = GetDiff(list_[ind_]);
-//   std::size_t mx_ind = ind_;
-//   for (std::size_t i = ind_ + 1; i < sz; ++i) {
-//     int curr_diff = GetDiff(list_[i]);
-//     if (curr_diff > mx_diff) {
-//       mx_diff = curr_diff;
-//       mx_ind = i;
-//     }
-//   }
-//   if (fun(mx_diff)) {
-//     is_good_ = true;
-//     return;
-//   }
-//   std::swap(list_[ind_], list_[mx_ind]);
-// }
-
 std::size_t MovePicker::size() const {
   return ind_;
 }
 
 bool MovePicker::empty() const {
   return list_.empty();
+}
+
+bool MovePicker::empty2() const {
+  return captures_.empty() && quiets_.empty();
 }
 
 }// namespace chess

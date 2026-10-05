@@ -33,7 +33,7 @@ int Searcher::QuiescenceSearch(NodeInfo info) {
     info.alpha_ = score;
   }
   MovePicker picker(pos_, true);
-  while (Move move = picker.YieldMove()) {
+  while (Move move = picker.YieldMove2()) {
     // Move move = picker.YieldMove();
     pos_.MakeMove(move);
     score = -QuiescenceSearch(NodeInfo{-info.beta_, -info.alpha_});
@@ -111,7 +111,7 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
                               const int ply, const int pv_index, const bool is_main_line) {
   nodes_++;
   // triangular pv-table
-  if (nodes_ % kCheckTimePeriod == 0 && (is_time_out_ || IsTimeOut(start_time, move_time))) {
+  if ((nodes_ & kCheckTimePeriod) && (is_time_out_ || IsTimeOut(start_time, move_time))) [[unlikely]] {
     is_time_out_ = true;
     return 0;
   }
@@ -127,12 +127,12 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
   auto picker = pv_move ? MovePicker(pos_, pv_moves_[ply]) : MovePicker(pos_);
   pv_moves_[pv_index] = kNullMove;
-  while (Move move = picker.YieldMove()) {
+  while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
     int score = -IterativeSearch(NodeInfo{-info.beta_, -info.alpha_, info.depth_ - extension, info.checks_},
                                             start_time, move_time, ply + 1, pv_next_index, move == pv_move);
     pos_.UnmakeMove(move);
-    if (is_time_out_) {
+    if (is_time_out_) [[unlikely]] {
       return 0;
     }
     if (score >= info.beta_) {
@@ -150,7 +150,7 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
       }
     }
   }
-  if (picker.empty()) {
+  if (picker.empty2()) {
     if (is_check) {
       return -kInfinity + ply;
     }
@@ -170,12 +170,8 @@ Move Searcher::IterativeBestMove(const Ms move_time) {
   std::size_t depth = 1;
   for (depth = 1; depth < kMaxDepth; ++depth) {
     int score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, start_time, move_time, 0, 0, true);
-    std::cout << "On depth: " << depth << '\n';
-    std::cout << nodes_ << '\n';
-    // for (int i = 0; i < pv_moves_.size(); ++i) {
-      // std::cout << pv_moves_[i] << ' ';
-    // }
-    // std::cout << "\n\n";
+    // std::cout << "On depth: " << depth << '\n';
+    // std::cout << nodes_ << '\n';
     if (is_time_out_) {
       break;
     }

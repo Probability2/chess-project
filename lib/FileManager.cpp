@@ -41,7 +41,7 @@ std::expected<std::ofstream, std::string_view> CreateFile() {
     return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
   }
   auto file_name = FileName();
-  if (!file_name.has_value()) {
+  if (!file_name) {
     return std::unexpected(internal::to_string(internal::ErrorCode::kNamesOccupied));
   }
   std::ofstream file(*file_name, std::ios::out);
@@ -69,7 +69,7 @@ void WritePositionSquares(std::ofstream& file, const Position& pos) {
         continue;
       }
       process_empty();
-      file << kPieceSymbols[static_cast<int>(square)];
+      file << kPieceSymbols[std::to_underlying(square)];
     }
     process_empty();
     if (i != 0) {

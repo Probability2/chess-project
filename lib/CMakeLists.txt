@@ -1,7 +1,6 @@
 add_library(ChessLibrary
     Position.cpp
     FileManager.cpp
-    MoveGenerator.cpp
     Move.cpp
     Perft.hpp
     Evaluation.hpp

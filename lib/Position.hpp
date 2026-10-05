@@ -23,7 +23,7 @@ constexpr int kMaxHalfMoves = 512;
 inline constexpr int kSeeThreshold = -20;
 
 struct InternalInfo {
-  bool operator==(const InternalInfo& other) const = default;
+  bool operator==(const InternalInfo &other) const = default;
 
   Square en_passant_ = Square::kNone;
   PieceType captured_piece_ = PieceType::kNone;
@@ -38,8 +38,8 @@ struct InternalInfo {
 
 class StateStack {
 public:
-  bool operator==(const StateStack& other) const;
-  void push(const InternalInfo& info);
+  bool operator==(const StateStack &other) const;
+  void push(const InternalInfo &info);
   void pop();
   InternalInfo top() const;
   std::size_t size() const;
@@ -55,7 +55,7 @@ class Position {
 public:
   constexpr Position() = default;
 
-  bool operator==(const Position& other) const = default;
+  bool operator==(const Position &other) const = default;
 
   constexpr void SetSquares(PieceType p, const std::size_t x, const std::size_t y, const std::size_t n) {
     for (std::size_t i = 0; i < n; ++i) {
@@ -63,7 +63,7 @@ public:
     }
   }
 
-  //A1 = 0, H8 = 63
+  // A1 = 0, H8 = 63
   constexpr void SetSquare(const PieceType piece, const std::size_t x, const std::size_t y) {
     Square sq = coord(x, y);
     if (piece == PieceType::kNone) {
@@ -109,9 +109,6 @@ public:
     halfmoves_ = 2 * moves + std::to_underlying(side_to_move_);
     return {};
   }
-  
-  template<MovesType Type>
-  void GenerateMoves(MoveList& list) const;
 
   bool is_white_move() const noexcept;
   bool is_en_passant() const noexcept;
@@ -130,12 +127,12 @@ public:
   InternalInfo GetInfo() const;
   StateStack GetStateStack() const;
 
-  bool is_pawn(const Square sq) const noexcept;// for tests only
-  bool is_knight(const Square sq) const noexcept;// for tests only
-  bool is_bishop(const Square sq) const noexcept;// for tests only
-  bool is_rook(const Square sq) const noexcept; // for tests only
-  bool is_queen(const Square sq) const noexcept;// for tests only
-  bool is_king(const Square) const noexcept;// for tests only
+  bool is_pawn(const Square sq) const noexcept;   // for tests only
+  bool is_knight(const Square sq) const noexcept; // for tests only
+  bool is_bishop(const Square sq) const noexcept; // for tests only
+  bool is_rook(const Square sq) const noexcept;   // for tests only
+  bool is_queen(const Square sq) const noexcept;  // for tests only
+  bool is_king(const Square) const noexcept;      // for tests only
 
   Bitboard get_king_attackers() const;
   Bitboard get_pinned_pieces() const;
@@ -145,8 +142,8 @@ public:
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;
 
-  void MakeMove(const Move& move);
-  void UnmakeMove(const Move& move);
+  void MakeMove(const Move &move);
+  void UnmakeMove(const Move &move);
 
   bool IsPinned(const Square sq) const noexcept;
 
@@ -157,10 +154,12 @@ public:
   Bitboard get_queens() const noexcept;
   Bitboard get_kings() const noexcept;
 
-  bool IsCaptureGood(const Move& move) const;
+  bool IsGoodCapture(const Move &move) const;
   PieceType captured_piece() const;
 
   int get_phase() const;
+
+  void CalculateInfo() const;
 
 private:
   BoardLookup<PieceType> board_{};
@@ -171,16 +170,16 @@ private:
   mutable InternalInfo info_{};
   StateStack state_stack_{};
 
-  template<PieceBase Piece> requires attacks::SlidingPiece<Piece>
+  template <PieceBase Piece> requires attacks::SlidingPiece<Piece>
   void GetPinnedBySlidingPiece(const Square king_sq, const Bitboard occupied, const Bitboard pieces) noexcept;
 
-  constexpr Bitboard& PieceOccupied(const PieceType piece) {
+  constexpr Bitboard &PieceOccupied(const PieceType piece) {
     [[assume(piece != PieceType::kNone)]];
     return pieces_[piece];
   }
-  
+
   void CalculatePinnedPieces() const noexcept;
-  inline void UpdateMoveClocks(const Move& move) noexcept;
+  inline void UpdateMoveClocks(const Move &move) noexcept;
   inline void DoRookCastle(const MoveFlag flag) noexcept;
   inline void UndoRookCastle(const MoveFlag flag) noexcept;
 
@@ -189,7 +188,7 @@ private:
     board_[sq] = piece;
     AddSquareMask(piece, ToBB(sq));
   }
-  
+
   inline constexpr void ClearSquare(const Square sq) {
     [[assume(sq != Square::kNone)]];
     if (board_[sq] == PieceType::kNone) {
@@ -227,18 +226,17 @@ private:
 namespace internal {
 
 struct FlippedPosition {
-  FlippedPosition(const chess::Position& pos);
-
-  const chess::Position& pos_;
+  FlippedPosition(const chess::Position &pos);
+  
+  const chess::Position &pos_;
 };
 
-}// namespace chess::internal
+} // namespace chess::internal
 
-std::ostream& operator<<(std::ostream& os, const Position& pos);
+std::ostream &operator<<(std::ostream &os, const Position &pos);
 
-std::ostream& operator<<(std::ostream& os, const internal::FlippedPosition& flipped_pos);
+std::ostream &operator<<(std::ostream &os, const internal::FlippedPosition &flipped_pos);
 
-}// namespace chess
+} // namespace chess
 
-
-chess::internal::FlippedPosition flipped(const chess::Position& pos);
+chess::internal::FlippedPosition flipped(const chess::Position &pos);
