@@ -327,7 +327,7 @@ void Position::MakeMove(const Move& move) {
   }
   info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   info_.is_calculated_ = false;
-  const PieceType new_piece = move.is_promotion() ? (move.get_promoted_base() & side_to_move_) : piece;
+  const PieceType new_piece = move.is_promotion() ? (move.promoted_piece() & side_to_move_) : piece;
   AddScore(new_piece, to);
   PutPiece(new_piece, to);
   side_to_move_ = !side_to_move_;
@@ -397,18 +397,20 @@ bool Position::IsGoodCapture(const Move& capture) const {
   // std::cout << capture << " CAPTURE\n";
   Square from = capture.get_from();
   Square to = capture.get_to();
-  int see = capture.is_en_passant() ? eval::value(PieceBase::kPawn) : eval::value(PieceOn(to));
+  // int see; = capture.is_en_passant() ? eval::value(PieceBase::kPawn) : eval::value(PieceOn(to));
   ColorType side = !side_to_move_;
   PieceType captured_piece = PieceOn(from);
   Bitboard occupied = ToBB(from);
-  int i = 0;
+  int see = 0;
+  if (capture.is_en_passant()) [[unlikely]] {
+    see = eval::value(PieceBase::kPawn);
+    Direction dir = (side_to_move_ == ColorType::kWhite) ? Direction::kSouth : Direction::kNorth;
+    occupied |= ToBB(to + dir);
+  } else [[likely]] {
+    see = eval::value(PieceOn(to));
+  }
   for (;;) {
-    // std::cout << "OCCUPIED!\n";
-    // PrintBitboard(~occupied);
-    // std::cout << '\n';
     Square sq_attacker = GetSmallestAttacker(to, occupied, side);
-    // std::cout << sq_attacker << " sq\n";
-    ++i;
     if (sq_attacker == Square::kNone) {
       break;
     }

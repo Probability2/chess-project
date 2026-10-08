@@ -30,7 +30,7 @@ bool Move::operator==(std::string_view str) const {
                std::ranges::distance(kPromotedPieces.begin(), std::ranges::find(kPromotedPieces, str[4])));
   }
   if (get_from() == from && get_to() == to &&
-     (!promoted || *promoted == get_promoted_base())) {
+     (!promoted || *promoted == promoted_piece())) {
     return true;
   }
 
@@ -62,7 +62,7 @@ MoveFlag Move::get_flag() const {
   return static_cast<MoveFlag>(move_val_ >> 12);
 }
 
-PieceBase Move::get_promoted_base() const {
+PieceBase Move::promoted_piece() const {
   return static_cast<PieceBase>(((move_val_ & 0x3000) >> 12) + 1);
 }
 
@@ -179,7 +179,7 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
   const uint8_t to_shift = std::to_underlying(move.get_to());
   os << move.get_from() << static_cast<char>('a' + (to_shift & 7)) << static_cast<char>('1' + (to_shift >> 3 & 7));
   if (move.is_promotion()) {
-    os << GetPieceCode(move.get_promoted_base());
+    os << GetPieceCode(move.promoted_piece());
   }
   
   return os;

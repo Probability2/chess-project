@@ -217,7 +217,7 @@ bool IsLegalEP(const Position& pos, const Square from, const Square to, const Sq
 }
 
 template<ColorType Color>
-bool IsLegal(const Position& pos, const Move& move) {
+bool IsLegal(const Position& pos, const Move move) {
   constexpr PieceType king = PieceBase::kKing & Color;
   const Square from = move.get_from();
   const Bitboard bb_from = ToBB(from);
@@ -291,8 +291,7 @@ void GenerateCaptures(MoveList<T>& list, const Position& pos) {
     GenerateQueenMoves<Color>(list, pos, opponent_pieces);
     GenerateKingMoves<MovesType::kCaptures, Color>(list, pos, opponent_pieces);
   }
-  FilterOutLegalMoves<Color>(list, pos);
-  // SortOutCaptures(list, pos);
+  // FilterOutLegalMoves<Color>(list, pos);
 }
 
 template<ColorType Color, IsMove T>
@@ -322,9 +321,8 @@ void GenerateQuiets(MoveList<T>& list, const Position& pos) {
     GenerateRookMoves<Color>(list, pos, empty_squares);
     GenerateQueenMoves<Color>(list, pos, empty_squares);
     GenerateKingMoves<MovesType::kQuiets, Color>(list, pos, empty_squares);
-    // GeneratePseudoMoves<Color>(list, pos);
   }
-  FilterOutLegalMoves<Color>(list, pos);
+  // FilterOutLegalMoves<Color>(list, pos);
 }
 
 template<MovesType Type, ColorType Color, IsMove T>
@@ -352,6 +350,21 @@ void GenerateMoves(const Position& pos, MoveList<T>& list) {
 // }
 
 }// namespace internal
+
+inline bool IsLegalV(const Position& pos, const Move move) {
+  ColorType side = pos.side_to_move();
+  const PieceType king = (PieceBase::kKing & side);
+  const Square king_sq = GetLSB(pos.get_piece_metric(king));
+  const Square from = move.get_from();
+  const bool is_pinned = pos.IsPinned(from);
+  const bool is_regular_legal = !move.is_en_passant() && (!is_pinned && from != king_sq) ||
+                                (is_pinned && (ToBB(move.get_to()) & kLines[king_sq, from]));
+
+  if (side == ColorType::kWhite) {
+    return is_regular_legal || internal::IsLegal<ColorType::kWhite>(pos, move);
+  }
+  return is_regular_legal || internal::IsLegal<ColorType::kBlack>(pos, move);
+}
 
 template<MovesType Type, IsMove T>
 void GenerateMoves(const Position& pos, MoveList<T>& list) {

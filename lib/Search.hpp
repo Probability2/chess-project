@@ -5,6 +5,7 @@
 #include "Position.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <ranges>
 
@@ -42,11 +43,15 @@ private:
 
   std::array<Move, (kMaxDepth * (kMaxDepth + 1)) / 2> pv_moves_;
 
+  std::array<std::array<Move, kMaxKillerMoves>, kMaxDepth> killer_moves_;
+
   int IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time, const int ply, const int pv_index,
                                                                                const bool is_main_line);
   inline bool IsTimeOut(const TimePoint start_time, const Ms duration);
   int QuiescenceSearch(NodeInfo info);
   int Search(NodeInfo info, const int ply);
+
+  void AddKillerMove(const Move& move, const int ply);
 
   // void ClearPvArray();
 };

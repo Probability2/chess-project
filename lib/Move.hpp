@@ -55,7 +55,7 @@ public:
   bool operator==(std::string_view str) const;
   Square get_from() const;
   Square get_to() const;
-  PieceBase get_promoted_base() const;
+  PieceBase promoted_piece() const;
   MoveFlag get_flag() const;
   bool is_capture() const;;
   bool is_double_pawn_push() const;

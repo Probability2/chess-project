@@ -16,7 +16,18 @@ MovePicker::MovePicker(const Position& pos, const Move pv_move)
 , pv_move_(pv_move) {
 }
 
-int MovePicker::CalculateScore(const Move move) {
+MovePicker::MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers)
+: pos_(pos)
+, killers_(killers) {
+}
+
+MovePicker::MovePicker(const Position& pos, const Move pv_move, const std::array<Move, kMaxKillerMoves>& killers)
+: pos_(pos)
+, pv_move_(pv_move)
+, killers_(killers) {
+}
+
+int MovePicker::GetCaptureScore(const Move move) const {
   if (move.is_en_passant()) [[unlikely]] {
     return 0;
   }
@@ -27,9 +38,34 @@ int MovePicker::CalculateScore(const Move move) {
                           // std::to_underlying(GetPieceBase(pos_.PieceOn(move.get_from())))];
 }
 
-void MovePicker::ScoreMoves() {
+int MovePicker::GetQuietScore(const Move move) const {
+  // if (move == killers_[0]) {
+  //   return 900;
+  // } else if (move == killers_[1]) {
+  //   return 800;
+  // }
+  if (move.is_promotion()) [[unlikely]] {
+    switch (move.promoted_piece()) {
+      case PieceBase::kQueen: return 1000;
+      case PieceBase::kKnight: return 600;
+      default: return 200;// rook and bishop
+    }
+  } else if (move.is_castle()) [[unlikely]] {
+    return 300;
+  } else [[likely]] {
+    return 100;
+  }
+}
+
+void MovePicker::ScoreCaptures() {
   for (auto& move: captures_.AsSpan()) {
-    move.score_ = CalculateScore(move);
+    move.score_ = GetCaptureScore(move);
+  }
+}
+
+void MovePicker::ScoreQuiets() {
+  for (auto& move: quiets_.AsSpan()) {
+    move.score_ = GetQuietScore(move);
   }
 }
 
@@ -44,13 +80,16 @@ Move MovePicker::YieldMove2() {
   case PickerStage::kGenCaptures:
     move_generator::GenerateMoves<MovesType::kCaptures>(pos_, captures_);
     captures_.RemovePvMove(pv_move_);
-    ScoreMoves();
-    right_ = captures_.size() - 1;
+    // ScoreCaptures();
+    // ScoreMoves(captures_, [this](Move m){ return GetCaptureScore(m);});
+    ScoreCaptures();
+    right_ = captures_.size();
     ++stage2_;
     [[fallthrough]];
   case PickerStage::kGoodCaptures:
-    if (left_ <= right_) {
-      if (Move capture = SortOutCapture2()) {
+    while (left_ < right_) {
+      Move capture = YieldGoodCapture();
+      if (capture && move_generator::IsLegalV(pos_, capture)) {
         return capture;
       }
     }
@@ -64,103 +103,69 @@ Move MovePicker::YieldMove2() {
     }
     move_generator::GenerateMoves<MovesType::kQuiets>(pos_, quiets_);
     quiets_.RemovePvMove(pv_move_);
+    ScoreQuiets();
+    // ScoreMoves(quiets_, [this](Move m){ return GetQuietScore(m);});
     ++stage2_;
     [[fallthrough]];
   case PickerStage::kQuiets:
-    if (ind2_ < quiets_.size()) {
-      return quiets_[ind2_++];
+    while (ind2_ < quiets_.size()) {
+      Move quiet = YieldQuiet();
+      if (move_generator::IsLegalV(pos_, quiet)) {
+        return quiet;
+      }
     }
     ++stage2_;
     [[fallthrough]];
   case PickerStage::kBadCaptures:
-    if (left_ < bad_captures_.size()) {
-      return bad_captures_[left_++];
+    while (left_ < bad_captures_.size()) {
+      Move capture = bad_captures_[left_++];
+      if (move_generator::IsLegalV(pos_, capture)) {
+        return capture;
+      }
     }
     return kNullMove;
   }
   std::unreachable();
 }
 
-Move MovePicker::SortOutCapture2() {
-  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
-  while (left_ <= right_) {
-    // std::cout << left_ << ' ' << right_ << '\n';
-    int mx_diff = captures_[left_].score_;
-    int mx_ind = left_;
-    for (int i = left_ + 1; i <= right_; ++i) {
-      int curr_diff = captures_[i].score_;
-      if (curr_diff > mx_diff) {
-        mx_diff = curr_diff;
-        mx_ind = i;
-      }
+std::size_t MovePicker::IndMxScore(MoveList<MoveEntry>& list, const std::size_t left, const std::size_t right) {
+  int mx_score = list[left].score_;
+  int mx_ind = left;
+  for (int i = left + 1; i < right; ++i) {
+    int score = list[i].score_;
+    if (score > mx_score) {
+      mx_score = score;
+      mx_ind = i;
     }
-    // std::cout << std::boolalpha << captures_[mx_ind] << " omg what's happening " << pos_.IsGoodCapture(captures_[mx_ind]) << '\n';
+  }
+
+  return mx_ind;
+}
+
+Move MovePicker::YieldQuiet() {
+  int mx_ind = IndMxScore(quiets_, ind2_, quiets_.size());
+  std::swap(quiets_[ind2_], quiets_[mx_ind]);
+
+  return quiets_[ind2_++];
+}
+
+Move MovePicker::YieldGoodCapture() {
+  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
+  while (left_ < right_) {
+    int mx_ind = IndMxScore(captures_, left_, right_);
     if (pos_.IsGoodCapture(captures_[mx_ind])) {
       std::swap(captures_[left_], captures_[mx_ind]);
       // std::cout << "yepp\n";
       return captures_[left_++];
     }
     bad_captures_.push(captures_[mx_ind]);
-    std::swap(captures_[right_--], captures_[mx_ind]);
+    std::swap(captures_[--right_], captures_[mx_ind]);
   }
   return kNullMove;
 }
 
-Move MovePicker::YieldMove() {
-  if (stage_ == PickerStage::kNone) {
-    stage_ = PickerStage::kPrincipalVariation;
-    if (pv_move_.has_value() && (pv_move_->is_capture() || !only_captures_)) {
-      return pv_move_.value();
-    }
-  }
-  if (ind_ == 0 && stage_ == PickerStage::kPrincipalVariation) {
-    move_generator::GenerateMoves<MovesType::kCaptures>(pos_, list_);
-    stage_ = PickerStage::kGoodCaptures;
-    // list_.RemovePvMove(pv_move_);
-  }
-  if (ind_ == list_.size() && stage_ == PickerStage::kGoodCaptures && !only_captures_) {
-    move_generator::GenerateMoves<MovesType::kQuiets>(pos_, list_);
-    stage_ = PickerStage::kQuiets;
-    // list_.RemovePvMove(pv_move_);
-  }
-  if (ind_ >= list_.size()) {
-    return kNullMove;
-  }
-  if (stage_ == PickerStage::kGoodCaptures) {
-    // are_captures_sorted = true;
-    SortOutCapture();
-    // if (list_[])
-  }
-  if (pv_move_.has_value() && list_[ind_] == pv_move_.value()) {
-    ind_++;
-    return YieldMove();
-  }
-  
-  return list_[ind_++];
-}
-
-void MovePicker::SortOutCapture() {
-  //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
-  std::size_t sz = list_.size();
-  [[assume(ind_ <= sz)]];
-  int mx_diff = CalculateScore(list_[ind_]);
-  std::size_t mx_ind = ind_;
-  for (std::size_t i = ind_ + 1; i < sz; ++i) {
-    int curr_diff = CalculateScore(list_[i]);
-    if (curr_diff > mx_diff) {
-      mx_diff = curr_diff;
-      mx_ind = i;
-    }
-  }
-  std::swap(list_[ind_], list_[mx_ind]);
-}
-
 std::size_t MovePicker::size() const {
   return ind_;
-}
-
-bool MovePicker::empty() const {
-  return list_.empty();
 }
 
 bool MovePicker::empty2() const {

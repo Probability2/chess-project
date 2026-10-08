@@ -101,10 +101,14 @@ Move Searcher::GetBestMove(const std::size_t depth) {
   return best_move;
 }
 
-// void Searcher::ClearPvArray() {
-//   for (int i = 0; i < pv_moves_.size(); ++i) {
-//     pv_moves_[i] = Move();
+// void Searcher::AddKillerMove(const Move& move, const int ply) {
+//   if (move.is_capture() || killer_moves_[ply][0] == move || !move_generator::IsLegal(pos_, move)) {
+//     return;
 //   }
+//   for (std::size_t i = 1; i < kMaxKillerMoves; ++i) {
+//     killer_moves_[ply][i] = killer_moves_[ply][i - 1];
+//   }
+//   killer_moves_[ply][0] = move;
 // }
 
 int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time,
@@ -125,7 +129,8 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  auto picker = pv_move ? MovePicker(pos_, pv_moves_[ply]) : MovePicker(pos_);
+  auto picker = pv_move ? MovePicker(pos_, pv_moves_[ply])
+                        : MovePicker(pos_);
   pv_moves_[pv_index] = kNullMove;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
@@ -136,6 +141,7 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
       return 0;
     }
     if (score >= info.beta_) {
+      // AddKillerMove(move, ply);
       return info.beta_;
     }
     if (score > info.alpha_) {
@@ -169,9 +175,10 @@ Move Searcher::IterativeBestMove(const Ms move_time) {
   Move best_move;
   std::size_t depth = 1;
   for (depth = 1; depth < kMaxDepth; ++depth) {
-    int score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, start_time, move_time, 0, 0, true);
-    // std::cout << "On depth: " << depth << '\n';
-    // std::cout << nodes_ << '\n';
+    [[maybe_unused]] int score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, start_time,
+                                                                                  move_time, 0, 0, true);
+    std::cout << "On depth: " << depth << '\n';
+    std::cout << nodes_ << '\n';
     if (is_time_out_) {
       break;
     }
