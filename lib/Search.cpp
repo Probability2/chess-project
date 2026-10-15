@@ -8,6 +8,10 @@ Searcher::Searcher(Position pos)
 , is_time_out_(false) {
 }
 
+void Searcher::SetPosition(const Position& pos) {
+  pos_ = pos;
+}
+
 void Searcher::MakeMove(const Move move) {
   pos_.MakeMove(move);
 }
@@ -177,8 +181,8 @@ Move Searcher::IterativeBestMove(const Ms move_time) {
   for (depth = 1; depth < kMaxDepth; ++depth) {
     [[maybe_unused]] int score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, start_time,
                                                                                   move_time, 0, 0, true);
-    std::cout << "On depth: " << depth << '\n';
-    std::cout << nodes_ << '\n';
+    // std::cout << "On depth: " << depth << '\n';
+    // std::cout << nodes_ << '\n';
     if (is_time_out_) {
       break;
     }
@@ -187,6 +191,13 @@ Move Searcher::IterativeBestMove(const Ms move_time) {
   std::cout << "The move is from depth : " <<  depth - 1 << '\n';
 
   return best_move;
+}
+
+void Searcher::clear() {
+  pos_ = Position();
+  is_time_out_ = false;
+  std::ranges::fill(pv_moves_, kNullMove);
+  nodes_ = 0;
 }
 
 }

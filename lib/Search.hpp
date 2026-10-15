@@ -29,12 +29,15 @@ struct NodeInfo {
 
 class Searcher {
 public:
+  Searcher() = default;
   Searcher(Position pos);
+  void SetPosition(const Position& pos);
   Move GetBestMove(const std::size_t depth);
   Move IterativeBestMove(const Ms move_time);
   void MakeMove(const Move move);
   void UnmakeMove(const Move move);
   Position& get_position();
+  void clear();
 
 private:
   Position pos_;

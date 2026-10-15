@@ -30,23 +30,23 @@ std::optional<fs::path> FileName() {
   return std::nullopt;
 }
 
-std::expected<std::ofstream, std::string_view> CreateFile() {
+std::expected<std::ofstream, ParseError> CreateFile() {
   fs::path directorypath = kDirectoryPrefix;
   std::error_code ec;
   fs::create_directory(directorypath, ec);
   if (ec) {
     if (ec == std::errc::permission_denied) {
-      return std::unexpected(internal::to_string(internal::ErrorCode::kPermissionDenied));
+      return std::unexpected(ParseError::kPermissionDenied);
     }
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
+    return std::unexpected(ParseError::kUnknownError);
   }
   auto file_name = FileName();
   if (!file_name) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kNamesOccupied));
+    return std::unexpected(ParseError::kNamesOccupied);
   }
   std::ofstream file(*file_name, std::ios::out);
   if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
+    return std::unexpected(ParseError::kUnknownError);
   }
   counter++;
 
@@ -91,7 +91,7 @@ void WritePositionParams(std::ofstream& file, const Position& pos) {
 
 }// unnamed namespace
 
-std::expected<void, std::string_view> Save(const Position& pos) {
+std::expected<void, ParseError> Save(const Position& pos) {
   auto file = CreateFile();
   if (!file) {
     return std::unexpected(file.error());
@@ -102,10 +102,10 @@ std::expected<void, std::string_view> Save(const Position& pos) {
   return {};
 }
 
-std::expected<void, std::string_view> Save(const Position& pos, const fs::path& file_name) {
+std::expected<void, ParseError> Save(const Position& pos, const fs::path& file_name) {
   std::ofstream file(file_name, std::ios::out);
   if (!file) {
-    return std::unexpected(internal::to_string(internal::ErrorCode::kUnknownError));
+    return std::unexpected(ParseError::kUnknownError);
   }
   WritePositionSquares(file, pos);
   WritePositionParams(file, pos);

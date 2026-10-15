@@ -94,20 +94,12 @@ public:
     info_.en_passant_ = sq;
   }
 
-  constexpr std::expected<void, std::string_view> set_no_captures(const int moves) {
-    if (moves < 0) {
-      return std::unexpected("No capture moves number is not valid");
-    }
+  constexpr void set_no_captures(const int moves) {
     info_.no_capture_moves_ = moves;
-    return {};
   }
 
-  constexpr std::expected<void, std::string_view> set_move_number(const int moves) {
-    if (moves < 0) {
-      return std::unexpected("Move number is not valid");
-    }
+  constexpr void set_move_number(const int moves) {
     halfmoves_ = 2 * moves + std::to_underlying(side_to_move_);
-    return {};
   }
 
   bool is_white_move() const noexcept;

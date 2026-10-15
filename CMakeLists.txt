@@ -23,7 +23,6 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(lib)
-add_subdirectory(parser)
 add_subdirectory(core)
 
 # include(FetchContent)
