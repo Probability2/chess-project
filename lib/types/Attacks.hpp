@@ -271,9 +271,4 @@ inline Bitboard SlidingAttacks(const Square sq, const Bitboard occupied) {
   }
 }
 
-// template<>
-// inline Bitboard SlidingAttacks<PieceBase::kQueen>(const Square sq, const Bitboard occupied) {
-//   return SlidingAttacks<PieceBase::kRook>(sq, occupied) | SlidingAttacks<PieceBase::kBishop>(sq, occupied);
-// };
-
 }// namespace chess::attacks

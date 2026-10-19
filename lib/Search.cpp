@@ -1,11 +1,17 @@
+#include "FileManager.hpp"
 #include "MovePicker.hpp"
 #include "Search.hpp"
 
 namespace chess {
 
+Searcher::Searcher()
+: pos_(kStartingPosition)
+, is_cancelled_(false) {
+}
+
 Searcher::Searcher(Position pos)
 : pos_(std::move(pos))
-, is_time_out_(false) {
+, is_cancelled_(false) {
 }
 
 void Searcher::SetPosition(const Position& pos) {
@@ -24,30 +30,36 @@ Position& Searcher::get_position() {
   return pos_;
 }
 
-inline bool Searcher::IsTimeOut(const TimePoint start_time, const Ms duration) {
-  return std::chrono::steady_clock::now() - start_time > duration;
+inline bool Searcher::IsTimeOut() const {
+  if (limits_.move_time_.count() == 0) {
+    return false;
+  }
+  return std::chrono::steady_clock::now() - start_time_ > limits_.move_time_;
 }
 
 int Searcher::QuiescenceSearch(NodeInfo info) {
-  int score = eval::Evaluate(pos_);
-  if (score >= info.beta_) {
+  if (++nodes_ >= limits_.mx_nodes_ || ((nodes_ & kCheckTimePeriod) == 0 && IsTimeOut())) [[unlikely]] {
+    is_cancelled_ = true;
+    return 0;
+  }
+  int stand_pat = eval::Evaluate(pos_);
+  if (stand_pat >= info.beta_) {
     return info.beta_;
   }
-  if (score > info.alpha_) {
-    info.alpha_ = score;
-  }
+  info.alpha_ = std::max(info.alpha_, stand_pat);
   MovePicker picker(pos_, true);
   while (Move move = picker.YieldMove2()) {
     // Move move = picker.YieldMove();
     pos_.MakeMove(move);
-    score = -QuiescenceSearch(NodeInfo{-info.beta_, -info.alpha_});
+    int score = -QuiescenceSearch(NodeInfo{-info.beta_, -info.alpha_});
     pos_.UnmakeMove(move);
+    if (is_cancelled_) [[unlikely]] {
+      return 0;
+    }
     if (score >= info.beta_) {
       return info.beta_;
     }
-    if (score > info.alpha_) {
-      info.alpha_ = score;
-    }
+    info.alpha_ = std::max(info.alpha_, score);
   }
 
   return info.alpha_;
@@ -70,9 +82,6 @@ int Searcher::Search(NodeInfo info, const int ply) { //negamax
       return info.beta_;
     }
     info.alpha_ = std::max(info.alpha_, score);
-    // if (score > alpha) {
-    //   alpha = score;
-    // }
   }
   if (picker.empty()) {
     if (pos_.is_check()) {
@@ -115,12 +124,10 @@ Move Searcher::GetBestMove(const std::size_t depth) {
 //   killer_moves_[ply][0] = move;
 // }
 
-int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time,
-                              const int ply, const int pv_index, const bool is_main_line) {
-  nodes_++;
+int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line) {
   // triangular pv-table
-  if ((nodes_ & kCheckTimePeriod) && (is_time_out_ || IsTimeOut(start_time, move_time))) [[unlikely]] {
-    is_time_out_ = true;
+  if (++nodes_ >= limits_.mx_nodes_ || ((nodes_ & kCheckTimePeriod) == 0 && IsTimeOut())) [[unlikely]] {
+    is_cancelled_ = true;
     return 0;
   }
   if (info.depth_ == 0) {
@@ -133,15 +140,15 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  auto picker = pv_move ? MovePicker(pos_, pv_moves_[ply])
+  auto picker = pv_move ? MovePicker(pos_, pv_move)
                         : MovePicker(pos_);
   pv_moves_[pv_index] = kNullMove;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
     int score = -IterativeSearch(NodeInfo{-info.beta_, -info.alpha_, info.depth_ - extension, info.checks_},
-                                            start_time, move_time, ply + 1, pv_next_index, move == pv_move);
+                                           ply + 1, pv_next_index, move == pv_move);
     pos_.UnmakeMove(move);
-    if (is_time_out_) [[unlikely]] {
+    if (is_cancelled_) [[unlikely]] {
       return 0;
     }
     if (score >= info.beta_) {
@@ -150,9 +157,8 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
     }
     if (score > info.alpha_) {
       info.alpha_ = score;
-      pv_moves_[pv_index] = move;//  && pv_moves_[pv_next_index + m - 1]
+      pv_moves_[pv_index] = move;
       for (std::size_t m = 1; m < ply_moves; ++m) {
-        // std::cout << pv_moves_[pv_next_index + m - 1] << " YOUUU\n";
         pv_moves_[pv_index + m] = pv_moves_[pv_next_index + m - 1];
         if (!pv_moves_[pv_index + m]) {
           break;
@@ -170,34 +176,35 @@ int Searcher::IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move
   return info.alpha_;
 }
 
-Move Searcher::IterativeBestMove(const Ms move_time) {
-  auto start_time = std::chrono::steady_clock::now();
+Move Searcher::IterativeBestMove() {
+  start_time_ = std::chrono::steady_clock::now();
   nodes_ = 0;
-  // MovePicker picker(pos_);
-  is_time_out_ = false;
+  is_cancelled_ = false;
   std::ranges::fill(pv_moves_, kNullMove);
   Move best_move;
   std::size_t depth = 1;
-  for (depth = 1; depth < kMaxDepth; ++depth) {
-    [[maybe_unused]] int score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, start_time,
-                                                                                  move_time, 0, 0, true);
-    // std::cout << "On depth: " << depth << '\n';
-    // std::cout << nodes_ << '\n';
-    if (is_time_out_) {
+  for (depth = 1; depth <= limits_.depth_; ++depth) {
+    int _ = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, 0, 0, true);
+    if (is_cancelled_) {
       break;
     }
     best_move = pv_moves_[0];
   }
-  std::cout << "The move is from depth : " <<  depth - 1 << '\n';
+  std::cout << "The move is from depth : " <<  depth - 1 << std::endl;
+  std::cout << "Total nodes: " << nodes_ << std::endl;
 
   return best_move;
 }
 
 void Searcher::clear() {
   pos_ = Position();
-  is_time_out_ = false;
+  is_cancelled_ = false;
   std::ranges::fill(pv_moves_, kNullMove);
   nodes_ = 0;
+}
+
+void Searcher::set_limits(const SearchLimits& limits) {
+  limits_ = limits;
 }
 
 }

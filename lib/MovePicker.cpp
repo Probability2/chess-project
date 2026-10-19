@@ -70,6 +70,15 @@ void MovePicker::ScoreQuiets() {
 }
 
 Move MovePicker::YieldMove2() {
+  Move move = YieldMove();
+  if (move) {
+    sz_++;
+  }
+
+  return move;
+}
+
+Move MovePicker::YieldMove() {
   switch (stage2_) {
   case PickerStage::kPrincipalVariation:
     ++stage2_;
@@ -98,8 +107,7 @@ Move MovePicker::YieldMove2() {
     [[fallthrough]];
   case PickerStage::kGenQuiets:
     if (only_captures_) {
-      stage2_ = PickerStage::kBadCaptures;
-      return YieldMove2();
+      return kNullMove;
     }
     move_generator::GenerateMoves<MovesType::kQuiets>(pos_, quiets_);
     quiets_.RemovePvMove(pv_move_);
@@ -128,10 +136,11 @@ Move MovePicker::YieldMove2() {
   std::unreachable();
 }
 
-std::size_t MovePicker::IndMxScore(MoveList<MoveEntry>& list, const std::size_t left, const std::size_t right) {
+std::size_t MovePicker::IndMxScore(const MoveList<MoveEntry>& list, const std::size_t left,
+                                                                    const std::size_t right) {
   int mx_score = list[left].score_;
   int mx_ind = left;
-  for (int i = left + 1; i < right; ++i) {
+  for (std::size_t i = left + 1; i < right; ++i) {
     int score = list[i].score_;
     if (score > mx_score) {
       mx_score = score;
@@ -152,24 +161,24 @@ Move MovePicker::YieldQuiet() {
 Move MovePicker::YieldGoodCapture() {
   //* ordering by MVV-LVA (Most Valuable Victim - Least Valuable Aggressor), selection sort
   while (left_ < right_) {
-    int mx_ind = IndMxScore(captures_, left_, right_);
+    std::size_t mx_ind = IndMxScore(captures_, left_, right_);
     if (pos_.IsGoodCapture(captures_[mx_ind])) {
       std::swap(captures_[left_], captures_[mx_ind]);
-      // std::cout << "yepp\n";
       return captures_[left_++];
     }
     bad_captures_.push(captures_[mx_ind]);
     std::swap(captures_[--right_], captures_[mx_ind]);
   }
+
   return kNullMove;
 }
 
-std::size_t MovePicker::size() const {
-  return ind_;
+bool MovePicker::empty2() const {
+  return sz_ == 0;
 }
 
-bool MovePicker::empty2() const {
-  return captures_.empty() && quiets_.empty();
+std::size_t MovePicker::size() const {
+  return sz_;
 }
 
 }// namespace chess

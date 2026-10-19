@@ -36,16 +36,17 @@ inline PickerStage& operator++(PickerStage& stage) {
 
 class MovePicker {
 public:
+  MovePicker() = delete;
   MovePicker(const Position& pos);
   MovePicker(const Position& pos, const bool only_captures);
   MovePicker(const Position& pos, const Move pv_move);
   MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers);
   MovePicker(const Position& pos, const Move pv_move, const std::array<Move, kMaxKillerMoves>& killers);
   Move YieldMove();
-  std::size_t size() const;
   bool empty() const;
   bool empty2() const;
   Move YieldMove2();
+  std::size_t size() const;
 
 private:
   const Position& pos_;
@@ -56,6 +57,7 @@ private:
   MoveList<MoveEntry> captures_;
   MoveList<MoveEntry> bad_captures_;
   MoveList<MoveEntry> quiets_;
+  std::size_t sz_ = 0;
   std::size_t ind2_ = 0;
 
   std::array<Move, kMaxKillerMoves> killers_;// it is quiet
@@ -76,7 +78,7 @@ private:
   int GetQuietScore(const Move move) const;
   void ScoreQuiets();
 
-  std::size_t IndMxScore(MoveList<MoveEntry>& list, const std::size_t left, const std::size_t right);
+  std::size_t IndMxScore(const MoveList<MoveEntry>& list, const std::size_t left, const std::size_t right);
 };
 
 }// namespace chess

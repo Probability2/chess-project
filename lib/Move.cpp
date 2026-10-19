@@ -104,7 +104,7 @@ Move::operator bool() const {
 }
 
 MoveEntry::MoveEntry(const Move move)
-: Move(std::move(move)) {
+: Move(move) {
 }
 
 template<IsMove T>
@@ -166,8 +166,6 @@ void MoveList<T>::RemovePvMove(const std::optional<Move> pv_move) {
   }
   for (const auto& [i, move]: this->AsSpan() | std::views::enumerate) {
     if (static_cast<Move>(move) == *pv_move) {
-      // std::cout << "YESSSSSSSAAAAAAAAAAAAAAAAAREMOVE!!!!!!!!\n";
-      // std::cout << move << ' ' << i << '\n';
       remove(i);
       break;
     }
@@ -178,7 +176,7 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
   const uint8_t from_shift = std::to_underlying(move.get_from());
   const uint8_t to_shift = std::to_underlying(move.get_to());
   os << move.get_from() << static_cast<char>('a' + (to_shift & 7)) << static_cast<char>('1' + (to_shift >> 3 & 7));
-  if (move.is_promotion()) {
+  if (move.is_promotion()) [[unlikely]] {
     os << GetPieceCode(move.promoted_piece());
   }
   
@@ -186,18 +184,10 @@ std::ostream& operator<<(std::ostream& os, const Move& move) {
 }
 
 std::ostream& operator<<(std::ostream& os, const MoveEntry& move) {
-  os << static_cast<const Move>(move) << ", score: " << move.score_;
+  os << static_cast<Move>(move) << ", score: " << move.score_;
 
   return os;
 }
-
-// std::ostream& operator<<(std::ostream& os, const MoveList& list) {
-//   for (auto move: list.AsSpan()) {
-//     os << move << ", ";
-//   }
-
-//   return os;
-// }
 
 // explicit template instantiation
 template class MoveList<Move>;

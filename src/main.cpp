@@ -17,8 +17,6 @@
 using namespace chess;
 using namespace std::chrono_literals;
 
-constexpr int kEscapeCode = 0x1b;
-
 int main(int argc, char** argv) {
   #ifdef _WIN32
   SetConsoleOutputCP(CP_UTF8);
@@ -42,39 +40,9 @@ int main(int argc, char** argv) {
   
   auto pos = fen_manager::Get("5k2/Qb6/3p2p1/1P1Pbp2/4p2q/1Pr4B/5PP1/3R1RK1 b - - 0 1").value();
 
-  // uci::BotsIterativePlay(fen_manager::Get("r2r3k/pp2bpp1/4p2p/3PP2P/1q1NnB2/4R3/5PP1/2RQ2K1 b - - 0 27").value(), 25000ms);
-  // Perftt(pos, 6);
+  // uci::PlayWithIterativeBot(fen_manager::Get("r1bqkb1r/pp1ppppp/2n2n2/8/2PN4/8/PP2PPPP/RNBQKB1R w KQkq - 1 5").value(), 10000ms);
 
-  // MovePicker picker1(pos);
-  // MovePicker picker2(pos);
-
-  // Perftt(pos, 4);
-  // uci::BotsIterativePlay(fen_manager::Get("rnbqk2r/ppp1ppbp/3p1np1/8/2PPP3/2N5/PP3PPP/R1BQKBNR w KQkq - 1 5").value(), 10000ms);
-  Searcher searcher;
-  std::cout << pos << '\n';
-  std::string request;
-  for (;;) {
-    if (!std::getline(std::cin, request)) {
-      break;
-    }
-    if (request == "uci") {
-      uci::ProcessUci();
-    } else if (request == "quit") {
-      break;
-    } else if (request == "isready") {
-      uci::ProcessIsReady();
-    } else if (request == "ucinewgame") {
-      searcher.clear();
-    } else if (request == "d") {
-      std::cout << searcher.get_position() << std::endl;
-    } else if (request == "help") {
-      std::cout << "https://github.com/Probability2/chess-project" << std::endl;
-    } else if (request.starts_with("position")) {
-      if (auto res = uci::ProcessPosition(searcher, request); !res) {
-        std::cout << uci::to_string(res.error()) << '\n';
-      }
-    }
-  }
+  uci::Run();
 
   return EXIT_SUCCESS;
 }
