@@ -114,15 +114,12 @@ Move Searcher::GetBestMove(const std::size_t depth) {
   return best_move;
 }
 
-// void Searcher::AddKillerMove(const Move& move, const int ply) {
-//   if (move.is_capture() || killer_moves_[ply][0] == move || !move_generator::IsLegal(pos_, move)) {
-//     return;
-//   }
-//   for (std::size_t i = 1; i < kMaxKillerMoves; ++i) {
-//     killer_moves_[ply][i] = killer_moves_[ply][i - 1];
-//   }
-//   killer_moves_[ply][0] = move;
-// }
+void Searcher::AddKillerMove(const Move& move, const int ply) {
+  for (std::size_t i = 1; i < kMaxKillerMoves; ++i) {
+    killers_[ply][i] = killers_[ply][i - 1];
+  }
+  killers_[ply][0] = move;
+}
 
 int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line) {
   // triangular pv-table
@@ -140,8 +137,8 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  auto picker = pv_move ? MovePicker(pos_, pv_move)
-                        : MovePicker(pos_);
+  auto picker = pv_move ? MovePicker(pos_, killers_[ply], pv_move)
+                        : MovePicker(pos_, killers_[ply]);
   pv_moves_[pv_index] = kNullMove;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
@@ -152,7 +149,9 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
       return 0;
     }
     if (score >= info.beta_) {
-      // AddKillerMove(move, ply);
+      if (!move.is_capture()) {
+        AddKillerMove(move, ply);
+      }
       return info.beta_;
     }
     if (score > info.alpha_) {
@@ -166,7 +165,7 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
       }
     }
   }
-  if (picker.empty2()) {
+  if (picker.empty()) {
     if (is_check) {
       return -kInfinity + ply;
     }
@@ -205,6 +204,10 @@ void Searcher::clear() {
 
 void Searcher::set_limits(const SearchLimits& limits) {
   limits_ = limits;
+}
+
+void Searcher::flip_side() {
+  pos_.flip_side();
 }
 
 }

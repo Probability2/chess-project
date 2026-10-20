@@ -36,21 +36,21 @@ inline PickerStage& operator++(PickerStage& stage) {
 
 class MovePicker {
 public:
-  MovePicker() = delete;
-  MovePicker(const Position& pos);
+  MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers = {},
+             const Move pv_move = kNullMove, const bool only_captures = false);
   MovePicker(const Position& pos, const bool only_captures);
-  MovePicker(const Position& pos, const Move pv_move);
-  MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers);
-  MovePicker(const Position& pos, const Move pv_move, const std::array<Move, kMaxKillerMoves>& killers);
+
+  MovePicker(const Position&& pos, const std::array<Move, kMaxKillerMoves>& killers = {},
+             const Move pv_move = kNullMove, const bool only_captures = false) = delete;
+  MovePicker(const Position&& pos, const bool only_captures) = delete;
+  
   Move YieldMove();
   bool empty() const;
-  bool empty2() const;
   Move YieldMove2();
   std::size_t size() const;
 
 private:
   const Position& pos_;
-  MoveList<> list_;
   std::size_t ind_ = 0;
   bool only_captures_ = false;
 
@@ -58,17 +58,14 @@ private:
   MoveList<MoveEntry> bad_captures_;
   MoveList<MoveEntry> quiets_;
   std::size_t sz_ = 0;
-  std::size_t ind2_ = 0;
 
-  std::array<Move, kMaxKillerMoves> killers_;// it is quiet
+  std::array<Move, kMaxKillerMoves> killers_{};// it is quiet
 
   std::size_t left_ = 0;
   std::size_t right_ = 0;
 
-  std::optional<Move> pv_move_;
-  PickerStage stage_ = PickerStage::kNone;
-
-  PickerStage stage2_ = PickerStage::kPrincipalVariation;
+  Move pv_move_ = kNullMove;
+  PickerStage stage_ = PickerStage::kPrincipalVariation;
 
   void SortOutCapture();
   Move YieldGoodCapture();

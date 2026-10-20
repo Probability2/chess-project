@@ -2,29 +2,17 @@
 
 namespace chess {
 
-MovePicker::MovePicker(const Position& pos)
-: pos_(pos) {
+MovePicker::MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers,
+             const Move pv_move, const bool only_captures)
+: pos_(pos)
+, killers_(killers)
+, pv_move_(pv_move)
+, only_captures_(only_captures) {
 }
 
 MovePicker::MovePicker(const Position& pos, const bool only_captures)
 : pos_(pos)
 , only_captures_(only_captures) {
-}
-
-MovePicker::MovePicker(const Position& pos, const Move pv_move)
-: pos_(pos)
-, pv_move_(pv_move) {
-}
-
-MovePicker::MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers)
-: pos_(pos)
-, killers_(killers) {
-}
-
-MovePicker::MovePicker(const Position& pos, const Move pv_move, const std::array<Move, kMaxKillerMoves>& killers)
-: pos_(pos)
-, pv_move_(pv_move)
-, killers_(killers) {
 }
 
 int MovePicker::GetCaptureScore(const Move move) const {
@@ -39,11 +27,11 @@ int MovePicker::GetCaptureScore(const Move move) const {
 }
 
 int MovePicker::GetQuietScore(const Move move) const {
-  // if (move == killers_[0]) {
-  //   return 900;
-  // } else if (move == killers_[1]) {
-  //   return 800;
-  // }
+  if (move == killers_[0]) {
+    return 900;
+  } else if (move == killers_[1]) {
+    return 800;
+  }// add here if there are more then 2 killer moves
   if (move.is_promotion()) [[unlikely]] {
     switch (move.promoted_piece()) {
       case PieceBase::kQueen: return 1000;
@@ -79,11 +67,11 @@ Move MovePicker::YieldMove2() {
 }
 
 Move MovePicker::YieldMove() {
-  switch (stage2_) {
+  switch (stage_) {
   case PickerStage::kPrincipalVariation:
-    ++stage2_;
-    if (pv_move_.has_value() && (pv_move_->is_capture() || !only_captures_)) {
-      return *pv_move_;
+    ++stage_;
+    if (pv_move_ && (pv_move_.is_capture() || !only_captures_)) {
+      return pv_move_;
     }
     [[fallthrough]];
   case PickerStage::kGenCaptures:
@@ -93,7 +81,7 @@ Move MovePicker::YieldMove() {
     // ScoreMoves(captures_, [this](Move m){ return GetCaptureScore(m);});
     ScoreCaptures();
     right_ = captures_.size();
-    ++stage2_;
+    ++stage_;
     [[fallthrough]];
   case PickerStage::kGoodCaptures:
     while (left_ < right_) {
@@ -103,7 +91,7 @@ Move MovePicker::YieldMove() {
       }
     }
     left_ = 0;
-    ++stage2_;
+    ++stage_;
     [[fallthrough]];
   case PickerStage::kGenQuiets:
     if (only_captures_) {
@@ -113,16 +101,16 @@ Move MovePicker::YieldMove() {
     quiets_.RemovePvMove(pv_move_);
     ScoreQuiets();
     // ScoreMoves(quiets_, [this](Move m){ return GetQuietScore(m);});
-    ++stage2_;
+    ++stage_;
     [[fallthrough]];
   case PickerStage::kQuiets:
-    while (ind2_ < quiets_.size()) {
+    while (ind_ < quiets_.size()) {
       Move quiet = YieldQuiet();
       if (move_generator::IsLegalV(pos_, quiet)) {
         return quiet;
       }
     }
-    ++stage2_;
+    ++stage_;
     [[fallthrough]];
   case PickerStage::kBadCaptures:
     while (left_ < bad_captures_.size()) {
@@ -152,10 +140,10 @@ std::size_t MovePicker::IndMxScore(const MoveList<MoveEntry>& list, const std::s
 }
 
 Move MovePicker::YieldQuiet() {
-  int mx_ind = IndMxScore(quiets_, ind2_, quiets_.size());
-  std::swap(quiets_[ind2_], quiets_[mx_ind]);
+  int mx_ind = IndMxScore(quiets_, ind_, quiets_.size());
+  std::swap(quiets_[ind_], quiets_[mx_ind]);
 
-  return quiets_[ind2_++];
+  return quiets_[ind_++];
 }
 
 Move MovePicker::YieldGoodCapture() {
@@ -173,7 +161,7 @@ Move MovePicker::YieldGoodCapture() {
   return kNullMove;
 }
 
-bool MovePicker::empty2() const {
+bool MovePicker::empty() const {
   return sz_ == 0;
 }
 

@@ -428,9 +428,14 @@ bool Position::IsGoodCapture(const Move& capture) const {
     // std::cout << GetPieceIcon(captured_piece) << " cp\n";
     side = !side;
   }
-  // std::cout << "yeppp\n";
 
   return see >= kSeeThreshold;
+}
+
+void Position::flip_side() {
+  if (!is_check()) {
+    side_to_move_ = !side_to_move_;
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, const chess::Position& pos) {
@@ -456,14 +461,6 @@ std::ostream& operator<<(std::ostream& os, const chess::internal::FlippedPositio
 
   return os;
 }
-
-// // explicit template instantiation
-// template void Position::GenerateMoves<MovesType::kPseudo>(MoveList& list) const;
-// template void Position::GenerateMoves<MovesType::kLegal>(MoveList& list) const;
-// template void Position::GenerateMoves<MovesType::kCaptures>(MoveList& list) const;
-// template void Position::GenerateMoves<MovesType::kChecks>(MoveList& list) const;
-// template void Position::GenerateMoves<MovesType::kEvasions>(MoveList& list) const;
-// template void Position::GenerateMoves<MovesType::kQuiets>(MoveList& list) const;
 
 }// namespace chess
 

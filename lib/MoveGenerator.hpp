@@ -312,7 +312,6 @@ void GenerateQuiets(MoveList<T>& list, const Position& pos) {
   const Bitboard empty_squares = ~pos.get_all_pieces();
   if (pos.is_check()) [[unlikely]] {
     GenerateSpecialMoves<MovesType::kEvasions, Color>(list, pos, empty_squares);
-    // GeneratePseudoMoves<Color>(list, pos);
   }  else [[likely]] {
     GeneratePawnQuietMoves<Color>(list, pos.get_piece_metric(pawn), ~pos.get_all_pieces(), kAllSquares);
     // GeneratePawnMoves<Color>(list, pos, opponent_pieces);

@@ -153,6 +153,8 @@ public:
 
   void CalculateInfo() const;
 
+  void flip_side();
+
 private:
   BoardLookup<PieceType> board_{};
   LookupTable<Bitboard, kPieceCount, PieceType> pieces_{};

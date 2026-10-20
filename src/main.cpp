@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
 
   // uci::PlayWithIterativeBot(fen_manager::Get("r1bqkb1r/pp1ppppp/2n2n2/8/2PN4/8/PP2PPPP/RNBQKB1R w KQkq - 1 5").value(), 10000ms);
 
+  // uci::PlayWithIterativeBot(kStartingPosition, 3000ms);
   uci::Run();
 
   return EXIT_SUCCESS;

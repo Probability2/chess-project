@@ -55,6 +55,7 @@ public:
   Position& get_position();
   void clear();
   void set_limits(const SearchLimits& limits);
+  void flip_side();
 
 private:
   Position pos_;
@@ -68,12 +69,8 @@ private:
 
   std::array<Move, (kMaxDepth * (kMaxDepth + 1)) / 2> pv_moves_;
 
-  std::array<std::array<Move, kMaxKillerMoves>, kMaxDepth> killer_moves_;
+  std::array<std::array<Move, kMaxKillerMoves>, kMaxDepth> killers_{};
 
-  int IterativeSearch(NodeInfo info, TimePoint start_time, const Ms move_time, const int ply, const int pv_index,
-                                                                               const bool is_main_line);
-  int IterativeSearch(NodeInfo info, const std::size_t mx_nodes, const int ply,
-                                   const int pv_index, const bool is_main_line);
   int IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line);
   inline bool IsTimeOut() const;
   int QuiescenceSearch(NodeInfo info);

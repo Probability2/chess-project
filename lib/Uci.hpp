@@ -27,7 +27,8 @@ enum class GoParseError: uint8_t {
   kMissingCommand,
   kIllegalNumber,
   kPositionNotSet,
-  kIllegalArgument
+  kIllegalArgument,
+  kIllegalMoveTime
 };
 
 std::string_view to_string(const ParsePositionError error) {
@@ -47,6 +48,7 @@ std::string_view to_string(const GoParseError error) {
     case GoParseError::kIllegalNumber: return "The entered number isn't valid";
     case GoParseError::kPositionNotSet: return "The position in the searcher hasn't been set";
     case GoParseError::kMissingCommand: return "The command wasn't entered";
+    case GoParseError::kIllegalMoveTime: return "The entered movetime must be positive";
   }
   std::unreachable();
 }
@@ -60,7 +62,17 @@ constexpr std::string_view kDepthStr = "depth";
 constexpr std::string_view kInfStr = "infinite";
 constexpr std::string_view kPerftStr = "perft";
 
+constexpr int kMoveOverhead = 10;
+
 namespace internal {
+
+std::expected<std::size_t, GoParseError> IsNotZero(const std::size_t n) {
+  if (n == 0) {
+    return std::unexpected(GoParseError::kIllegalMoveTime);
+  }
+
+  return n;
+}
 
 void SkipSpaces(std::string_view& str) {
   str.remove_prefix(std::min(str.find_first_not_of(' '), str.size()));
@@ -301,11 +313,10 @@ std::expected<void, GoParseError> ProcessGo(Searcher& searcher, std::string_view
   }
   std::expected<Move, GoParseError> best_move = std::unexpected(GoParseError::kIllegalArgument);
   if (request.starts_with(kMoveTimeStr)) {
-    best_move = internal::ParseNumber(request, kMoveTimeStr).transform([&searcher](const auto move_time) {
-      if (move_time == 0) {
-        return std::unexpected(GoParseError::kIllegalArgument);
-      }
-      searcher.set_limits({.move_time_ = std::chrono::milliseconds(move_time)});
+    best_move = internal::ParseNumber(request, kMoveTimeStr).and_then(internal::IsNotZero)
+                                                            .transform([&searcher](const int move_time) {
+      searcher.set_limits({.move_time_ = std::chrono::milliseconds(std::max(1, move_time - kMoveOverhead)),
+                           .depth_ = kMaxDepth, .mx_nodes_ = kMxNodes});
       return searcher.IterativeBestMove();
     });
   } else if (request.starts_with(kNodesStr)) {
@@ -319,7 +330,7 @@ std::expected<void, GoParseError> ProcessGo(Searcher& searcher, std::string_view
       return searcher.IterativeBestMove();
     });
   } else if (request.starts_with(kInfStr)) {
-    searcher.set_limits({.depth_ = kMaxDepth});
+    searcher.set_limits({.move_time_ = Ms::zero(), .depth_ = kMaxDepth, .mx_nodes_ = kMxNodes});
     best_move = searcher.IterativeBestMove();
   } else if (request.starts_with(kPerftStr)) {
     return internal::ParseNumber(request, kPerftStr).transform([&searcher](const auto depth) {
@@ -351,7 +362,7 @@ void Run() {
       searcher.clear();
     } else if (request == "d") {
       std::cout << searcher.get_position() << std::endl;
-    } else if (request == "help") {
+    } else if (request == "help" || request == "license") {
       std::cout << "See: https://github.com/Probability2/chess-project" << std::endl;
     } else if (request.starts_with("position")) {
       if (auto res = ProcessPosition(searcher, request); !res) {
@@ -363,6 +374,8 @@ void Run() {
       }
     } else if (request.starts_with("eval")) {
       std::cout << eval::Evaluate(searcher.get_position());
+    } else if (request.starts_with("flip")) {
+      searcher.flip_side();
     }
   }
 }

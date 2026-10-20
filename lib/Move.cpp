@@ -160,12 +160,12 @@ void MoveList<T>::remove(std::size_t ind) {
 }
 
 template<IsMove T>
-void MoveList<T>::RemovePvMove(const std::optional<Move> pv_move) {
+void MoveList<T>::RemovePvMove(Move pv_move) {
   if (!pv_move) {
     return;
   }
   for (const auto& [i, move]: this->AsSpan() | std::views::enumerate) {
-    if (static_cast<Move>(move) == *pv_move) {
+    if (static_cast<Move>(move) == pv_move) {
       remove(i);
       break;
     }

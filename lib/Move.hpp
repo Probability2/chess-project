@@ -101,7 +101,7 @@ public:
   void pop_back();
   const T& back() const;
   void remove(std::size_t ind);
-  void RemovePvMove(const std::optional<Move> pv_move);
+  void RemovePvMove(Move pv_move);
   // void ScoreMoves() requires Scoreable<T>;
 
   decltype(auto) operator[](this auto& self, const std::size_t ind) {
