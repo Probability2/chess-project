@@ -3,6 +3,7 @@
 #include "types/Attacks.hpp"
 #include "types/Bitboard.hpp"
 #include "types/EvaluationTables.hpp"
+#include "types/Zobrist.hpp"
 #include "Move.hpp"
 
 #include <bit>
@@ -34,6 +35,7 @@ struct InternalInfo {
   int score_ = 0;
   bool is_calculated_ = false;
   int phase_ = eval::kTotalPhase;
+  Bitboard zobrist_key_ = 0;
 };
 
 class StateStack {
@@ -72,6 +74,7 @@ public:
     }
     PutPiece(piece, sq);
     AddScore(piece, sq);
+    info_.zobrist_key_ ^= zobrist::pieces_[piece, sq];
   }
 
   inline constexpr PieceType PieceOn(const int x, const int y) const noexcept {
@@ -84,14 +87,19 @@ public:
 
   constexpr void set_castling(const uint8_t position) {
     info_.castling_rights_ |= (1 << position);
+    info_.zobrist_key_ ^= zobrist::castles_[position];
   }
 
   constexpr void set_white_move(const bool move) {
     side_to_move_ = (move) ? ColorType::kWhite : ColorType::kBlack;
+    if (!move) {
+      info_.zobrist_key_ ^= zobrist::side_to_move_;
+    }
   }
 
   constexpr void set_en_passant(const Square sq) {
     info_.en_passant_ = sq;
+    info_.zobrist_key_ ^= zobrist::en_passant_[sq];
   }
 
   constexpr void set_no_captures(const int moves) {
@@ -117,7 +125,7 @@ public:
   std::string get_castling_notation() const noexcept;
   int get_score() const noexcept;
   InternalInfo GetInfo() const;
-  StateStack GetStateStack() const;
+  const StateStack& GetStateStack() const;
 
   bool is_pawn(const Square sq) const noexcept;   // for tests only
   bool is_knight(const Square sq) const noexcept; // for tests only
@@ -134,8 +142,8 @@ public:
   bool is_double_check() const noexcept;
   bool is_check() const noexcept;
 
-  void MakeMove(const Move &move);
-  void UnmakeMove(const Move &move);
+  void MakeMove(const Move move);
+  void UnmakeMove(const Move move);
 
   bool IsPinned(const Square sq) const noexcept;
 
@@ -146,7 +154,7 @@ public:
   Bitboard get_queens() const noexcept;
   Bitboard get_kings() const noexcept;
 
-  bool IsGoodCapture(const Move &move) const;
+  bool IsGoodCapture(const Move capture) const;
   PieceType captured_piece() const;
 
   int get_phase() const;
@@ -154,6 +162,8 @@ public:
   void CalculateInfo() const;
 
   void flip_side();
+
+  Bitboard get_zobrist_key() const;
 
 private:
   BoardLookup<PieceType> board_{};
@@ -173,7 +183,7 @@ private:
   }
 
   void CalculatePinnedPieces() const noexcept;
-  inline void UpdateMoveClocks(const Move &move) noexcept;
+  inline void UpdateMoveClocks(const Move move) noexcept;
   inline void DoRookCastle(const MoveFlag flag) noexcept;
   inline void UndoRookCastle(const MoveFlag flag) noexcept;
 

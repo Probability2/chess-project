@@ -116,11 +116,15 @@ int Position::get_score() const noexcept {
   return info_.score_;
 }
 
+Bitboard Position::get_zobrist_key() const {
+  return info_.zobrist_key_;
+}
+
 InternalInfo Position::GetInfo() const {
   return info_;
 }
 
-StateStack Position::GetStateStack() const {
+const StateStack& Position::GetStateStack() const {
   return state_stack_;
 }
 
@@ -155,12 +159,6 @@ void Position::CalculateInfo() const {
     info_.is_calculated_ = true;
   }
 }
-
-// template<IsMove T, MovesType Type>
-// void Position::GenerateMoves(MoveList<T>& list) const {
-//   CalculateInfo();
-//   move_generator::GenerateMoves<Type>(*this, list);
-// }
 
 bool Position::is_single_check() const noexcept {
   info_.king_attackers_ = get_king_attackers();
@@ -286,54 +284,62 @@ inline void Position::DoRookCastle(const MoveFlag flag) noexcept {
   const int castle_type = (flag == MoveFlag::kKingCastle) ? 0 : 1;
   RemoveScore(rook, kRookCastleSquares[castle_type][side_to_move_]);
   ClearSquare(kRookCastleSquares[castle_type][side_to_move_]);
+  info_.zobrist_key_ ^= zobrist::pieces_[rook, kRookCastleSquares[castle_type][side_to_move_]];
   PutPiece(rook, kCastleInterSq[castle_type][side_to_move_]);
   AddScore(rook, kCastleInterSq[castle_type][side_to_move_]);
+  info_.zobrist_key_ ^= zobrist::pieces_[rook, kCastleInterSq[castle_type][side_to_move_]];
 }
 
-inline void Position::UpdateMoveClocks(const Move& move) noexcept {
+inline void Position::UpdateMoveClocks(const Move move) noexcept {
   halfmoves_++;
   if (move.is_50_moves_eligible() && (board_[move.get_from()] != (PieceBase::kPawn & side_to_move_))) {
     info_.no_capture_moves_++;
-  } else {
-    info_.no_capture_moves_ = 0;
+    return;
   }
+  info_.no_capture_moves_ = 0;
 }
 
-void Position::MakeMove(const Move& move) {
+void Position::MakeMove(const Move move) {
   const Square from = move.get_from();
   const Square to = move.get_to();
   [[assume(from != Square::kNone && to != Square::kNone)]];
-  // InternalInfo prev_info = info_;
   state_stack_.push(info_);
+  UpdateMoveClocks(move);
   const PieceType piece = board_[from];
+  info_.zobrist_key_ ^= zobrist::pieces_[piece, from];
   RemoveScore(piece, from);
   ClearSquare(from);
+  info_.zobrist_key_ ^= zobrist::castles_[info_.castling_rights_];
+  info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
+  info_.zobrist_key_ ^= zobrist::castles_[info_.castling_rights_];
   if (move.is_castle()) [[unlikely]] {
     DoRookCastle(move.get_flag());
   } else if (move.is_en_passant()) [[unlikely]] {
     const Square inter_sq = (side_to_move_ == ColorType::kWhite) ? to + Direction::kSouth : to + Direction::kNorth;
-    RemoveScore(PieceBase::kPawn & !side_to_move_, inter_sq);
+    const PieceType opp_pawn = PieceBase::kPawn & !side_to_move_;
+    RemoveScore(opp_pawn, inter_sq);
     ClearSquare(inter_sq);
+    info_.zobrist_key_ ^= zobrist::pieces_[opp_pawn, inter_sq];
   } else if (move.is_capture()) {
     info_.captured_piece_ = board_[to];
+    info_.zobrist_key_ ^= zobrist::pieces_[board_[to], to];
     RemoveScore(board_[to], to);
     ClearSquare(to);
   }
-  // state_stack_.push(prev_info);
-  UpdateMoveClocks(move);
   info_.en_passant_ = Square::kNone;
   if (move.is_double_pawn_push()) [[unlikely]] {
     info_.en_passant_ = (side_to_move_ == ColorType::kWhite) ? from + Direction::kNorth : from + Direction::kSouth;
   }
-  info_.castling_rights_ &= (kCastlingRights[from] & kCastlingRights[to]);
   info_.is_calculated_ = false;
   const PieceType new_piece = move.is_promotion() ? (move.promoted_piece() & side_to_move_) : piece;
   AddScore(new_piece, to);
   PutPiece(new_piece, to);
+  info_.zobrist_key_ ^= zobrist::pieces_[new_piece, to];
   side_to_move_ = !side_to_move_;
+  info_.zobrist_key_ ^= zobrist::side_to_move_;
 }
 
-void Position::UnmakeMove(const Move& move) {
+void Position::UnmakeMove(const Move move) {
   [[assume(halfmoves_ != 0)]];
   side_to_move_ = !side_to_move_;
   halfmoves_--;
@@ -389,7 +395,7 @@ Square Position::GetSmallestAttacker(const Square sq, const Bitboard occupied, c
   std::unreachable();
 }
 
-bool Position::IsGoodCapture(const Move& capture) const {
+bool Position::IsGoodCapture(const Move capture) const {
   // std::cout << capture << " CAPTURE\n";
   if (capture.is_promotion()) [[unlikely]] {
     return true;

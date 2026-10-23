@@ -243,7 +243,7 @@ inline constexpr Bitboard GenerateSlide(const Square sq, const Direction dir, co
 
 namespace internal {
 
-constexpr auto GenerateRays(auto oper) {
+consteval auto GenerateRays(auto oper) {
   MultiLookupTable<kBoardSize> rays{};
   for (Square sq1 : Board) {
     for (Direction dir: directions) {
@@ -263,7 +263,7 @@ constexpr auto GenerateRays(auto oper) {
 
 }// namespace internal
 
-inline constexpr auto kBetween = internal::GenerateRays([](auto a, auto b) { return a & b; });;
+inline constexpr auto kBetween = internal::GenerateRays([](auto a, auto b) { return a & b; });
 inline constexpr auto kLines = internal::GenerateRays([](auto a, auto b) { return a | b; });
 
 }

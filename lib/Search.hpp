@@ -20,6 +20,8 @@ constexpr int kMxChecksExtension = 25;
 
 constexpr int kCheckTimePeriod = 2047;
 
+constexpr int kMxNoCaptureMoves = 100;
+
 constexpr std::size_t kMxNodes = std::numeric_limits<std::size_t>::max();
 
 struct NodeInfo {
@@ -28,13 +30,6 @@ struct NodeInfo {
   std::size_t depth_;
   std::size_t checks_;
 };
-
-// enum class LimitTypes: uint8_t {
-//   kTimeLimit,
-//   kDepthLimit,
-//   kNodesLimit,
-//   kInfinity
-// };
 
 struct SearchLimits {
   // std::chrono::literals start_time;
@@ -77,7 +72,11 @@ private:
   // int QuiescenceSearch(NodeInfo info, const TimePoint start_time, const Ms move_time);
   int Search(NodeInfo info, const int ply);
 
-  void AddKillerMove(const Move& move, const int ply);
+  void AddKillerMove(const Move move, const int ply);
+
+  bool IsThreeFoldDraw() const;
+
+  void CopyPvMoves(const int index, const int next_index, const int ply_moves);
 
   // void ClearPvArray();
 };

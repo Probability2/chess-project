@@ -49,7 +49,6 @@ int Searcher::QuiescenceSearch(NodeInfo info) {
   info.alpha_ = std::max(info.alpha_, stand_pat);
   MovePicker picker(pos_, true);
   while (Move move = picker.YieldMove2()) {
-    // Move move = picker.YieldMove();
     pos_.MakeMove(move);
     int score = -QuiescenceSearch(NodeInfo{-info.beta_, -info.alpha_});
     pos_.UnmakeMove(move);
@@ -95,10 +94,10 @@ int Searcher::Search(NodeInfo info, const int ply) { //negamax
 
 Move Searcher::GetBestMove(const std::size_t depth) {
   if (depth == 0) {
-    return Move();
+    return kNullMove;
   }
   MovePicker picker(pos_);
-  Move best_move = Move();
+  Move best_move = kNullMove;
   int alpha = -kInfinity;
   int beta = +kInfinity;
   while (Move move = picker.YieldMove()) {
@@ -114,17 +113,51 @@ Move Searcher::GetBestMove(const std::size_t depth) {
   return best_move;
 }
 
-void Searcher::AddKillerMove(const Move& move, const int ply) {
-  for (std::size_t i = 1; i < kMaxKillerMoves; ++i) {
-    killers_[ply][i] = killers_[ply][i - 1];
+void Searcher::AddKillerMove(const Move move, const int ply) {
+  if (move == killers_[ply][0]) {
+    return;
   }
+
+  // for (std::size_t i = 1; i < kMaxKillerMoves; ++i) {
+  //   killers_[ply][i] = killers_[ply][i - 1];
+  // }
+  killers_[ply][1] = killers_[ply][0];
   killers_[ply][0] = move;
+}
+
+bool Searcher::IsThreeFoldDraw() const {
+  std::size_t no_capture_moves = pos_.get_no_capture_moves();
+  auto stack = pos_.GetStateStack().AsSpan();
+  std::size_t sz = stack.size();
+  if (sz < 4 || no_capture_moves < 4) {
+    return false;
+  }
+  Bitboard pos_key = pos_.get_zobrist_key();
+  for (std::size_t i = 4; i <= sz && i <= no_capture_moves; i += 2) {
+    if (stack[sz - i].zobrist_key_ == pos_key) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void Searcher::CopyPvMoves(const int index, const int next_index, const int ply_moves) {
+  for (std::size_t m = 1; m < ply_moves; ++m) {
+    pv_moves_[index + m] = pv_moves_[next_index + m - 1];
+    if (!pv_moves_[index + m]) {
+      break;
+    }
+  }
 }
 
 int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line) {
   // triangular pv-table
   if (++nodes_ >= limits_.mx_nodes_ || ((nodes_ & kCheckTimePeriod) == 0 && IsTimeOut())) [[unlikely]] {
     is_cancelled_ = true;
+    return 0;
+  }
+  if (ply > 0 && (IsThreeFoldDraw() || pos_.get_no_capture_moves() > kMxNoCaptureMoves)) [[unlikely]] {
     return 0;
   }
   if (info.depth_ == 0) {
@@ -137,8 +170,7 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  auto picker = pv_move ? MovePicker(pos_, killers_[ply], pv_move)
-                        : MovePicker(pos_, killers_[ply]);
+  auto picker = pv_move ? MovePicker(pos_, killers_[ply], pv_move) : MovePicker(pos_, killers_[ply]);
   pv_moves_[pv_index] = kNullMove;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
@@ -157,15 +189,10 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     if (score > info.alpha_) {
       info.alpha_ = score;
       pv_moves_[pv_index] = move;
-      for (std::size_t m = 1; m < ply_moves; ++m) {
-        pv_moves_[pv_index + m] = pv_moves_[pv_next_index + m - 1];
-        if (!pv_moves_[pv_index + m]) {
-          break;
-        }
-      }
+      CopyPvMoves(pv_index, pv_next_index, ply_moves);
     }
   }
-  if (picker.empty()) {
+  if (picker.empty()) [[unlikely]] {
     if (is_check) {
       return -kInfinity + ply;
     }

@@ -7,7 +7,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <set>
 
 namespace chess {
 
@@ -21,7 +20,7 @@ std::size_t Perft(Position pos, const std::size_t depth) {
   if (depth == 1) {
     return list.size();
   }
-  for (const auto& move: list.AsSpan()) {
+  for (const auto move: list.AsSpan()) {
     pos.MakeMove(move);
     nodes += Perft(pos, depth - 1);
     pos.UnmakeMove(move);
@@ -38,7 +37,7 @@ void PrintPerft(Position pos, const std::size_t depth) {
   std::size_t nodes = 0;
   MoveList list;
   move_generator::GenerateMoves<MovesType::kLegal>(pos, list);
-  for (const auto& move: list.AsSpan()) {
+  for (const auto move: list.AsSpan()) {
     pos.MakeMove(move);
     std::size_t num = Perft(pos, depth - 1);
     std::cout << move << ": " << num << '\n';
@@ -48,7 +47,6 @@ void PrintPerft(Position pos, const std::size_t depth) {
   auto end_time = std::chrono::steady_clock::now();
   auto duration = end_time - start_time;
   double seconds = std::chrono::duration<double>(duration).count();
-  // std::println("Depth: {}", depth);
   std::cout << "Depth: " << depth << '\n';
   std::cout << "Nodes: " << nodes << '\n';
   std::cout << "Time: " << seconds << "s\n";

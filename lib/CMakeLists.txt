@@ -4,7 +4,6 @@ add_library(ChessLibrary
     Move.cpp
     Perft.hpp
     Evaluation.hpp
-    Evaluation.cpp
     Search.hpp
     Uci.hpp
     MovePicker.hpp

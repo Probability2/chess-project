@@ -62,7 +62,7 @@ constexpr std::string_view kDepthStr = "depth";
 constexpr std::string_view kInfStr = "infinite";
 constexpr std::string_view kPerftStr = "perft";
 
-constexpr int kMoveOverhead = 10;
+constexpr int kMoveOverhead = 70;
 
 namespace internal {
 
@@ -373,7 +373,7 @@ void Run() {
         std::cerr << to_string(res.error()) << std::endl;
       }
     } else if (request.starts_with("eval")) {
-      std::cout << eval::Evaluate(searcher.get_position());
+      std::cout << eval::Evaluate(searcher.get_position()) << std::endl;
     } else if (request.starts_with("flip")) {
       searcher.flip_side();
     }

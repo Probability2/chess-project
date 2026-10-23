@@ -3,6 +3,7 @@ add_library(Types INTERFACE
     Bitboard.hpp
     Piece.hpp
     EvaluationTables.hpp
+    Zobrist.hpp
 )
 
 target_include_directories(Types 

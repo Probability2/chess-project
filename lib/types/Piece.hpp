@@ -104,8 +104,8 @@ constexpr PieceType GetPieceType(char p) {
 
 inline constexpr PieceBase GetPieceBase(PieceType piece) {
   [[assume(piece != PieceType::kNone)]];
-  const auto& map = (Color(piece) == ColorType::kWhite) ? kPieceMap[0] : kPieceMap[1];
-  return static_cast<PieceBase>(std::ranges::find(map, piece) - map.begin());
+  int ind = std::to_underlying(piece);
+  return static_cast<PieceBase>(ind >= 6 ? ind - 6 : ind);
 }
 
 inline bool IsSliding(const PieceType piece) {
