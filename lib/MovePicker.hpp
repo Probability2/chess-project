@@ -4,12 +4,9 @@
 
 #include "Evaluation.hpp"
 #include "Move.hpp"
-#include "MoveGenerator.hpp"
 #include "Position.hpp"
 
 #include <array>
-#include <concepts>
-#include <optional>
 
 namespace chess {
 
@@ -36,38 +33,48 @@ inline PickerStage& operator++(PickerStage& stage) {
 
 class MovePicker {
 public:
-  MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers = {},
-             const Move pv_move = kNullMove, const bool only_captures = false);
-  MovePicker(const Position& pos, const bool only_captures);
+  MovePicker(const Position& pos, const MultiLookupTable<int, 64>& history,
+             const std::array<Move, kMaxKillerMoves>& killers = {}, const Move pv_move = kNullMove,
+                                                                    const bool only_captures = false);
+  MovePicker(const Position& pos, const bool only_captures = false);
 
-  MovePicker(const Position&& pos, const std::array<Move, kMaxKillerMoves>& killers = {},
-             const Move pv_move = kNullMove, const bool only_captures = false) = delete;
-  MovePicker(const Position&& pos, const bool only_captures) = delete;
+  MovePicker(const Position&& pos, const MultiLookupTable<int, 64>& history,
+             const std::array<Move, kMaxKillerMoves>& killers = {}, const Move pv_move = kNullMove,
+                                                                    const bool only_captures = false) = delete;
+  MovePicker(const Position&& pos, const bool only_captures = false) = delete;
+  
   
   Move YieldMove();
   bool empty() const;
   Move YieldMove2();
   std::size_t size() const;
+  bool IsAfterGoodCaptures() const;
 
 private:
   const Position& pos_;
-  std::size_t ind_ = 0;
-  bool only_captures_ = false;
+  
+  const MultiLookupTable<int, 64>* history_ = nullptr;
 
   MoveList<MoveEntry> captures_;
   MoveList<MoveEntry> bad_captures_;
   MoveList<MoveEntry> quiets_;
-  std::size_t sz_ = 0;
-
+  
+  
   std::array<Move, kMaxKillerMoves> killers_{};// it is quiet
 
+  std::size_t ind_ = 0;
+  
+  std::size_t sz_ = 0;
+  
+  
   std::size_t left_ = 0;
   std::size_t right_ = 0;
 
+  bool only_captures_ = false;
   Move pv_move_ = kNullMove;
+
   PickerStage stage_ = PickerStage::kPrincipalVariation;
 
-  void SortOutCapture();
   Move YieldGoodCapture();
   Move YieldQuiet();
   int GetCaptureScore(const Move move) const;

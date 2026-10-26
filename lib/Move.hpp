@@ -57,7 +57,8 @@ public:
   Square get_to() const;
   PieceBase promoted_piece() const;
   MoveFlag get_flag() const;
-  bool is_capture() const;;
+  bool is_capture() const;
+  bool is_quiet() const;
   bool is_double_pawn_push() const;
   bool is_promotion() const;
   bool is_en_passant() const;

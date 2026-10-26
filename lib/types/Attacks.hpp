@@ -20,7 +20,7 @@ inline constexpr std::array<Bitboard, kBoardSize> kAttacks{};//unknown piece
 
 template<>
 inline constexpr auto kAttacks<PieceBase::kPawn> = []() {
-  MultiLookupTable<2> attacks{};
+  BitboardLookup<2> attacks{};
   for (Square sq : Board) {
     Bitboard pawn_sq = ToBB(sq);
     attacks[ColorType::kWhite, sq] = ShiftDir(pawn_sq, Direction::kNorthWest) |

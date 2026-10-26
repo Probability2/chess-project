@@ -24,6 +24,10 @@ constexpr int kMxNoCaptureMoves = 100;
 
 constexpr std::size_t kMxNodes = std::numeric_limits<std::size_t>::max();
 
+constexpr int kMaxHistory = 8192;
+
+constexpr int kReduceDepth = 1;
+
 struct NodeInfo {
   int alpha_;
   int beta_;
@@ -66,6 +70,8 @@ private:
 
   std::array<std::array<Move, kMaxKillerMoves>, kMaxDepth> killers_{};
 
+  LookupTable<MultiLookupTable<int, 64>, 2, ColorType> history_{};// butterfly board
+
   int IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line);
   inline bool IsTimeOut() const;
   int QuiescenceSearch(NodeInfo info);
@@ -77,6 +83,8 @@ private:
   bool IsThreeFoldDraw() const;
 
   void CopyPvMoves(const int index, const int next_index, const int ply_moves);
+
+  void UpdateHistory(const ColorType side, const Move move, const int depth);
 
   // void ClearPvArray();
 };

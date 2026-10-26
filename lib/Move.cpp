@@ -70,6 +70,10 @@ bool Move::is_capture() const {
   return move_val_ & 0x4000;
 }
 
+bool Move::is_quiet() const {
+  return !is_capture();
+}
+
 bool Move::is_double_pawn_push() const {
   return get_flag() == MoveFlag::kDoublePawnPush;
 }

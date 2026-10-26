@@ -122,12 +122,9 @@ struct LookupTable {
   }
 };
 
-template<typename T>
-using BoardLookup = LookupTable<T, kBoardSize, Square>;
-
-template<std::size_t N>
+template<typename T, std::size_t N>
 struct MultiLookupTable {
-  std::array<std::array<Bitboard, kBoardSize>, N> table_;
+  std::array<std::array<T, kBoardSize>, N> table_;
 
   bool operator==(const MultiLookupTable& other) const = default;
 
@@ -136,6 +133,12 @@ struct MultiLookupTable {
     return self.table_[std::to_underlying(ind)][std::to_underlying(sq)];
   }
 };
+
+template<typename T>
+using BoardLookup = LookupTable<T, kBoardSize, Square>;
+
+template<std::size_t N>
+using BitboardLookup = MultiLookupTable<Bitboard, N>;
 
 inline constexpr auto Board = []() {
   std::array<Square, kBoardSize> squares{};
@@ -244,7 +247,7 @@ inline constexpr Bitboard GenerateSlide(const Square sq, const Direction dir, co
 namespace internal {
 
 consteval auto GenerateRays(auto oper) {
-  MultiLookupTable<kBoardSize> rays{};
+  BitboardLookup<kBoardSize> rays{};
   for (Square sq1 : Board) {
     for (Direction dir: directions) {
       Bitboard slide1 = GenerateSlide(sq1, dir, 0);

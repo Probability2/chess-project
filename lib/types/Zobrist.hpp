@@ -5,7 +5,7 @@
 #include <array>
 
 namespace chess::zobrist {
-  constexpr MultiLookupTable<12> pieces_ = {{{
+  constexpr BitboardLookup<12> pieces_ = {{{
     {
     0xA9E906EB794AAA1CULL, 0xED6542545D5BFF80ULL, 0x7B6FBA09D32E5141ULL, 0x7E20D14BD0755E59ULL,
     0xC7D96FD064D56362ULL, 0x2A81966167D50F61ULL, 0xB69F533EC262FE1AULL, 0x9A227A569E357ECFULL, 

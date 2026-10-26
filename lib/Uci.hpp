@@ -235,6 +235,9 @@ void PlayWithIterativeBot(Position pos, const Ms move_time) {
         if (!std::getline(std::cin, str)) {
           return;
         }
+        if (str == "resign" || str == "cancel") {
+          return;
+        }
         move = internal::UciToMove(str, spos);
         std::cout << move << '\n';
       }

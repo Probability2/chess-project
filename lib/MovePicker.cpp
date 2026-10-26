@@ -1,10 +1,13 @@
 #include "MovePicker.hpp"
+#include "MoveGenerator.hpp"
 
 namespace chess {
 
-MovePicker::MovePicker(const Position& pos, const std::array<Move, kMaxKillerMoves>& killers,
-             const Move pv_move, const bool only_captures)
+MovePicker::MovePicker(const Position& pos, const MultiLookupTable<int, 64>& history,
+           const std::array<Move, kMaxKillerMoves>& killers, const Move pv_move,
+                                                             const bool only_captures)
 : pos_(pos)
+, history_(&history)
 , killers_(killers)
 , pv_move_(pv_move)
 , only_captures_(only_captures) {
@@ -27,21 +30,21 @@ int MovePicker::GetCaptureScore(const Move move) const {
 }
 
 int MovePicker::GetQuietScore(const Move move) const {
+  [[assume(history_ != nullptr)]];
   if (move == killers_[0]) {
-    return 900;
+    return 9000;
   } else if (move == killers_[1]) {
-    return 800;
+    return 8500;
   }// add here if there are more then 2 killer moves
   if (move.is_promotion()) [[unlikely]] {
     switch (move.promoted_piece()) {
-      case PieceBase::kQueen: return 1000;
-      case PieceBase::kKnight: return 600;
-      default: return 200;// rook and bishop
+      case PieceBase::kQueen: return 10000;
+      case PieceBase::kKnight: return 6000;
+      default: return 2000;// rook and bishop
     }
-  } else if (move.is_castle()) [[unlikely]] {
-    return 300;
   } else [[likely]] {
-    return 100;
+    // return 100;
+    return (*history_)[move.get_from(), move.get_to()];
   }
 }
 
@@ -64,6 +67,10 @@ Move MovePicker::YieldMove2() {
   }
 
   return move;
+}
+
+bool MovePicker::IsAfterGoodCaptures() const {
+  return stage_ >= PickerStage::kQuiets;
 }
 
 Move MovePicker::YieldMove() {
