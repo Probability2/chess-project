@@ -82,6 +82,11 @@ bool Move::is_promotion() const {
   return move_val_ & 0x8000;
 }
 
+bool Move::is_queen_promotion() const {
+  const MoveFlag flag = get_flag();
+  return flag == MoveFlag::kQueenPromotion || flag == MoveFlag::kQueenPromoCapture;
+}
+
 bool Move::is_en_passant() const {
   return get_flag() == MoveFlag::kEpCapture;
 }

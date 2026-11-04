@@ -2,16 +2,16 @@
 #include <windows.h>
 #include <ws2tcpip.h>
 
-#include "lib/Perft.hpp"
-#include "lib/Search.hpp"
 #include "lib/FileManager.hpp"
 #include "lib/Move.hpp"
 #include "lib/MoveGenerator.hpp"
+#include "lib/Perft.hpp"
+#include "lib/Search.hpp"
+#include "lib/TranspositionTable.hpp"
 #include "lib/Uci.hpp"
 
-#include <conio.h>
-
 #include <chrono>
+#include <conio.h>
 #include <random>
 
 using namespace chess;
@@ -37,12 +37,15 @@ int main(int argc, char** argv) {
   auto pp1 = fen_manager::Get("2q1k1nr/Q1Bn1ppp/4p3/5b2/2pP4/P3P3/3N1PPP/b3KB1R w Kk - 0 2").value();
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
   auto pp3 = fen_manager::Get("8/p2knpp1/1p5p/2p1PP1P/4N3/1PP2K2/P7/8 w - - 0 0").value();// carlsen nakamura
-  
+  // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
   auto pos = fen_manager::Get("r5k1/1R2pp1p/3p2p1/3P4/b3P3/1p2B2P/1P1K1PP1/8 w - - 0 1").value();
 
-  // uci::PlayWithIterativeBot(fen_manager::Get("r5k1/1R2pp1p/3p2p1/3P4/b3P3/1p2B2P/1P1K1PP1/8 b - - 0 1").value(), 1000ms);
-
+  // uci::PlayWithIterativeBot(kStartingPosition, 1000ms);
+  std::cout << sizeof(TTEntry) << '\n';
   uci::Run();
+
+  // B b();
+  // b.f();
 
   return EXIT_SUCCESS;
 }

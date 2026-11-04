@@ -61,6 +61,7 @@ constexpr std::string_view kNodesStr = "nodes";
 constexpr std::string_view kDepthStr = "depth";
 constexpr std::string_view kInfStr = "infinite";
 constexpr std::string_view kPerftStr = "perft";
+constexpr std::string_view kHashStr = "hash";
 
 constexpr int kMoveOverhead = 70;
 
@@ -76,6 +77,7 @@ std::expected<std::size_t, GoParseError> IsNotZero(const std::size_t n) {
 
 void SkipSpaces(std::string_view& str) {
   str.remove_prefix(std::min(str.find_first_not_of(' '), str.size()));
+  str.remove_prefix(std::min(str.find_first_not_of('\t'), str.size()));
 }
 
 std::expected<Position, ParsePositionError> ParsePosition(std::string_view& request) {
@@ -191,6 +193,10 @@ void PlayWithBot(Position pos, const int depth) {
       while (!move) {
         std::string str;
         if (!std::getline(std::cin, str)) {
+          return;
+        }
+        if (str.starts_with("resign") || str.starts_with("quit")) {
+          std::cout << "Game over! Tapuzero's victory\n";
           return;
         }
         move = internal::UciToMove(str, spos);
@@ -348,6 +354,12 @@ std::expected<void, GoParseError> ProcessGo(Searcher& searcher, std::string_view
   return {};
 }
 
+std::expected<void, GoParseError> ProcessResizeTT(Searcher& searcher, std::string_view request) {
+  return internal::ParseNumber(request, kHashStr).transform([&searcher](std::size_t sz) {
+    searcher.resize(sz);
+  });
+}
+
 void Run() {
   Searcher searcher;
   std::string request;
@@ -379,8 +391,12 @@ void Run() {
       std::cout << eval::Evaluate(searcher.get_position()) << std::endl;
     } else if (request.starts_with("flip")) {
       searcher.flip_side();
+    } else if (request.starts_with("hash")) {
+      if (auto res = ProcessResizeTT(searcher, request); !res) {
+        std::cerr << to_string(res.error()) << std::endl;
+      }
     }
   }
 }
 
-}
+}// namespace chess::uci

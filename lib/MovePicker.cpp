@@ -30,7 +30,6 @@ int MovePicker::GetCaptureScore(const Move move) const {
 }
 
 int MovePicker::GetQuietScore(const Move move) const {
-  [[assume(history_ != nullptr)]];
   if (move == killers_[0]) {
     return 9000;
   } else if (move == killers_[1]) {
@@ -44,6 +43,7 @@ int MovePicker::GetQuietScore(const Move move) const {
     }
   } else [[likely]] {
     // return 100;
+    [[assume(history_ != nullptr)]];
     return (*history_)[move.get_from(), move.get_to()];
   }
 }

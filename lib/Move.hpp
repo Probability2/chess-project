@@ -61,6 +61,7 @@ public:
   bool is_quiet() const;
   bool is_double_pawn_push() const;
   bool is_promotion() const;
+  bool is_queen_promotion() const;
   bool is_en_passant() const;
   bool is_castle() const;
   bool is_king_castle() const;

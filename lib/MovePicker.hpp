@@ -10,8 +10,6 @@
 
 namespace chess {
 
-inline constexpr int kMaxDepth = 64;
-
 inline constexpr int kMaxKillerMoves = 2;
 
 enum class PickerStage: uint8_t {

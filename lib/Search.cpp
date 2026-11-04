@@ -9,6 +9,12 @@ Searcher::Searcher()
 , is_cancelled_(false) {
 }
 
+Searcher::Searcher(const std::size_t tt_size)
+: pos_(kStartingPosition)
+, is_cancelled_(false)
+, tt_(tt_size) {
+}
+
 Searcher::Searcher(Position pos)
 : pos_(std::move(pos))
 , is_cancelled_(false) {
@@ -102,7 +108,8 @@ Move Searcher::GetBestMove(const std::size_t depth) {
   int beta = +kInfinity;
   while (Move move = picker.YieldMove()) {
     pos_.MakeMove(move);
-    int score = -Search(NodeInfo{-beta, -alpha, depth - 1, 0}, 0);
+    uint8_t curr_depth = (depth >= 1) ? depth : 0;
+    int score = -Search(NodeInfo{-beta, -alpha, curr_depth, 0}, 0);
     pos_.UnmakeMove(move);
     if (score > alpha) {
       alpha = score;
@@ -158,18 +165,33 @@ void Searcher::UpdateHistory(const ColorType side, const Move move, const int de
   history_[side][from, to] += (bonus - history_[side][from, to] * std::abs(bonus) / kMaxHistory);
 }
 
+bool Searcher::IsKiller(const Move move, const int ply) const {
+  return killers_[ply][0] == move || killers_[ply][1] == move;
+}
+
 int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line) {
   // triangular pv-table
-  constexpr int kIndLMR = 3;
   if (++nodes_ >= limits_.mx_nodes_ || ((nodes_ & kCheckTimePeriod) == 0 && IsTimeOut())) [[unlikely]] {
     is_cancelled_ = true;
     return 0;
   }
+  auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
+  pv_moves_[pv_index] = kNullMove;
   if (ply > 0 && (IsThreeFoldDraw() || pos_.get_no_capture_moves() > kMxNoCaptureMoves)) [[unlikely]] {
     return 0;
   }
+  Move tt_move = kNullMove;
+  if (auto node = tt_.find(pos_.get_zobrist_key())) {
+    int score = node->get_score(ply);
+    tt_move = node->best_move_;
+    if (node->depth_ >= info.depth_ && (node->bound_ == TTBound::kExact ||
+        node->bound_ == TTBound::kLower && score >= info.beta_ ||
+        node->bound_ == TTBound::kUpper && score <= info.alpha_)) {
+      return score;
+    }
+  }
   if (info.depth_ == 0) {
-    pv_moves_[pv_index] = kNullMove;
+    // pv_moves_[pv_index] = kNullMove;
     return QuiescenceSearch(info);
   }
   bool is_check = pos_.is_check();
@@ -178,25 +200,26 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
   int extension = (is_check && info.checks_ < kMxChecksExtension) ? 0 : 1;
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
-  auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  auto picker = MovePicker(pos_, history_[side], killers_[ply], pv_move);
-  pv_moves_[pv_index] = kNullMove;
-  // std::size_t i = 0;
+  auto picker = MovePicker(pos_, history_[side], killers_[ply], pv_move ? pv_move : tt_move);// ????
+  // pv_moves_[pv_index] = kNullMove;
+  bool is_exact = false;
+  Move best_move = kNullMove;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
     int score = 0;
-    bool is_full_search = true;
-    if (info.depth_ >= 3 && picker.IsAfterGoodCaptures() && !pos_.is_check()) {
-      score = -IterativeSearch(NodeInfo{-info.alpha_ - 1, -info.alpha_, info.depth_ - kReduceDepth - 1,
-                                         info.checks_}, ply + 1, pv_next_index, false);
+    bool is_full_search = true;//  && !move.is_queen_promotion()
+    if (info.depth_ >= 3 && picker.IsAfterGoodCaptures() && !pos_.is_check()
+                             && !IsKiller(move, ply) && !move.is_queen_promotion()) {
+      assert(info.depth_ - kReduceDepth - 1 >= 0);
+      score = -IterativeSearch(NodeInfo{-info.alpha_ - 1, -info.alpha_,info.depth_ - kReduceDepth - 1, info.checks_},
+                               ply + 1, pv_next_index, false);
       is_full_search = (score > info.alpha_);
     }
     if (is_full_search && !is_cancelled_) {
-      score = -IterativeSearch(NodeInfo{-info.beta_, -info.alpha_, info.depth_ - extension, info.checks_},
-                                            ply + 1, pv_next_index, move == pv_move);
+      assert(info.depth_ - extension >= 0);
+      score = -IterativeSearch(NodeInfo{-info.beta_, -info.alpha_, info.depth_ - extension,
+                                        info.checks_}, ply + 1, pv_next_index, move == pv_move);
     }
-    // score = -IterativeSearch(NodeInfo{-info.beta_, -info.alpha_, info.depth_ - extension, info.checks_},
-    //                                         ply + 1, pv_next_index, move == pv_move);
     pos_.UnmakeMove(move);
     if (is_cancelled_) [[unlikely]] {
       return 0;
@@ -205,34 +228,40 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
       if (move.is_quiet()) {
         AddKillerMove(move, ply);
         UpdateHistory(side, move, info.depth_);
-        // history_[side][move.get_from(), move.get_to()] += info.depth_ * info.depth_;
       }
+      tt_.store(TTEntry(pos_.get_zobrist_key(), TTEntry::CalculateScore(info.beta_, ply),
+                                                move, info.depth_, TTBound::kLower));
       return info.beta_;
     }
     if (score > info.alpha_) {
       info.alpha_ = score;
       pv_moves_[pv_index] = move;
       CopyPvMoves(pv_index, pv_next_index, ply_moves);
+      best_move = move;
+      is_exact = true;
     }
   }
+  // bool is_game_finished = false;
+  bool is_mate = false;
   if (picker.empty()) [[unlikely]] {
-    if (is_check) {
-      return -kInfinity + ply;
-    }
-    return 0;
+    // is_game_finished = true;
+    is_mate = is_check;
+    info.alpha_ = (is_check) ? -kInfinity + ply : 0;
+    is_exact = true;
+  } else [[likely]] {
+    info.alpha_ = TTEntry::CalculateScore(info.alpha_, ply);
   }
+  tt_.store(TTEntry(pos_.get_zobrist_key(), info.alpha_, best_move, info.depth_,
+                                  is_exact ? TTBound::kExact : TTBound::kUpper));
 
   return info.alpha_;
 }
 
 Move Searcher::IterativeBestMove() {
   start_time_ = std::chrono::steady_clock::now();
-  nodes_ = 0;
-  is_cancelled_ = false;
-  std::ranges::fill(pv_moves_, kNullMove);
-  history_ = {};
+  clear();
   Move best_move;
-  std::size_t depth = 1;
+  uint8_t depth = 1;
   for (depth = 1; depth <= limits_.depth_; ++depth) {
     int _ = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, 0, 0, true);
     if (is_cancelled_) {
@@ -242,15 +271,23 @@ Move Searcher::IterativeBestMove() {
   }
   std::cout << "The move is from depth : " <<  depth - 1 << std::endl;
   std::cout << "Total nodes: " << nodes_ << std::endl;
-  // std::cout << "Total time: " << std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time_).count() << "s" << std::endl;
+  std::cout << "Total time: " << std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time_).count() << "s" << std::endl;
 
+  // return best_move;
   return best_move;
 }
 
+void Searcher::reset() {
+  pos_ = kStartingPosition;
+  clear();
+}
+
 void Searcher::clear() {
-  pos_ = Position();
   is_cancelled_ = false;
   std::ranges::fill(pv_moves_, kNullMove);
+  tt_.clear();
+  history_ = {};
+  killers_ = {};
   nodes_ = 0;
 }
 
@@ -260,6 +297,10 @@ void Searcher::set_limits(const SearchLimits& limits) {
 
 void Searcher::flip_side() {
   pos_.flip_side();
+}
+
+void Searcher::resize(std::size_t sz) {
+  tt_.resize(sz);
 }
 
 }

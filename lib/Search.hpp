@@ -2,6 +2,7 @@
 
 #include "Evaluation.hpp"
 #include "MovePicker.hpp"
+#include "TranspositionTable.hpp"
 #include "Position.hpp"
 
 #include <algorithm>
@@ -13,8 +14,6 @@ namespace chess {
 
 using Ms = std::chrono::milliseconds;
 using TimePoint = std::chrono::steady_clock::time_point;
-
-constexpr int kInfinity = 100000;
 
 constexpr int kMxChecksExtension = 25;
 
@@ -31,8 +30,8 @@ constexpr int kReduceDepth = 1;
 struct NodeInfo {
   int alpha_;
   int beta_;
-  std::size_t depth_;
-  std::size_t checks_;
+  int depth_;
+  uint8_t checks_;
 };
 
 struct SearchLimits {
@@ -45,6 +44,7 @@ struct SearchLimits {
 class Searcher {
 public:
   Searcher();
+  Searcher(const std::size_t tt_size);
   Searcher(Position pos);
   void SetPosition(const Position& pos);
   Move GetBestMove(const std::size_t depth);
@@ -53,10 +53,13 @@ public:
   void UnmakeMove(const Move move);
   Position& get_position();
   void clear();
+  void reset();
   void set_limits(const SearchLimits& limits);
   void flip_side();
+  void resize(std::size_t sz);
 
 private:
+  TranspositionTable tt_;
   Position pos_;
   bool is_cancelled_ = false;
 
@@ -85,6 +88,8 @@ private:
   void CopyPvMoves(const int index, const int next_index, const int ply_moves);
 
   void UpdateHistory(const ColorType side, const Move move, const int depth);
+
+  bool IsKiller(const Move move, const int ply) const;
 
   // void ClearPvArray();
 };

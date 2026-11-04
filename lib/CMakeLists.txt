@@ -9,6 +9,8 @@ add_library(ChessLibrary
     MovePicker.hpp
     MovePicker.cpp
     Search.cpp
+    TranspositionTable.hpp
+    TranspositionTable.cpp
 )
 
 # target_link_libraries(ChessLibrary 
