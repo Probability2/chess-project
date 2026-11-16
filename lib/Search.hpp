@@ -27,6 +27,8 @@ constexpr int kMaxHistory = 8192;
 
 constexpr int kReduceDepth = 1;
 
+constexpr int kAspThreshold = 30;// 1R1K4/P7/3k4/8/8/7r/8/8 w - - 0 1
+
 struct NodeInfo {
   int alpha_;
   int beta_;
@@ -75,6 +77,8 @@ private:
 
   LookupTable<MultiLookupTable<int, 64>, 2, ColorType> history_{};// butterfly board
 
+  std::size_t tt_bit_size_ = 3;
+
   int IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line);
   inline bool IsTimeOut() const;
   int QuiescenceSearch(NodeInfo info);
@@ -90,6 +94,10 @@ private:
   void UpdateHistory(const ColorType side, const Move move, const int depth);
 
   bool IsKiller(const Move move, const int ply) const;
+
+  static double Duration(TimePoint start);
+
+  std::pair<int, Move> AspirationSearch(int prev_score);
 
   // void ClearPvArray();
 };

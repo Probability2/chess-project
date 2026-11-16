@@ -12,7 +12,8 @@ Searcher::Searcher()
 Searcher::Searcher(const std::size_t tt_size)
 : pos_(kStartingPosition)
 , is_cancelled_(false)
-, tt_(tt_size) {
+, tt_(tt_size)
+, tt_bit_size_(std::bit_width(tt_size) - 1) {
 }
 
 Searcher::Searcher(Position pos)
@@ -169,6 +170,10 @@ bool Searcher::IsKiller(const Move move, const int ply) const {
   return killers_[ply][0] == move || killers_[ply][1] == move;
 }
 
+double Searcher::Duration(TimePoint start) {
+  return std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+}
+
 int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, const bool is_main_line) {
   // triangular pv-table
   if (++nodes_ >= limits_.mx_nodes_ || ((nodes_ & kCheckTimePeriod) == 0 && IsTimeOut())) [[unlikely]] {
@@ -176,7 +181,9 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     return 0;
   }
   auto pv_move = is_main_line ? pv_moves_[ply] : kNullMove;
-  pv_moves_[pv_index] = kNullMove;
+  if (ply > 0) [[likely]] {
+    pv_moves_[pv_index] = kNullMove;
+  }
   if (ply > 0 && (IsThreeFoldDraw() || pos_.get_no_capture_moves() > kMxNoCaptureMoves)) [[unlikely]] {
     return 0;
   }
@@ -187,6 +194,7 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     if (node->depth_ >= info.depth_ && (node->bound_ == TTBound::kExact ||
         node->bound_ == TTBound::kLower && score >= info.beta_ ||
         node->bound_ == TTBound::kUpper && score <= info.alpha_)) {
+          // tt_cutoffs_++;
       return score;
     }
   }
@@ -200,10 +208,11 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
   int extension = (is_check && info.checks_ < kMxChecksExtension) ? 0 : 1;
   int ply_moves = kMaxDepth - ply;
   int pv_next_index = ply_moves + pv_index;
-  auto picker = MovePicker(pos_, history_[side], killers_[ply], pv_move ? pv_move : tt_move);// ????
+  auto picker = MovePicker(pos_, history_[side], killers_[ply], tt_move);// ????
   // pv_moves_[pv_index] = kNullMove;
   bool is_exact = false;
   Move best_move = kNullMove;
+  int best_score = -kInfinity;
   while (Move move = picker.YieldMove2()) {
     pos_.MakeMove(move);
     int score = 0;
@@ -211,7 +220,7 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     if (info.depth_ >= 3 && picker.IsAfterGoodCaptures() && !pos_.is_check()
                              && !IsKiller(move, ply) && !move.is_queen_promotion()) {
       assert(info.depth_ - kReduceDepth - 1 >= 0);
-      score = -IterativeSearch(NodeInfo{-info.alpha_ - 1, -info.alpha_,info.depth_ - kReduceDepth - 1, info.checks_},
+      score = -IterativeSearch(NodeInfo{-info.alpha_ - 1, -info.alpha_, info.depth_ - kReduceDepth - 1, info.checks_},
                                ply + 1, pv_next_index, false);
       is_full_search = (score > info.alpha_);
     }
@@ -224,20 +233,25 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     if (is_cancelled_) [[unlikely]] {
       return 0;
     }
+    if (score > best_score) {
+      best_move = move;
+      best_score = score;
+    }
+    // best_score = std::max(best_score, score);
     if (score >= info.beta_) {
       if (move.is_quiet()) {
         AddKillerMove(move, ply);
         UpdateHistory(side, move, info.depth_);
       }
-      tt_.store(TTEntry(pos_.get_zobrist_key(), TTEntry::CalculateScore(info.beta_, ply),
-                                                move, info.depth_, TTBound::kLower));
+      tt_.store(TTEntry(pos_.get_zobrist_key(), info.beta_, move, info.depth_, TTBound::kLower));
+
       return info.beta_;
     }
     if (score > info.alpha_) {
       info.alpha_ = score;
       pv_moves_[pv_index] = move;
       CopyPvMoves(pv_index, pv_next_index, ply_moves);
-      best_move = move;
+      // best_move = move;
       is_exact = true;
     }
   }
@@ -248,32 +262,57 @@ int Searcher::IterativeSearch(NodeInfo info, const int ply, const int pv_index, 
     is_mate = is_check;
     info.alpha_ = (is_check) ? -kInfinity + ply : 0;
     is_exact = true;
-  } else [[likely]] {
-    info.alpha_ = TTEntry::CalculateScore(info.alpha_, ply);
   }
   tt_.store(TTEntry(pos_.get_zobrist_key(), info.alpha_, best_move, info.depth_,
                                   is_exact ? TTBound::kExact : TTBound::kUpper));
 
   return info.alpha_;
+}// 2k2r1r/p1p1R2P/1pP5/1P2R3/2K1P3/5P2/P7/8 b - - 0 45
+
+std::pair<int, Move> Searcher::AspirationSearch(int prev_score) {
+  Move best_move;
+  int depth = 2;
+  for (; depth <= limits_.depth_; ++depth) {
+    int alpha = prev_score - kAspThreshold;
+    int beta = prev_score + kAspThreshold;
+    // int alpha = -kInfinity;
+    // int beta = +kInfinity;
+    int score = IterativeSearch(NodeInfo{alpha, beta, depth, 0}, 0, 0, true);
+    if (is_cancelled_) {
+      break;
+    }
+    // tt_.clear();
+
+    if (score <= alpha) {
+      prev_score = IterativeSearch(NodeInfo{-kInfinity, beta, depth, 0}, 0, 0, true);
+    } else if (score >= beta) {
+      prev_score = IterativeSearch(NodeInfo{alpha, +kInfinity, depth, 0}, 0, 0, true);
+    } else [[likely]] {
+      prev_score = score;
+    }
+    if (is_cancelled_) {
+      break;
+    }
+    best_move = pv_moves_[0];
+  }
+
+  return {depth, best_move};
 }
 
 Move Searcher::IterativeBestMove() {
   start_time_ = std::chrono::steady_clock::now();
   clear();
   Move best_move;
-  uint8_t depth = 1;
-  for (depth = 1; depth <= limits_.depth_; ++depth) {
-    int _ = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, depth, 0}, 0, 0, true);
-    if (is_cancelled_) {
-      break;
-    }
-    best_move = pv_moves_[0];
+  int depth = 1;
+  int prev_score = IterativeSearch(NodeInfo{-kInfinity, +kInfinity, 1, 0}, 0, 0, true);
+  best_move = pv_moves_[0];
+  if (!is_cancelled_) {
+    std::tie(depth, best_move) = AspirationSearch(prev_score);
   }
   std::cout << "The move is from depth : " <<  depth - 1 << std::endl;
   std::cout << "Total nodes: " << nodes_ << std::endl;
-  std::cout << "Total time: " << std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time_).count() << "s" << std::endl;
+  std::cout << "Total time: " << Duration(start_time_) << "s" << std::endl;
 
-  // return best_move;
   return best_move;
 }
 

@@ -24,7 +24,7 @@ enum class TTBound: uint8_t {
 
 struct TTEntry {
   TTEntry() = default;
-  TTEntry(const Bitboard key, const int score, const Move move, const uint8_t depth,
+  TTEntry(const uint64_t key, const int score, const Move move, const uint8_t depth,
                                                                 const TTBound bound = TTBound::kNone);
 
   bool is_null() const;
@@ -33,6 +33,7 @@ struct TTEntry {
   static int CalculateScore(const int score, const int ply);
 
   uint64_t key_;
+  // uint16_t key_;// 4 + 4 + 2 + 1 + 1 = 12
   int score_;
   Move best_move_;
   uint8_t depth_;

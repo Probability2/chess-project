@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
   auto pp2 = fen_manager::Get("4k2r/pp2Bpp1/4p2p/8/4n2Q/6P1/PP1qPP1P/2R3K1 w k - 0 1").value();// carlsen duda
   auto pp3 = fen_manager::Get("8/p2knpp1/1p5p/2p1PP1P/4N3/1PP2K2/P7/8 w - - 0 0").value();// carlsen nakamura
   // 8/k7/3p4/p2P1p2/P2P1P2/8/8/K7 w - - 0 1
-  auto pos = fen_manager::Get("r5k1/1R2pp1p/3p2p1/3P4/b3P3/1p2B2P/1P1K1PP1/8 w - - 0 1").value();
+  auto pos = fen_manager::Get("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1").value();
 
   // uci::PlayWithIterativeBot(kStartingPosition, 1000ms);
   std::cout << sizeof(TTEntry) << '\n';
